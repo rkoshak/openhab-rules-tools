@@ -12,10 +12,10 @@ To start, this library will primarily contain Jython libraries but over time I e
 # Installation
 Clone the repository to your local system.
 
-Copy the contents of `automation/lib/<language>/rlk-tools` to `$OH_CONF/automation/lib/<language>/rlk-tools` where `<language>` is the language (e.g. Python).
+Copy the contents of `automation/lib/<language>/rlktools` to `$OH_CONF/automation/lib/<language>/rlktools` where `<language>` is the language (e.g. Python).
 This will add all the libraries to openHAB.
 Many of the rules depend on these libraries.
-If there are rules desired, copy the `/automation/jsr223/<langauge>/rlk-tools/<folder>` where `<folder>` is the folder containing the desired rules.
+If there are rules desired, copy the `/automation/jsr223/<langauge>/rlktools/<folder>` where `<folder>` is the folder containing the desired rules.
 
 # Usage
 Each rule and libary class and function has the usage information documented in the source code and the README.md file in each folder.
