@@ -21,3 +21,8 @@ If there are rules desired, copy the `/automation/jsr223/<langauge>/rlktools/<fo
 Each rule and libary class and function has the usage information documented in the source code and the README.md file in each folder.
 
 Most library capabilities and sets of rules will have a test which is another good source for examples.
+
+# Future Plans
+To start this repo will contain Python and Rules DSL rules.
+Over time JavaScript versions of the same rules will be added.
+The ultimate goal is to develop rule templates usable from the OH UI Rules Editor or through the REST API.
