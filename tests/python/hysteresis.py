@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-# Hysteresis test
-import community.rlkutils
-reload(community.rlkutils)
-from community.rlkutils import hysteresis
+import community.rlktools.rlkutils
+reload(community.rlktools.rlkutils)
+from community.rlktools.rlkutils import hysteresis
 from core.log import logging, LOG_PREFIX
 
 log = logging.getLogger("{}.TEST.util".format(LOG_PREFIX))
 try:
+    log.info("Starting hysteresis tests")
     assert hysteresis(30, 30, 1, 1) == 0, "Failed 30, 30, 1, 1"
     assert hysteresis(30, 29, 1, 1) == -1, "Failed 30, 29, 1, 1"
     assert hysteresis(30, 31, 1, 1) == 1, "Failed 30, 31, 1, 1"
