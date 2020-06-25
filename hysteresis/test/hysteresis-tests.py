@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import community.rlktools.rlkutils
-reload(community.rlktools.rlkutils)
-from community.rlktools.rlkutils import hysteresis
+import community.hysteresis
+reload(community.hysteresis)
+from community.hysteresis import hysteresis
 from core.log import logging, LOG_PREFIX
 
 log = logging.getLogger("{}.TEST.util".format(LOG_PREFIX))

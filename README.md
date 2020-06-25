@@ -11,16 +11,18 @@ To start, this library will primarily contain Jython libraries but over time I e
 
 # Installation
 Clone the repository to your local system.
+Each library is made up of zero or more library modules and zero or more rule scripts.
+To make installation of individual capabilities easier, each capability is located in it's own folder.
+Copy the `automaion` folder under a given capability's folder to `$OH_CONF`.
 
-Copy the contents of `automation/lib/<language>/rlktools` to `$OH_CONF/automation/lib/<language>/rlktools` where `<language>` is the language (e.g. Python).
-This will add all the libraries to openHAB.
-Many of the rules depend on these libraries.
-If there are rules desired, copy the `/automation/jsr223/<langauge>/rlktools/<folder>` where `<folder>` is the folder containing the desired rules.
+Many capabilities also have unit tests located in the `test` folder.
+To test the library, copy the contents of the `test` folder to `$OH_CONF/automation/jsr223/<language>/community`.
+Watch the logs for errors or success.
+Once the tests have run, remove the test files so they do not run on every restart of OH.
 
 # Usage
-Each rule and libary class and function has the usage information documented in the source code and the README.md file in each folder.
-
-Most library capabilities and sets of rules will have a test which is another good source for examples.
+Each rule and libary class and function has the usage information documented in the source code and the README.md file in each capability's folder.
+The unit tests are also another good place to find usage examples.
 
 # Future Plans
 To start this repo will contain Python and Rules DSL rules.
