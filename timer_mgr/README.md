@@ -1,0 +1,92 @@
+# Timer Manager
+This library implements a class that greatly simplifies the creation and use of Timers in cases where one needs to create a separate Timer for each individual Item.
+For example, one can have a number of Contact Items representing doors in a group.
+When any of the doors open a timer is set for that door in order to send an alert if it's been open too long.
+This requires a separate Timer for each Item.
+
+# Purpose
+Creating a separate Timer for each Iteof a given type is a common requirement and requires the user to do all the book keeping and management of the Timers manually.
+This class implements all the book keeping and presents a simple interface to create, check for the existence of a Timer, cancelling of Timers, etc.
+
+# How it works
+The class provides four functions.
+
+## check
+This is the function that will be used the most.
+
+```python
+tm.check(key, interval, function, flapping_function, reschedule)
+```
+
+Argument | Purpose
+-|-
+`key` | The unique name for the Timer. Most often this will be the Item name.
+`interval` | The amount of time to pass before the Timer expires in milliseconds.
+`function` | An optional function or lambda to call when the Timer expires.
+`flapping_function` | An optional function or lambda to call when check is called and a Timer already exists. Can be useful to, for example, take some action when a device is flapping.
+`reschedule` | An optional flag indicating that if the Timer exists when check is called, reschedule the Timer. Defaults to `False`.
+
+## has_timer
+Returns True is there is a Timer by the passed in name.
+
+```python
+if tm.has_timer("Name"):
+    # do something
+```
+
+## cancel
+Cancels the Timer by the given name.
+Does nothing if no Timer by that name exists.
+
+```python
+tm.cancel("Name")
+```
+
+## cancel_all
+Cancels all the existing Timers.
+Useful to be called from a script_unload function.
+
+```python
+tm.cancel_all()
+```
+
+# Examples
+
+```python
+from community.timer_mgr import TimerMgr
+
+
+tm = new TimerMgr()
+
+...
+
+    # In a Rule, check to see if a Timer exists for this Item. If one
+    # exists, log a warning statement that the Item is flapping.
+    # Otherwise, set a half second timer and update the Time Item
+    # associated with the Item.
+    tm.check(event.itemName,
+             500,
+             lambda: events.postUpdate("{}_Time".format(event.itemName), str(DateTime.now())),
+             lambda: my_rule.log.warn("{} is flapping!".format(event.itemName),
+             reschedule=True)
+
+...
+
+    # In a Rule, if the door is OPEN, create a timer to go off in 60
+    # minutes to post a message to the Alert Item. If it's NIGHT time,
+    # reschedule the Timer. If the door is CLOSED, cancel the reminder
+    # Timer.
+    if items[itemName == OPEN]:
+        reminder_timers.check(itemName,
+                              60*60*1000,
+                              lambda: events.postUpdate("AlertItem", "{} has been open for an hour!".format(itemName)),
+                              reschedule=items["vTimeOfDay"] == StringType("NIGHT"))
+    else:
+        reminder_timers.cancel(itemName)
+
+...
+
+    # Check to see if a Timer exists for the Item.
+    if reminder_timers.has_timer(itemName):
+        my_rule.log.warn("There already is a timer for {}!".format(itemName))
+```

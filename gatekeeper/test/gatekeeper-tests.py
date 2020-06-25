@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # Import the Gatekeeper class
-import community.rlktools.gatekeeper.gatekeeper
-reload(community.rlktools.gatekeeper.gatekeeper)
-from community.rlktools.gatekeeper.gatekeeper import Gatekeeper
+import community.gatekeeper
+reload(community.gatekeeper)
+from community.gatekeeper import Gatekeeper
 
 from core.log import logging, LOG_PREFIX
 from time import sleep, time
