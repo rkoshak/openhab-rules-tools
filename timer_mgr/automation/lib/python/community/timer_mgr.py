@@ -18,6 +18,9 @@ from core.jsr223.scope import ir
 from core.jsr223.scope import items
 from core.actions import ScriptExecution
 from org.joda.time import DateTime # todo move to Java's DateTime
+import community.time_utils
+reload(community.time_utils)
+from community.time_utils import to_datetime
 
 class TimerMgr(object):
     """Keeps and manages a dictionary of Timers keyed on a String, typically an
@@ -81,27 +84,37 @@ class TimerMgr(object):
         It does nothing
         """
 
-    # TODO make function optional so we can just use it to do something for flapping
-    def check(self, key, interval, function=None, flapping_function=None,
-                    reschedule=False):
+    def check(self, key, when, function=None, flapping_function=None,
+              reschedule=False):
         """Call to check whether a key has a Timer. If no Timer exists, creates
         a new timer to run the passed in function. If a Timer exists, reschedule
         it if reschedule is True and if a flapping_function was passed, run it.
         Arguments:
             - key: The key to set a Timer for.
-            - interval: How long from now to set the Timer to call function, in
-            milliseconds.
+            - when: The time for when the timer should go off. Supports:
+                - DateTime objects
+                - ISO 8601 formatted Strings
+                - Python int, treated as number of seconds into the future
+                - DecimalType, PercentType, or QuantityType (intValue() is
+                called), treated as number of seconds into the future
+                - Duration string of the format Xd Xh Xm Xs where:
+                    - d: days
+                    - h: hours
+                    - m: minutes
+                    - s: seconds
+                    - X: integer or floating point number for the amount
+                e.g. 1h3s represents one hour and three seconds
             - function: Optional function to call when the Timer expires
             - flapping_function: Optional function to call if the key already
             has a Timer running. Defaults to None.
             - reschedule: Optional flag that causes the Timer to be rescheduled
             when the key already has a Timer. Defaults to False.
         """
+        timeout = to_datetime(when)
 
         # Timer exists: if the reschedule flag is set, reschedule it, otherwise
         # cancel it. If a flapping function was passed to us, call the flapping
         # function.
-        timeout = DateTime.now().plusMillis(interval)
         if key in self.timers:
             if reschedule:
                 self.timers[key]['timer'].reschedule(timeout)
@@ -115,9 +128,9 @@ class TimerMgr(object):
             timer = ScriptExecution.createTimer(timeout,
                         lambda: self.__not_flapping(key))
             self.timers[key] = { 'orig_state':   item.state,
-                                      'timer':        timer,
-                                      'flapping':     flapping_function,
-                                      'not_flapping': function if function else self.__noop}
+                                 'timer':        timer,
+                                 'flapping':     flapping_function,
+                                 'not_flapping': function if function else self.__noop}
 
     def has_timer(self, key):
         """Checks to see if a Timer exists for the passed in key.
