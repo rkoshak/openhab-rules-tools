@@ -19,6 +19,7 @@ from community.timer_mgr import TimerMgr
 
 from time import sleep
 from core.log import logging, LOG_PREFIX
+from org.joda.time import DateTime
 log = logging.getLogger("{}.TEST.timer_mgr".format(LOG_PREFIX))
 
 timers = TimerMgr()
@@ -42,7 +43,7 @@ try:
     test_name = "Test"
 
     # Test that timer get's created
-    timers.check(test_name, 1000, timer_expired)
+    timers.check(test_name, 1000, timer_expired) # msec test
     sleep(0.5)
     assert timers.has_timer(test_name), "Test1: Timer not created"
     assert not timer_expired_called, "Test1: Timer expired was called"
@@ -57,12 +58,12 @@ try:
     # Test for timer_running get's called if checked and timer exists
     timer_expired_called = False
     timer_running_called = False
-    timers.check(test_name, 1000, timer_expired, timer_running)
+    timers.check(test_name, "1s", timer_expired, timer_running)
     sleep(0.5)
     assert timers.has_timer(test_name), "Teste2: Timer not created"
     assert not timer_expired_called, "Test2: Expired was called too soon"
     assert not timer_running_called, "Test2: Running was called too soon"
-    timers.check(test_name, 1000, timer_expired, timer_running)
+    timers.check(test_name, DateTime().now().plusSeconds(1).toString(), timer_expired, timer_running) # iso 8601 string test
     assert not timers.has_timer(test_name), "Test2: Timer still exists"
     assert not timer_expired_called, "Test2: Expired called too soon"
     assert timer_running_called, "Test2: Flapping was not called"
@@ -71,12 +72,12 @@ try:
     # Test that if no function is passed we can call timer_running
     timer_expired_called = False
     timer_running_called = False
-    timers.check(test_name, 1000,  flapping_function=timer_running)
+    timers.check(test_name, DateTime().now().plusSeconds(1),  flapping_function=timer_running) # date time test
     sleep(0.5)
     assert timers.has_timer(test_name), "Teste3: Timer not created"
     assert not timer_expired_called, "Test3: Expired was called too soon"
     assert not timer_running_called, "Test3: Running was called too soon"
-    timers.check(test_name, 1000, flapping_function=timer_running)
+    timers.check(test_name, DecimalType(1), flapping_function=timer_running) # openHAB type test
     assert not timers.has_timer(test_name), "Test3: Timer still exists"
     sleep(0.51)
     assert not timer_expired_called, "Test3: Expired called"
@@ -86,12 +87,12 @@ try:
     # called.
     timer_expired_called = False
     timer_running_called = False
-    timers.check(test_name, 1000, timer_expired, timer_running, True)
+    timers.check(test_name, "1s", timer_expired, timer_running, True) # duration parsing test
     sleep(0.5)
     assert timers.has_timer(test_name), "Test4: Timer not created"
     assert not timer_expired_called, "Test4: Expired called too soon"
     assert not timer_running_called, "Test4: Flapping called too soon"
-    timers.check(test_name, 1000, timer_expired, timer_running, True)
+    timers.check(test_name, "1s", timer_expired, timer_running, True)
     sleep(0.5)
     assert timers.has_timer(test_name), "Test4: Timer no longer exists"
     assert not timer_expired_called, "Test4: Expired called too soon"
@@ -104,7 +105,7 @@ try:
     # Test cancel_timer
     timer_expired_called = False
     timer_running_called = False
-    timers.check(test_name, 1000, timer_running)
+    timers.check(test_name, "1s", timer_running)
     sleep(0.5)
     assert timers.has_timer(test_name), "Test5: Timer does not exist"
     timers.cancel(test_name)

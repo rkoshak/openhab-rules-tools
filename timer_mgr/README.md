@@ -4,8 +4,11 @@ For example, one can have a number of Contact Items representing doors in a grou
 When any of the doors open a timer is set for that door in order to send an alert if it's been open too long.
 This requires a separate Timer for each Item.
 
+# Dependencies
+- time_utils: uses time_utils to convert various time duration formats to a DateTime usable by createTimer.
+
 # Purpose
-Creating a separate Timer for each Iteof a given type is a common requirement and requires the user to do all the book keeping and management of the Timers manually.
+Creating a separate Timer for each Item of a given type is a common requirement and requires the user to do all the book keeping and management of the Timers manually.
 This class implements all the book keeping and presents a simple interface to create, check for the existence of a Timer, cancelling of Timers, etc.
 
 # How it works
@@ -15,16 +18,23 @@ The class provides four functions.
 This is the function that will be used the most.
 
 ```python
-tm.check(key, interval, function, flapping_function, reschedule)
+tm.check(key, when, function, flapping_function, reschedule)
 ```
 
 Argument | Purpose
 -|-
 `key` | The unique name for the Timer. Most often this will be the Item name.
-`interval` | The amount of time to pass before the Timer expires in milliseconds.
+`when` | The amount of time to pass before the Timer expires.
 `function` | An optional function or lambda to call when the Timer expires.
 `flapping_function` | An optional function or lambda to call when check is called and a Timer already exists. Can be useful to, for example, take some action when a device is flapping.
 `reschedule` | An optional flag indicating that if the Timer exists when check is called, reschedule the Timer. Defaults to `False`.
+
+`when` can be any one of:
+- Joda DateTime
+- ISO 8601 formatted String
+- int which will be treated as the number of milliseconds into the future
+- openHAB number types (DecimalType, PercentType, or QuantityType), treated as number of milliseconds into the future
+- Duration string of the format `xdxhxmxs` where each field is optional and x is a number (int or float). For example `1h2s` would be one hour and two seconds into the future
 
 ## has_timer
 Returns True is there is a Timer by the passed in name.
@@ -78,7 +88,7 @@ tm = new TimerMgr()
     # Timer.
     if items[itemName == OPEN]:
         reminder_timers.check(itemName,
-                              60*60*1000,
+                              "1h",
                               lambda: events.postUpdate("AlertItem", "{} has been open for an hour!".format(itemName)),
                               reschedule=items["vTimeOfDay"] == StringType("NIGHT"))
     else:
