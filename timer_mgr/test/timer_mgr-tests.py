@@ -119,6 +119,17 @@ try:
     timers.cancel(test_name)
     assert not timers.has_timer(test_name), "Test6: Timer exists"
 
+    # Test that we can pass lambdas for function and flapping_function
+    timer_expired_called = False
+    timer_running_called = False
+    timers.check(test_name, "1s", function=lambda: timer_expired(), flapping_function=lambda: timer_running())
+    sleep(0.5)
+    timers.check(test_name, "0.5s", function=lambda: timer_expired(), flapping_function=lambda: timer_running(), reschedule=True)
+    sleep(0.51)
+    assert timer_running_called, "Test7: Flapping was not called"
+    assert timer_expired_called, "Test7: Expired was not called"
+
+
 except AssertionError:
     import traceback
     log.error("Exception: {}".format(traceback.format_exc()))
