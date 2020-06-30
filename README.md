@@ -15,7 +15,7 @@ To start, this library will primarily contain Jython libraries but over time I e
 Clone the repository to your local system.
 Each library is made up of zero or more library modules and zero or more rule scripts.
 To make installation of individual capabilities easier, each capability is located in it's own folder.
-Copy the `automaion` folder under a given capability's folder to `$OH_CONF`.
+Copy the `automation` folder under a given capability's folder to `$OH_CONF`.
 
 The README in each folder documents the purpose and usage of that library.
 Pay attention as some libraries depend on others (e.g. `timer_mgr` depends upon `time_utils`).
