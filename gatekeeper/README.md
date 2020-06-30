@@ -39,7 +39,7 @@ gk = None
     gk.cancel_all()
 
 ```
-## Cascading Timers Ecample
+## Cascading Timers Example
 
 ```python
 from core.rules import rule
