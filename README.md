@@ -1,4 +1,4 @@
-# oopenHAB Rules Tools
+# openHAB Rules Tools
 Library functions, classes, and examples to reuse in the development of new Rules.
 The primary focus is on building tools to solve commonly needed tasks instead of fully realized capabilities.
 But some full capabilities will inevitably be added over time.
