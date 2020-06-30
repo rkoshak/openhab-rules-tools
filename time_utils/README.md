@@ -26,7 +26,7 @@ Arguments | Purpose
 td = parse_duration("1d12h")
 ```
 
-Returns `None` if the String isn't parsable.
+Returns a Python datetime.timedelta. Returns `None` if the String isn't parsable. 
 
 ## delta_to_datetime
 Converts a Python timedelta to a Joda DateTime.
@@ -34,6 +34,7 @@ Converts a Python timedelta to a Joda DateTime.
 ```python
 dt = delta_to_datetime(td)
 ```
+Returns a Joda DateTime using the passed in Python timedelta as the time from now.
 
 ### parse_duration_to_datetime
 Parses a duration string (see above) to a Joda DateTime.
@@ -41,6 +42,7 @@ Parses a duration string (see above) to a Joda DateTime.
 ```python
 dt = parseduration_to_datetime("5m30s")
 ```
+Returns a Joda Datetime using the passed in duration as the time from now.
 
 ### is_iso8601
 Checks the passed in string to verify whether or not it conforms to ISO 8601.
@@ -48,6 +50,8 @@ Checks the passed in string to verify whether or not it conforms to ISO 8601.
 ```python
 if is_iso8601("2020-06-26T12:03:00"):
 ```
+
+Returns True if the passed in String conforms to ISO 8601.
 
 ### to_datetime
 Takes in a variety of types and converts them to a JodaDate time.
@@ -61,6 +65,9 @@ Takes in a variety of types and converts them to a JodaDate time.
 ```python
 dt = to_datetime("0.25s")
 ```
+
+Returns a Joda DateTime based on the passed in value. 
+If the passed in value is a duration or timedelta or int, the DateTime is that amount of time from now.
 
 # Examples
 
