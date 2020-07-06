@@ -16,11 +16,7 @@ limitations under the License.
 from core.actions import ScriptExecution
 from core.jsr223.scope import events
 from org.joda.time import DateTime
-import community.time_utils
-reload(community.time_utils)
 from community.time_utils import to_datetime
-import community.timer_mgr
-reload(community.timer_mgr)
 from community.timer_mgr import TimerMgr
 
 timers = TimerMgr()

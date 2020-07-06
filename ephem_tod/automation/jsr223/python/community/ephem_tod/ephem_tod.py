@@ -18,9 +18,8 @@ from core.triggers import when
 from core.metadata import get_metadata, get_key_value, get_value
 from core.actions import Ephemeris
 from core.utils import send_command_if_different
+from core.log import log_traceback
 from org.joda.time import DateTime
-import community.time_utils
-reload(community.time_utils)
 from community.time_utils import to_today
 from community.timer_mgr import TimerMgr
 
@@ -42,6 +41,7 @@ NAMESPACE = "etod"
 # Timers that run at time of day transitions.
 timers = TimerMgr()
 
+@log_traceback
 def get_times(log):
     """Gets the list of Items that define the start times for today. It uses
     Ephemeris to determine which set of Items to select. The hierarchy is:
@@ -92,6 +92,7 @@ def get_times(log):
     log.info("Today is a {} day.".format(day_type))
     return start_times[day_type] if day_type else None
 
+@log_traceback
 def etod_transition(state, log):
     """Called from the timers, transitions to the next time of day.
     Arguments:
@@ -102,6 +103,7 @@ def etod_transition(state, log):
              .format(items[ETOD_ITEM], state))
     events.sendCommand(ETOD_ITEM, state)
 
+@log_traceback
 def create_timers(start_times, log):
     """Creates Timers to transition the time of day based on the passed in list
     of DateTime Item names. If an Item is dated with yesterday, the Item is
@@ -141,8 +143,8 @@ def create_timers(start_times, log):
         elif trigger_time.isAfter(now):
             log.debug("FUTURE: {} Scheduleing Timer for {}"
                      .format(state, trigger_time))
-            timers.check(time, trigger_time,
-                         function=lambda: etod_transition(state))
+            timers.check(state, trigger_time,
+                         function=lambda st=state: etod_transition(st, log))
 
         # If it's in the past but not after most_recent_time we can ignore it.
         else:
@@ -152,26 +154,31 @@ def create_timers(start_times, log):
     log.info("The current time of day is {}".format(most_recent_state))
     send_command_if_different(ETOD_ITEM, most_recent_state)
 
+@log_traceback
 def trigger_generator():
     """Generates rule triggers for all of the Items that have etod metadata"""
+
+    from core.log import logging, LOG_PREFIX
+    log=logging.getLogger("{}.ephem_tod".format(LOG_PREFIX))
     def generate_triggers(function):
         for item_name in [i for i in items if get_metadata(i, NAMESPACE)]:
-            when("Item {} changed".format(item_name))
+            t = "Item {} changed".format(item_name)
+            when(t)(function)
         return(function)
     return generate_triggers
 
 @rule("Ephemeris Time of Day", tags=["etod", "openhab-rules-tools"])
+@trigger_generator()
 @when("System started")
 @when("Time cron 0 2 0 * * ? *")
 @when("Item {} received command ON".format(ETOD_TRIGGER_ITEM))
-@trigger_generator()
 def ephem_tod(event):
     """Rule to recalculate the times of day for today. It triggers at system
     start, two minutes after midnight (to give Astro a chance to update the
     times for today), when ETOD_TRIGGER_ITEM (default is CalculateETOD) receives
     an ON command, or when any of the Items with etod metadata changes.
     """
-
+    ephem_tod.log.info("Recalculating time of day")
     # Get the start times.
     start_times = get_times(ephem_tod.log)
 

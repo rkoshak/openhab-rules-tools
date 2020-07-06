@@ -124,13 +124,12 @@ class TimerMgr(object):
 
         # No timer exists, create the Timer
         else:
-            item = ir.getItem(key)
             timer = ScriptExecution.createTimer(timeout,
                         lambda: self.__not_flapping(key))
-            self.timers[key] = { 'orig_state':   item.state,
-                                 'timer':        timer,
+            self.timers[key] = { 'timer':        timer,
                                  'flapping':     flapping_function,
                                  'not_flapping': function if function else self.__noop}
+
 
     def has_timer(self, key):
         """Checks to see if a Timer exists for the passed in key.

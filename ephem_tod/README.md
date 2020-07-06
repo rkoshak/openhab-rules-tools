@@ -9,11 +9,18 @@ This is adequate for many users, but some users may require a different set of t
 # Requirements
 
 - Ephemeris configured (see https://www.openhab.org/docs/configuration/actions.html#ephemeris)
-- item_init for statically defined times of day
-- timer_mgr to manage the Timers.
-- time_utils to process DateTimeTypes and it's needed by timer_mgr.
+- item_init, optional, used for statically defined times of day
+- timer_mgr to manage the Timers
+- time_utils to process DateTimeTypes and it's needed by timer_mgr
 
 # How it works
+The Rule will create the following two Items if they do not already exist.
+
+Item | Purpose
+-|-
+`CalculateETOD` | Switch Item, when it receives an ON command it will recalulate the time of day.
+`TimeOfDay` | String Item that contains the current time of day. The values are defined with the metadata on the DateTime Items that drive the state machine.
+
 The statemachine is driven by DateTime Items with `etod` metadata defined.
 
 ```
@@ -27,7 +34,7 @@ Argument | Values | Purpose
 `set` | The name of the custom dayset | Only valid when type is `dayset`.
 `file` | Path to Ephemeris XML file | Only valid when type is `custom`, the path to the custom Ephemeris holiday configuration.
 
-Ephemeris provides a number of ways to categorize days, daysets and holidays.
+Ephemeris provides a number of ways to categorize days, daysets, and holidays.
 
 A dayset is a list of the days of the week with a name, for example weekend would include SATURDAY and SUNDAY by default.
 Weekday is a special dayset that is essentially those days not listed as a weekend.
@@ -81,7 +88,8 @@ DateTime Weekend_Day { channel="astro:sun:set120:set#start", etod="DAY"[type="cu
 DateTime Weekend_Evening { channel="astro:sun:local:set#start", etod="EVENING"[type="custom", file="/openhab/conf/services/custom1.xml"] }
 DateTime Default_BEd { init="00:02:00", etod="BED"[type="custom", file="/openhab/conf/services/custom1.xml"] }
 ```
-# Limitations
-Does not handle cases where custom daysets overlap.
 
-Does not handle cases where custom holidays file overlap.
+# Limitations
+- Does not handle cases where custom daysets overlap.
+- Does not handle cases where custom holidays defined in different Ephemeris files overlap.
+- When adding new DateTime Items, the .py file needs to be reloaded to regenerate the triggers.
