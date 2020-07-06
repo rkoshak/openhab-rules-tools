@@ -22,7 +22,7 @@ from core.log import logging, LOG_PREFIX, log_traceback
 from community.time_utils import parse_duration
 from community.timer_mgr import TimerMgr
 
-init_logger = logging.getLogger("{}.Expire Init".format(LOG_PREFIX))
+init_logger = logging.getLogger("{}.Debounce".format(LOG_PREFIX))
 
 timers = TimerMgr()
 
@@ -110,7 +110,7 @@ def debounce(event):
 
     isCommand = True if cfg.configuration["command"] == "True" else False
     proxy = cfg.value
-    states = [st.strip() for st in cfg.configuration["state"].split(",")] if cfg.configuration["state"] else None
+    states = [st.strip() for st in cfg.configuration["state"].split(",")] if "state" in cfg.configuration else None
     timeout = str(cfg.configuration["timeout"])
 
     if not states or (states and str(event.itemState) in states):

@@ -22,7 +22,7 @@ from core.jsr223 import scope
 duration_regex = re.compile(r'^((?P<days>[\.\d]+?)d)? *((?P<hours>[\.\d]+?)h)? *((?P<minutes>[\.\d]+?)m)? *((?P<seconds>[\.\d]+?)s)?$')
 iso8601_regex = re.compile(r'^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?(Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])?$')
 
-def parse_duration(time_str, log=logging.getLogger("{}.parse_duration".format(LOG_PREFIX))):
+def parse_duration(time_str, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     """Parse a time string e.g. (2h13m) into a timedelta object
     https://stackoverflow.com/questions/4628122/how-to-construct-a-timedelta-object-from-a-simple-string
     Arguments:
@@ -37,6 +37,9 @@ def parse_duration(time_str, log=logging.getLogger("{}.parse_duration".format(LO
               - 1h 30m 45s
               - 1h05s
               - 55h 59m 12s
+        - log: optional, logger object for logging a warning if the passed in
+        string is not parsable. A "time_utils" logger will be used if not
+        supplied.
     Returns:
         A ``datetime.timedelta`` object representing the supplied time duration
         or ``None`` if ``time_str`` cannot be parsed.
@@ -62,7 +65,7 @@ def delta_to_datetime(td):
                .plusSeconds(td.seconds)
                .plusMillis(td.microseconds//1000))
 
-def parse_duration_to_datetime(time_str, log=logging.getLogger("{}.parse_duration".format(LOG_PREFIX))):
+def parse_duration_to_datetime(time_str, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     """Parses the passed in time string (see parse_duration) and returns a Joda
     DateTime that amount of time from now.
     Arguments:
@@ -86,7 +89,7 @@ def is_iso8601(dt_str):
         pass
     return False
 
-def to_datetime(when, log=logging.getLogger("{}.parse_duration".format(LOG_PREFIX))):
+def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     """Based on what type when is, converts when to a Joda DateTime object.
     Type:
         - DateTime: returns when as is
@@ -103,6 +106,8 @@ def to_datetime(when, log=logging.getLogger("{}.parse_duration".format(LOG_PREFI
     dt = None
     if isinstance(when, DateTime):
         dt = when
+    if isinstance(when, (scope.DateTimeType)):
+        dt = DateTime(str(when))
     if isinstance(when, int):
         dt = DateTime().now().plusMillis(when)
     elif isinstance(when, (scope.DecimalType, scope.PercentType,
@@ -114,3 +119,10 @@ def to_datetime(when, log=logging.getLogger("{}.parse_duration".format(LOG_PREFI
         else:
             dt = parse_duration_to_datetime(when, log)
     return dt
+
+def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
+    dt = to_datetime(when, log)
+    now = dt.now()
+
+    return now.withTime(dt.getHourOfDay(), dt.getMinuteOfHour(),
+                        dt.getSecondOfMinute(), 0)

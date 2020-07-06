@@ -36,4 +36,7 @@ Color MyLamp { init="123,45,67" }
 // Initialize TerhermostSetpoint to 70 but only if it's NULL or UNDEF, remove
 // the init metadata after start.
 Number ThermostatSetpoint { init="70"[override="False", clear="True"] }
+
+// Initialize a DateTime to a given time today
+DateTime NightTime { init="21:45:00" }
 ```

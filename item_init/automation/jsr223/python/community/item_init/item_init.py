@@ -53,8 +53,6 @@ def item_init(event):
 
     item_init.log.info("Initializing Items")
     for item_name in [i for i in items if get_metadata(i, "init")]:
-        cfg = get_metadata(item_name, "init")
-        item_init.log.info("Item {} cfg = {} ".format(item_name, cfg))
         value = get_value(item_name, "init")
 
         # Always update if override is True
