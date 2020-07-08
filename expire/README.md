@@ -4,7 +4,7 @@ It is not intended to be a permament solution and likely will not be maintained 
 The purpose of the library is to be a drop in repalcement of the Expire binding to allow users who depend on the Expire binding the chance to move to openHAB 3.0 without needing to rework Rules and Item configs first.
 
 # Purpose
-Item metadata that is nearly identical to the bninding config for the Expire 1.x binding is used to define a base state and a time to wait after the Item changes from that state before updating or commanding the Item back to that state.
+Item metadata that is nearly identical to the binding config for the Expire 1.x binding is used to define a base state and a time to wait after the Item changes from that state before updating or commanding the Item back to that state.
 
 # Requirements
 - `time_utils` to process Expire durations and it's needed by `timer_mgr` and deferred
