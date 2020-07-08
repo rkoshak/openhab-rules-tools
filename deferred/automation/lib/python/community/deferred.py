@@ -21,7 +21,7 @@ from community.timer_mgr import TimerMgr
 
 timers = TimerMgr()
 
-def timer_body(target, value, is_command, log):
+def timer_body(target, value, is_command, time, log):
     """
     Called when the differed action timer expires, sends the command to the
     target Item.
@@ -29,15 +29,18 @@ def timer_body(target, value, is_command, log):
         - target: Item name to send the command to
         - value: Command or state to issue to the target Item
         - is_command: Whether to send value to target as a command or an update
+        - time: the original time string
         - log: logger passed in from the Rule that is using this.
     """
-    log.info("Executing deferred action {} against {}".format(value, target))
+    log.info("{} {} to {} after {}"
+             .format("Commanding" if is_command else "Updating", target, value,
+                     time))
     if is_command:
-        events.sendCommand(target, value)
+        events.sendCommand(target, str(value))
     else:
-        events.postUpdate(target, value)
+        events.postUpdate(target, str(value))
 
-def deferred(target, value, when, log, is_command=True, dt=None, delay=None):
+def defer(target, value, when, log, is_command=True):
     """
     Use this function to schedule a command to be sent to an Item at the
     specified time or after the speficied delay. If the passed in time or delay
@@ -53,15 +56,20 @@ def deferred(target, value, when, log, is_command=True, dt=None, delay=None):
 
     trigger_time = to_datetime(when, log)
 
+    if not trigger_time:
+        log.error("Cannot schedule a deferred action, {} is not a valid date time or duration"
+                  .format(when))
+
     # If trigger_time is in the past, schedule for now
     if trigger_time.isBefore(DateTime.now()):
         trigger_time = DateTime.now()
 
     # Schedule the timer
-    func = lambda: timer_body(target, value, is_command, log)
-    flap = lambda: log.info("there is already a timer set for {}, rescheduling"
-                            .format(target))
-    timers.check(target, trigger_time, function=func, flapping_function=flap, reschedule=True)
+    func = lambda: timer_body(target, value, is_command, when, log)
+    flap = lambda: log.debug("there is already a timer set for {}, rescheduling"
+                             .format(target))
+    timers.check(target, trigger_time, function=func, flapping_function=flap,
+                 reschedule=True)
 
 def cancel(target):
     """

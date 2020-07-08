@@ -12,13 +12,13 @@ Creating a Timer for this is possible but this library deals with all that book 
 The delay can be defined using a parsed duration string of the format "xd xh xm xs" (see parse_duration) or a DateTime.
 
 # How it works
-Import and call the `deferred` function and, if required, the `cancel` and `cancel_all` functions.
+Import and call the `defer` function and, if required, the `cancel` and `cancel_all` functions.
 
 ## deferred
 This is the function that will be used the most.
 
 ```python
-deferred(target, value, "5m", log, is_command=True)
+defer(target, value, "5m", log, is_command=True)
 ```
 
 Argument | Purpose
@@ -47,16 +47,16 @@ cancel_all()
 # Examples
 
 ```python
-from community.timer_mgr import deferred, cancel, cancel_all
+from community.timer_mgr import defer, cancel, cancel_all
 
 
 ...
 
     # In a Rule, send a command to Foo in 5 minutes
-    deferred("Foo", "ON", "5m", log)
+    defer("Foo", "ON", "5m", log)
 
     # In a Rule, send a n update to Foo in 5 minutes using DateTime
-    deferred("Foo", "OFF", DateTime().now().plusMinutes(5), log, is_command=False)
+    defer("Foo", "OFF", DateTime().now().plusMinutes(5), log, is_command=False)
 
     # Cancel the deffered action for Foo
     cancel("Foo")

@@ -44,6 +44,7 @@ def parse_duration(time_str, log=logging.getLogger("{}.time_utils".format(LOG_PR
         A ``datetime.timedelta`` object representing the supplied time duration
         or ``None`` if ``time_str`` cannot be parsed.
     """
+
     parts = duration_regex.match(time_str)
     if parts is None:
         log.warn("Could not parse any time information from '{}'. Examples "
@@ -61,6 +62,7 @@ def delta_to_datetime(td):
     Returns:
         A Joda DateTime td from now.
     """
+
     return (DateTime.now().plusDays(td.days)
                .plusSeconds(td.seconds)
                .plusMillis(td.microseconds//1000))
@@ -73,6 +75,7 @@ def parse_duration_to_datetime(time_str, log=logging.getLogger("{}.time_utils".f
     Returns:
         A Joda DateTime time_str from now
     """
+
     return delta_to_datetime(parse_duration(time_str, log))
 
 def is_iso8601(dt_str):
@@ -82,6 +85,7 @@ def is_iso8601(dt_str):
     Returns:
         True if dt_str conforms to dt_str and False otherwise
     """
+
     try:
         if iso8601_regex(dt_str) is not None:
             return True
@@ -103,6 +107,7 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)))
     Returns:
         - DateTime specified by when
     """
+
     dt = None
     if isinstance(when, DateTime):
         dt = when
@@ -113,14 +118,23 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)))
     elif isinstance(when, (scope.DecimalType, scope.PercentType,
                            scope.QuantityType)) :
         dt = DateTime().now().plusMillis(when.intValue())
-    elif isinstance(when, str):
+    elif isinstance(when, (str, unicode)):
         if is_iso8601(when):
             dt = DateTime(when)
         else:
             dt = parse_duration_to_datetime(when, log)
+
     return dt
 
 def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
+    """Takes a when (see to_datetime) and updates the date to today.
+    Arguments:
+        - when : One of the types or formats supported by to_datetime
+        - log: optional logger, when not supplied one is created for logging errors
+    Returns:
+        - DateTime specified by when with today's date.
+    """
+
     dt = to_datetime(when, log)
     now = dt.now()
 
