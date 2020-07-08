@@ -15,7 +15,7 @@ Item metadata that is nearly identical to the binding config for the Expire 1.x 
 
 When a 1.x version binding is uninstalled, it's binding config appears to openHAB as Item metadata.
 These rules find all the Items that have an expire metadata and reimplements the Expire 1.x binding's behavior.
-When an Item changes to a state different from the expire comnfigured state, a Timer is set for the duration.
+When an Item changes to a state different from the expire configured state, a Timer is set for the duration.
 At the end of the time, the Item is updated to or commanded to the expire state.
 If the Item changes while a Timer exists, the Timer is either canceled if it changed to the expire state or it is rescheduled.
 
