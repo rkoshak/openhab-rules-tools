@@ -9,7 +9,6 @@ To start, this library will primarily contain Jython libraries but over time I e
 - openHAB 2.5 or later
 - the Next-Gen Rules Engine add-on installed
 - for Jython libraries, the Jython add-on installed and configured: https://community.openhab.org/t/beta-testers-wanted-jython-addon-w-helper-libraries-requires-oh-2-5-x/86633
-- the Helper Libraries clones and copied to the right folder: https://openhab-scripters.github.io/openhab-helper-libraries/index.html
 
 # Installation
 Clone the repository to your local system.
@@ -25,6 +24,8 @@ To test the library, copy the contents of the `test` folder to `$OH_CONF/automat
 Watch the logs for errors or success.
 Once the tests have run, remove the test files so they do not run on every restart of OH.
 
+Some capabilities will automatically create needed Items if they do not already exist.
+
 # Usage
 Each rule and libary class and function has the usage information documented in the source code and the README.md file in each capability's folder.
 The unit tests are also another good place to find usage examples.
@@ -34,14 +35,15 @@ To start this repo will contain Python and Rules DSL rules.
 Over time JavaScript versions of the same rules will be added.
 The ultimate goal is to develop rule templates usable from the OH UI Rules Editor or through the REST API.
 
-# List of libraries
+# List of capabilities
 
-Library | Type | Purpose | Dependencies
+Capability | Type | Purpose | Dependencies
 -|-|-|-
 `countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | None
 `debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | `timer_mgr`, `time_utils`
 `deferred` | module | Schedules a command or update to be sent to an Item in the future. |  `timer_mgr`, `time_utils`
 `ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | `timer_mgr`, `time_utils`
+`expire` | script | A drop in replacement for the Expire 1.x binding.
 `gatekeeper` | module | Enforces a delay between actions. | None
 `hystersis` | module | A simple function to calculate a hysteresis comparison. | None
 `item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None
