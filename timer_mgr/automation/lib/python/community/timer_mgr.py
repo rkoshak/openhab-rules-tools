@@ -65,6 +65,7 @@ class TimerMgr(object):
 
     def __init__(self):
         """ Initialize the timers dict."""
+
         self.timers = {}
 
     def __not_flapping(self, key):
@@ -73,6 +74,7 @@ class TimerMgr(object):
         Args:
             key: the key of the Timer that called the function
         """
+
         try:
             self.timers[key]['not_flapping']()
         finally:
@@ -110,6 +112,7 @@ class TimerMgr(object):
             - reschedule: Optional flag that causes the Timer to be rescheduled
             when the key already has a Timer. Defaults to False.
         """
+
         timeout = to_datetime(when)
 
         # Timer exists: if the reschedule flag is set, reschedule it, otherwise
@@ -137,6 +140,7 @@ class TimerMgr(object):
             - key: Name of the Timer
         Returns: True if there is a Timer for that key.
         """
+
         return key in self.timers
 
     def cancel(self, key):
@@ -144,6 +148,7 @@ class TimerMgr(object):
         Arguments:
             - key: Name of Timer.
         """
+
         if not self.has_timer(key):
             return
         self.timers[key]['timer'].cancel()
@@ -153,6 +158,7 @@ class TimerMgr(object):
         """
         Cancels any existing Timers.
         """
+
         for timer in self.timers.values():
             if not timer['timer'].hasTerminated():
                 timer['timer'].cancel()

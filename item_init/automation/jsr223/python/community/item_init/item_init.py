@@ -27,7 +27,7 @@ if TRIGGER_ITEM not in items:
 
 @rule("Initialize Items",
       description="Updates Items with an initialization value at System start",
-      tags=["init"])
+      tags=["init", "openhab-rules-tools"])
 @when("System started")
 @when("Item {} received command ON".format(TRIGGER_ITEM))
 def item_init(event):
