@@ -30,14 +30,14 @@ If the config is valid, changes to the Item will be added as a trigger to the Ex
 The expected format is:
 
 ```
-expire="<duration>[,[command=|state=]<new state>]"
+expire="<duration>[,[command= or state=]<new state>]"
 ```
 
 Field | Purpose
 -|-
 `<duration>` | Required, a time duration of the format fully describvd in `parse_time`. In general it's of the format `wd xh ym zs` where w, x, y, z are numbers (floats are allowed) and d is days, h is hours, m is minutes and s is seconds. One of the four are required, spaces are optional.
 `[,]` | Optional, if supplying more that just the duration, separates the duration from the type of update and expire state. If just the duration is supplied, the Item will be updated to `UNDEF` after the duration.
-`[command=|state=]` | Optional field to indicate if the expire state should be sent as an update or a command. When omitted, state is the default (i.e. update).
+`[command= or state=]` | Optional field to indicate if the expire state should be sent as an update or a command. When omitted, state is the default (i.e. update).
 `<new state>` | Required if `,` was used, indicates the state the Item should be commanded to or updated to at the end of the expire time. Use `''` to represent the empty String (this differs from the Expire 1.x Binding). Use `'UNDEF'` or `'NULL`' to represent the strings `"UNDEF"` and `"NULL"` for String Items as opposed the `NULL` and `UNDEF` states.
 
 See the next section for examples.
