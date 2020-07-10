@@ -13,42 +13,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from core.rules import rule
-from core.triggers import when
+
 from core.metadata import get_value
 from core.log import logging, LOG_PREFIX, log_traceback
-from core.jsr223.scope import scriptExtension
-import community.time_utils
-reload(community.time_utils)
 from community.time_utils import parse_duration, to_datetime
-import community.deferred
-reload(community.deferred)
 from community import deferred
-
-ruleRegistry = scriptExtension.get("ruleRegistry")
+from community.rules_utils import create_simple_rule, delete_rule, load_rule_with_metadata
 
 # Create an Item to trigger the rule on command if it doesn't exist.
 RELOAD_EXPIRE_ITEM = "Reload_Expire"
-if RELOAD_EXPIRE_ITEM not in items:
-    from core.items import add_item
-    add_item(RELOAD_EXPIRE_ITEM, item_type="Switch")
 
-# Logger to use before
 init_logger = logging.getLogger("{}.Expire Init".format(LOG_PREFIX))
 
 # Maps the UnDefType string representation with their actual types.
 special_types = { "UNDEF": UnDefType.UNDEF,
                   "NULL":  UnDefType.NULL }
-
-@log_traceback
-def delete_rule(function):
-    """Deletes a rule attached to the passed in function, if it exists"""
-
-    if hasattr(function, "UID"):
-        ruleRegistry.remove(function.UID)
-        delattr(function, "triggers")
-        delattr(function, "UID")
-
 
 @log_traceback
 def get_config(i, log):
@@ -211,61 +190,29 @@ def load_expire(event):
     automatically.
     """
 
-    init_logger.info("Creating Expire Rule...")
-
-    # Remove existing rule if it exists.
-    delete_rule(expire_event)
-
-    # Generate the rule triggers with the latest expire metadata.
-    expire_items = []
-    for i in [i for i in items if get_value(i, "expire")]:
-        if get_config(i, init_logger):
-            init_logger.debug("Creating a changed trigger for {}".format(i))
-            when("Item {} changed".format(i))(expire_event)
-            expire_items.append(i)
-
-    # Create the expire rule itself.
-    if hasattr(expire_event, "triggers"):
-        rule("Expire",
-             description="Drop in replacement for the Expire 1.x binding",
-             tags=["openhab-rules-tools","expire"])(expire_event)
-
-        if hasattr(expire_event, "UID"):
-            init_logger.info("Expire rule successfully created")
-        else:
-            init_logger.error("Failed to create Expire rule")
-
-    else:
-        init_logger.warn("No Items found with valid expire configs")
-
-    # Cancel any deferred actions that are schedule for Items that no longer
-    # have a valid expire config.
-    [deferred.cancel(i) for i in deferred.timers.timers if not i in expire_items]
+    expire_items = load_rule_with_metadata("expire", get_config, "changed",
+                   "Expire", expire_event, init_logger,
+                   description="Drop in replacement for the Expire 1.x binding",
+                   tags=["openhab-rules-tools","expire"])
+    if expire_items:
+        [deferred.cancel(i) for i in deferred.timers.timers if not i in expire_items]
 
 @log_traceback
 def scriptLoaded(*args):
-    """Create the Expire Rule, based on additions to the original submission
-    of the Expire binding to the openhab-helper-libraries by CrazyIvan359.
-    """
+    """Create the Expire rule."""
 
-    # Create the rule that creates the expire rule on command.
-    when("Item {} received command ON".format(RELOAD_EXPIRE_ITEM))(load_expire)
-    rule("Reload Expire",
-         description="Automatically generated rule that recreats the Expire Rule",
-         tags=["expire", "openhab-rules-tools"])(load_expire)
-
-    if hasattr(load_expire, "UID"):
-        init_logger.info("Reload Expire rule successfully created")
-    else:
-        init_logger.error("Failed to create Reload Expire rule")
-
-    # Create the actual expire rule.
-    load_expire(None)
+    if create_simple_rule(RELOAD_EXPIRE_ITEM, "Reload Expire", load_expire,
+                       init_logger,
+                       description=("Regenerates the Expire rule using the "
+                                    "latest expire metadata. Run after changing "
+                                    "any expire metadata."),
+                        tags=["openhab-rules-tools","expire"]):
+        load_expire(None)
 
 @log_traceback
 def scriptUnloaded():
     """Cancel all the timers."""
 
     deferred.cancel_all()
-    delete_rule(expire_event)
-    delete_rule(load_expire)
+    delete_rule(expire_event, init_logger)
+    delete_rule(load_expire, init_logger)

@@ -10,6 +10,7 @@ Item metadata that is nearly identical to the binding config for the Expire 1.x 
 - `time_utils` to process Expire durations and it's needed by `timer_mgr` and deferred
 - `deferred` to schedul the command or update to the Item when it expires
 - `timer_mgr` to manage the Timer, needed by `deferred`
+- `rules_utils` to dynamically create the rule on command to refresh rule triggers when metadata changes
 
 # How it works
 

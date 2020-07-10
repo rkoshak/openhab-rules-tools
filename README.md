@@ -40,13 +40,14 @@ The ultimate goal is to develop rule templates usable from the OH UI Rules Edito
 Capability | Type | Purpose | Dependencies
 -|-|-|-
 `countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | None
-`debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | `timer_mgr`, `time_utils`
+`debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | `timer_mgr`, `time_utils`, `rules_utils`
 `deferred` | module | Schedules a command or update to be sent to an Item in the future. |  `timer_mgr`, `time_utils`
-`ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | `timer_mgr`, `time_utils`
-`expire` | script | A drop in replacement for the Expire 1.x binding.
+`ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | `timer_mgr`, `time_utils`, `rules_utils`
+`expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils`
 `gatekeeper` | module | Enforces a delay between actions. | None
 `hystersis` | module | A simple function to calculate a hysteresis comparison. | None
 `item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None
 `rate_limit` | module | Enforces a timeout where actions that occur inside the timeout are ignored. | None
+`rules_utils` | module | Eome functions to help in the dynamic loading/reloading of rules to refresh their triggers. | None
 `time_utils` | module | Some functions to help parse and convert various representatiosns of time and time durations. | None
 `timer_mgr` | module | Manages a whole collection of Timers with four simple functions. | `time_utils`

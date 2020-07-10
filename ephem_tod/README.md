@@ -9,17 +9,27 @@ This is adequate for many users, but some users may require a different set of t
 # Requirements
 
 - Ephemeris configured (see https://www.openhab.org/docs/configuration/actions.html#ephemeris)
-- item_init, optional, used for statically defined times of day
-- timer_mgr to manage the Timers
-- time_utils to process DateTimeTypes and it's needed by timer_mgr
+- `item_init`, optional, used for statically defined times of day (see examples below)
+- `timer_mgr` to manage the Timers
+- `time_utils` to process DateTimeTypes and it's needed by timer_mgr
+- `rules_utils` to dynamically recreate the rule on command when the Item metatada is changed
 
 # How it works
 The Rule will create the following two Items if they do not already exist.
 
 Item | Purpose
 -|-
-`CalculateETOD` | Switch Item, when it receives an ON command it will recalulate the time of day.
+`Reload_ETOD` | Switch Item, when it receives an ON command it will rebuild the Ephemeris Time of Day using the latest metadata configured on Items
 `TimeOfDay` | String Item that contains the current time of day. The values are defined with the metadata on the DateTime Items that drive the state machine.
+
+Rules have a limitation that there is no event created when Item metadata is added, mofified, or removed.
+Therefore there is no way to know when you've changed the Item metadata for an Item.
+Thus, if it doesn't already exist, a `Reload_ETOD` Item will be created that will recreate the Expire rule with new triggers based on the current metadata.
+After modifying expire Item metadata, send an `ON` command to the `Reload_ExTD` Item or execute the `Reload Ephemeris Time of Day` rule in PaperUI by clicking the "play" icon next to the rule in the list.
+
+When the script is loaded or when the `Reload Ephemeris Time of Day` rule runs, all the Items with etod metadata are obtained and the configuration checked for validity.
+Invalid configs will generate errors in the logs.
+If the config is valid, changes to the Item will be added as a trigger to the Expire rule.
 
 The statemachine is driven by DateTime Items with `etod` metadata defined.
 
