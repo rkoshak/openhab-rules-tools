@@ -13,21 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from core.rules import rule
-from core.triggers import when
 from core.metadata import get_metadata, get_key_value, get_value
 from core.actions import Ephemeris
 from core.utils import send_command_if_different
-from core.log import log_traceback
+from core.log import log_traceback, logging, LOG_PREFIX
 from org.joda.time import DateTime
 from community.time_utils import to_today
 from community.timer_mgr import TimerMgr
+from community.rules_utils import create_simple_rule, delete_rule, get_items_from_triggers, create_rule, generate_triggers
 
-# Create an Item to trigger the rule on command if it doesn't exist.
-ETOD_TRIGGER_ITEM = "CalculateETOD"
-if ETOD_TRIGGER_ITEM not in items:
-    from core.items import add_item
-    add_item(ETOD_TRIGGER_ITEM, item_type="Switch")
+# Name of the Item to trigger reloading of the time of day rule.
+ETOD_RELOAD_ITEM = "Reload_ETOD"
 
 # Create the time of day state Item if it doesn't exist.
 ETOD_ITEM = "TimeOfDay"
@@ -40,6 +36,38 @@ NAMESPACE = "etod"
 
 # Timers that run at time of day transitions.
 timers = TimerMgr()
+
+# Logger to use before
+init_logger = logging.getLogger("{}.Ephemeris Time of Day".format(LOG_PREFIX))
+
+@log_traceback
+def check_config(i, log):
+    """Verifies that all the required elements are present for an etod metadata."""
+
+    cfg = get_metadata(i, NAMESPACE)
+    if not cfg:
+        log.error("Item {} does not have {} metadata".format(i, NAMESPACE))
+        return None
+
+    if not cfg.value or cfg.value == "":
+        log.error("Item {} does not have a value".format(i))
+        return None
+
+    day_type = cfg.configuration["type"]
+
+    if not day_type:
+        log.error("Item {} does not have a type".format(i))
+        return None
+
+    if day_type == "dayset" and not cfg.configuration["set"]:
+        log.error("Item {} is of type dayset but doesn't have a set".format(i))
+        return None
+
+    elif day_type == "custom" and not cfg.configuration["file"]:
+        log.error("Item {} is of type custom but does't have a file".format(i))
+        return None
+
+    return cfg
 
 @log_traceback
 def get_times(log):
@@ -57,6 +85,7 @@ def get_times(log):
         - a list of names for DateTime Items; None if no valid start times were
         found.
     """
+
     def cond(lst, cond):
         return [i for i in lst if cond(i)]
 
@@ -154,24 +183,6 @@ def create_timers(start_times, log):
     log.info("The current time of day is {}".format(most_recent_state))
     send_command_if_different(ETOD_ITEM, most_recent_state)
 
-@log_traceback
-def trigger_generator():
-    """Generates rule triggers for all of the Items that have etod metadata"""
-
-    from core.log import logging, LOG_PREFIX
-    log=logging.getLogger("{}.ephem_tod".format(LOG_PREFIX))
-    def generate_triggers(function):
-        for item_name in [i for i in items if get_metadata(i, NAMESPACE)]:
-            t = "Item {} changed".format(item_name)
-            when(t)(function)
-        return(function)
-    return generate_triggers
-
-@rule("Ephemeris Time of Day", tags=["etod", "openhab-rules-tools"])
-@trigger_generator()
-@when("System started")
-@when("Time cron 0 2 0 * * ? *")
-@when("Item {} received command ON".format(ETOD_TRIGGER_ITEM))
 def ephem_tod(event):
     """Rule to recalculate the times of day for today. It triggers at system
     start, two minutes after midnight (to give Astro a chance to update the
@@ -199,6 +210,60 @@ def ephem_tod(event):
     timers.cancel_all()
     create_timers(start_times, ephem_tod.log)
 
+@log_traceback
+def load_etod(event):
+    """Called at startup or when the Reload Ephemeris Time of Day rule is
+    triggered, deletes and recreates the Ephemeris Time of Day rule. Should be
+    called at startup and when the metadata is added to or removed from Items.
+    """
+
+    # Because we have other rule triggers beyond the Item ones we need to do
+    # more work in this function than usual.
+    init_logger.info("Creating Ephemeris Time of Day Rule...")
+
+    # Remove the existing rule if it exists.
+    if not delete_rule(ephem_tod, init_logger):
+        return None
+
+    # Generate the rule triggers with the latest metadata configs.
+    triggers = generate_triggers(NAMESPACE, check_config, "changed",
+                                 init_logger)
+    if not triggers:
+        init_logger.warn("There are no Items with valid etod metadata")
+        return None
+    etod_items = get_items_from_triggers(triggers)
+    triggers.append("System started")
+    triggers.append("Time cron 0 2 0 * * ? *")
+
+    # Create the rule.
+    if not create_rule("Ephemeris Time of Day", triggers, ephem_tod, init_logger,
+            description="Creates the timers that drive the {} state machine."
+                        .format(ETOD_ITEM),
+            tags=["openhab-rules-tools","etod"]):
+        return None
+
+    [timers.cancel(i) for i in timers.timers if not i in etod_items]
+
+@log_traceback
+def scriptLoaded(*args):
+    """Create the Ephemeris Time of Day rule."""
+
+    if create_simple_rule(ETOD_RELOAD_ITEM, "Reload Ephemeris Time of Day",
+            load_etod, init_logger,
+            description=("Regenerates the Ephemeris Time of Day rule using the"
+                         " latest {} metadata. Run after adding or removing any"
+                         " {} metadata to/from and Item."
+                         .format(NAMESPACE, NAMESPACE)),
+            tags=["openhab-rules-tools","etod"]):
+        load_etod(None)
+
+
+@log_traceback
 def scriptUnloaded():
-    """Cancel all Timers at unload to avoid errors in the log."""
+    """Cancel all Timers at unload to avoid errors in the log and removes the
+    rules.
+    """
+
     timers.cancel_all()
+    delete_rule(ephem_tod, init_logger)
+    delete_rule(load_etod, init_logger)

@@ -2,8 +2,9 @@
 When the state of a Group changes, wait a configured amount of time before transferring that new state to a proxy Item.
 
 # Dependencies
-- time_utils
-- timer_mgr
+- `time_utils` to parse the debounce duration strings
+- `timer_mgr` to manage the timers
+- `rules_utils` to dynamically create the rule on command to refresh rule triggers when metadata changes
 
 # Purpose
 Often one will have a Group or Item that can flap (rapidly flip between states) and in cases where it changes rapidly, we want to wait for things to settle before we treate the change as "real".
@@ -23,7 +24,16 @@ Switch RawSensor { debounce="ProxySensor"[timeout="2m", state="OFF", command="Fa
 Switch ProxySensor
 ```
 
-Notice the Item metadata on RawSensor.
+Rules have a limitation that there is no event created when Item metadata is added, mofified, or removed.
+Therefore there is no way to know when you've changed the Item metadata for an Item.
+Thus, if it doesn't already exist, a `Reload_Debounce` Item will be created that will recreate the Expire rule with new triggers based on the current metadata.
+After modifying expire Item metadata, send an `ON` command to the `Reload_Debounce` Item or execute the `Reload Debounce` rule in PaperUI by clicking the "play" icon next to the rule in the list.
+
+When the script is loaded or when the `Reload Debounce` rule runs, all the Items with expire metadata are obtained and the configuration checked for validity.
+Invalid configs will generate errors in the logs.
+If the config is valid, changes to the Item will be added as a trigger to the Expire rule.
+
+An example of the expected cofiguration is on the `RawSensor` Item above.
 
 Parameter | Purpose
 -|-
@@ -32,8 +42,7 @@ Parameter | Purpose
 `state` | An optional parameter that identifies a comma separated list of states to debounce. All other states will immediately be transferred to the proxy. When not present, all states are debounced.
 `command` | Optional parameter. When `True` the Proxy is commanded. When `False` the proxy is updated. Defaults to `False`.
 
-When the script is loaded, all the Items are scanned for the presence of the `debounce` metadata and a rule created that triggers when the Item changes state.
-When triggered by one of the defined debounce states, the rule creates a Timer to update the Proxy in the `timeout` amount of time.
+When the Debounce rule is by an Item changing to one of the defined debounce states, the rule creates a Timer to update the Proxy in the `timeout` amount of time.
 When the Timer goes off, `state` is sent as a command or an update to Proxy depending on the value of `command`.
 
 If the RawSensor changes state away from the state that caused a Timer to be created, the Timer is cancelled.

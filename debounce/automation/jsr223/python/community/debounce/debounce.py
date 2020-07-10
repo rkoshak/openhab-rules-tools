@@ -14,20 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from core.rules import rule
-from core.triggers import when
 from core.metadata import get_value, get_metadata
 from core.utils import send_command_if_different, post_update_if_different
 from core.log import logging, LOG_PREFIX, log_traceback
 from community.time_utils import parse_duration
 from community.timer_mgr import TimerMgr
+from community.rules_utils import create_simple_rule, delete_rule, load_rule_with_metadata
 
 init_logger = logging.getLogger("{}.Debounce".format(LOG_PREFIX))
 
 timers = TimerMgr()
 
+RELOAD_DEBOUNCE_ITEM = "Reload_Debounce"
+
 @log_traceback
-def get_config(item_name):
+def get_config(item_name, logger):
     """Parses the config string to validate it's correctness and completeness.
     At a minimum it verifies the proxy Item exists, the timeout exists and is
     parsable.
@@ -45,7 +46,7 @@ def get_config(item_name):
         assert parse_duration(cfg.configuration["timeout"]), "Timeout is not valid"
         return cfg
     except AssertionError:
-        init_logger.error("Debounce config on {} is not valied: {}"
+        init_logger.error("Debounce config on {} is not valid: {}"
                           "\nExpected format is : debounce=\"ProxyItem\"[timeout=\"duration\", states=\"State1,State2\", command=\"True\"]"
                           "\nwhere:"
                           "\n  ProxyItem: name of the Item that will be commanded or updated after the debounce"
@@ -54,22 +55,6 @@ def get_config(item_name):
                           "\n  command: optional, when True the proxy will be commanded; when False proxy will be updated, defaults to False"
                           .format(item_name, get_value(item_name, "expire")))
         return None
-
-def trigger_generator():
-    """Generates triggers for the Expire Rule for all Items that have the expire
-    metadata value set.
-    Returns:
-      Item changed triggers for those Items that have a valid debounce metadata.
-    Errors:
-      A error complaining about function not having triggers will appear if
-      there are no Items with valid debounce metadata.
-    """
-    def generate_triggers(function):
-        for item_name in [i for i in items if get_metadata(i, "debounce")]:
-            if get_config(item_name):
-                when("Item {} changed".format(item_name))(function)
-        return function
-    return generate_triggers
 
 @log_traceback
 def end_debounce(state, proxy_name, is_command, log):
@@ -92,10 +77,7 @@ def end_debounce(state, proxy_name, is_command, log):
             .format(proxy_name, state))
         post_update_if_different(proxy_name, state)
 
-@rule("Debounce",
-      description="Debounces Items configured with the debounce metadata",
-      tags=["debounce", "openhab-rules-tools"])
-@trigger_generator()
+@log_traceback
 def debounce(event):
     """Rule that get's triggered by any Item with a valid debounce metadata
     config changes. Based on the configuration it will debounce some or all of
@@ -124,9 +106,39 @@ def debounce(event):
         end_debounce(event.itemState, proxy, isCommand, debounce.log)
 
 @log_traceback
+def load_debounce(event):
+    """Called at startup or when the Reload Debounce rule is triggered. It
+    deletes and recreates the Debounce rule. Should be called at startup and
+    when the metadata is changes on Items since there is no event to do this
+    automatically.
+    """
+
+    debounce_items = load_rule_with_metadata("debounce", get_config, "changed",
+            "Debounce", debounce, init_logger,
+            description=("Delays updating a proxy Item until the configured "
+                         "Item remains in that state for the configured amount "
+                         "of time"),
+            tags=["openhab-rules-tools","debounce"])
+    if debounce_items:
+        [timers.cancel(i) for i in timers.timers if not i in debounce_items]
+
+@log_traceback
+def scriptLoaded(*args):
+    if create_simple_rule(RELOAD_DEBOUNCE_ITEM, "Reload Debounce", load_debounce,
+                          init_logger,
+                          description=("Recreates the Debounce rule with the "
+                                       "latest debounce metadata. Run this rule "
+                                       "when modifying debounce metadata"),
+                          tags=["openhab-rules-tools","debounce"]):
+        load_debounce(None)
+
+@log_traceback
 def scriptUnloaded():
     """
     Cancels all the timers when the script is unloaded to avoid timers from
-    hanging around.
+    hanging around and deletes the rules.
     """
+
     timers.cancel_all()
+    delete_rule(load_debounce, init_logger)
+    delete_rule(debounce, init_logger)
