@@ -113,6 +113,10 @@ def load_debounce(event):
     automatically.
     """
 
+    if nor delete_rule(debounce, init_logger):
+        init_logger.error("Failed to delete rule!")
+        return
+
     debounce_items = load_rule_with_metadata("debounce", get_config, "changed",
             "Debounce", debounce, init_logger,
             description=("Delays updating a proxy Item until the configured "
