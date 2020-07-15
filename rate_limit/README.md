@@ -7,6 +7,8 @@ Andy commands that are sent to the class before the time has expired will be ign
 
 This class is similar to the gatekeeper class except that isntead of queueing up the commands, commands that occur during the timeout are ignored.
 
+# Requires
+- `time_utils` for converting many different ways to represent a time for the limit to a DateTime.
 # How it works
 Instantiate the RateLimit class.
 Call the `run` command with the amount of time to block.

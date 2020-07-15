@@ -32,9 +32,9 @@ def timer_body(target, value, is_command, time, log):
         - time: the original time string
         - log: logger passed in from the Rule that is using this.
     """
-    log.info("{} {} to {} after {}"
-             .format("Commanding" if is_command else "Updating", target, value,
-                     time))
+    log.debug("{} {} to {} after {}"
+              .format("Commanding" if is_command else "Updating", target, value,
+                      time))
     if is_command:
         events.sendCommand(target, str(value))
     else:

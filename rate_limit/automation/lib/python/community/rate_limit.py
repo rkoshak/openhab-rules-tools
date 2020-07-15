@@ -13,38 +13,36 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from datetime import datetime, timedelta
+from community.time_utils import to_datetime
+from org.joda.time import DateTime
+#from datetime import datetime, timedelta
+
+logger = logging.getLogger("{}.Rate Limit".format(LOG_PREFIX))
 
 class RateLimit(object):
     """Keeps a timestamp for when a new call to run is allowed to execute, ignoring
     any calls that take place before that time.
     """
 
+    @log_traceback
     def __init__(self):
         """ Initializes the timestamp to now. """
-        self.until = datetime.now()
 
-    def run(self, func, days=0, hours=0, mins=0, secs=0, msecs=0):
+        self.until = DateTime().now().minusSeconds(1)
+
+    @log_traceback
+    def run(self, func, when):
         """If it has been long enough since the last time that run was called,
         execute the passed in func. Otherwise ignore the call.
         Arguments:
             - func: The lambda or function to call if allowed.
-            - days: Defaults to 0, how many days to wait before allowing run to
-            execute again.
-            - hours: Defaults to 0, how many hours to wait before allowing run
-            to execute again.
-            - mins: Defaults to 0, how many minutes to wait before allowing run
-            to execute again.
-            - secs: Defaults to 0, how many seconds to wait before allowing run
-            to execute again.
-            - msecs: Defaults to 0, how many milliseconds to wait before
-            allowing run to execute again.
-            NOTE: The time arguments are additive. For example, to wait for 1
-            day 30 minutes one would pass days=1, minutes=30. Floats are
-            allowed.
+            - when: When the rate limit will expire. Can be a DateTime type
+            object, a number which is treated as seconds, or a duration string
+            (e.g. 5m 2.5s), or an ISO 8601 formatted date string. See time_utils
+            for details
         """
-        now = datetime.now()
-        if now >= self.until:
-            self.until = now + timedelta(days=days, hours=hours, minutes=mins,
-                                         seconds=secs, milliseconds=msecs)
+
+        now = DateTime().now()
+        if now.isAfter(self.until):
+            self.until = to_datetime(when)
             func()

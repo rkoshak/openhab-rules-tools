@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import community.rate_limit
+reload(community.rate_limit)
 from community.rate_limit import RateLimit
 import time
 from core.log import logging, LOG_PREFIX
@@ -28,15 +30,15 @@ try:
     log.info("Starting rate_limit tests")
     rate_limit = RateLimit()
 
-    rate_limit.run(test, secs=2)
+    rate_limit.run(test, 2)
     assert func_called, "Test1: function was not called"
 
     func_called = False
-    rate_limit.run(test, secs=2)
+    rate_limit.run(test, "2s")
     assert not func_called, "Test2: function was called"
 
     time.sleep(2)
-    rate_limit.run(test, secs=2)
+    rate_limit.run(test, "2s")
     assert func_called, "Test3: function was not called"
 
 except AssertionError:
