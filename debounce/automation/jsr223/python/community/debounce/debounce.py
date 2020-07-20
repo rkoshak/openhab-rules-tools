@@ -113,7 +113,7 @@ def load_debounce(event):
     automatically.
     """
 
-    if nor delete_rule(debounce, init_logger):
+    if not delete_rule(debounce, init_logger):
         init_logger.error("Failed to delete rule!")
         return
 
