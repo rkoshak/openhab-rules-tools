@@ -7,6 +7,9 @@ This requires a separate Timer for each Item.
 # Dependencies
 - time_utils: uses time_utils to convert various time duration formats to a DateTime usable by createTimer.
 
+# Limitations
+This class cannot be used to program looping timers.
+
 # Purpose
 Creating a separate Timer for each Item of a given type is a common requirement and requires the user to do all the book keeping and management of the Timers manually.
 This class implements all the book keeping and presents a simple interface to create, check for the existence of a Timer, cancelling of Timers, etc.
