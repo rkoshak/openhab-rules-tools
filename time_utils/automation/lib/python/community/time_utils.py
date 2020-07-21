@@ -109,29 +109,29 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)))
     """
 
     dt = None
-    if isinstance(when, DateTime):
-        log.debug("Joda")
-        dt = when
-    elif isinstance(when, (scope.DateTimeType)):
-        log.debug("openHAB DateTimeType")
-        dt = DateTime(str(when))
-    elif isinstance(when, int):
-        log.debug("int")
-        dt = DateTime().now().plusMillis(when)
-    elif isinstance(when, (scope.DecimalType, scope.PercentType,
-                           scope.QuantityType)) :
-        log.debug("Number")
-        dt = DateTime().now().plusMillis(when.intValue())
-    elif isinstance(when, (str, unicode)):
-        if is_iso8601(when):
-            log.debug("ISO 8601")
-            dt = DateTime(when)
+    try:
+        # TODO import the "real" classes. Scope goes away in looping timers.
+        if isinstance(when, DateTime):
+            dt = when
+        elif isinstance(when, (str, unicode)):
+            if is_iso8601(when):
+                dt = DateTime(when)
+            else:
+                dt = parse_duration_to_datetime(when, log)
+        elif isinstance(when, int):
+            dt = DateTime().now().plusMillis(when)
+        elif isinstance(when, (scope.DateTimeType)):
+            dt = DateTime(str(when))
+        elif isinstance(when, (scope.DecimalType, scope.PercentType,
+                            scope.QuantityType)) :
+            dt = DateTime().now().plusMillis(when.intValue())
         else:
-            log.debug("Duration")
-            dt = parse_duration_to_datetime(when, log)
-
-    log.debug("DT = {}".format(dt))
-    return dt
+            log.warn("When is an unknown type!")
+    except:
+        import traceback
+        log.error("Exception: {}".format(traceback.format_exc()))
+    finally:
+        return dt
 
 def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     """Takes a when (see to_datetime) and updates the date to today.

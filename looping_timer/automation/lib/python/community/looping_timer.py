@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from core.actions import ScriptExecution
+import community.time_utils
+reload(community.time_utils)
 from community.time_utils import to_datetime
 
 class LoopingTimer(object):
     """Implements a looping timer."""
 
-    def __init__(self, function, log, when=None):
+    def __init__(self, function, when=None):
         """Initializes and kicks off the looping timer.
 
         Arguments:
@@ -33,25 +35,20 @@ class LoopingTimer(object):
         """
 
         self.function = function
-        self.log = log
         self.timer = None
 
         if not when:
-            self.log.info("No when specified, kicking off immediately")
             self.__expired()
         else:
-            self.log.info("Starting timer at {}".format(when))
             self.timer = ScriptExecution.createTimer(to_datetime(when), self.__expired)
 
     def __expired(self):
         """Called when the timer expired, reschedules if necessary"""
 
-        self.log.info("Timer expired, calling function")
         when = self.function()
-        self.log.info("Function returned {}".format(when))
         if when:
-            self.log.info("Rescheduling timer...")
-            self.timer = ScriptExecution.createTimer(to_datetime(when), self.__expired)
+            dt = to_datetime(when)
+            self.timer = ScriptExecution.createTimer(dt, self.__expired)
 
     def cancel(self):
         """Cancels the running timer."""
