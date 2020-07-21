@@ -110,20 +110,27 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)))
 
     dt = None
     if isinstance(when, DateTime):
+        log.debug("Joda")
         dt = when
-    if isinstance(when, (scope.DateTimeType)):
+    elif isinstance(when, (scope.DateTimeType)):
+        log.debug("openHAB DateTimeType")
         dt = DateTime(str(when))
-    if isinstance(when, int):
+    elif isinstance(when, int):
+        log.debug("int")
         dt = DateTime().now().plusMillis(when)
     elif isinstance(when, (scope.DecimalType, scope.PercentType,
                            scope.QuantityType)) :
+        log.debug("Number")
         dt = DateTime().now().plusMillis(when.intValue())
     elif isinstance(when, (str, unicode)):
         if is_iso8601(when):
+            log.debug("ISO 8601")
             dt = DateTime(when)
         else:
+            log.debug("Duration")
             dt = parse_duration_to_datetime(when, log)
 
+    log.debug("DT = {}".format(dt))
     return dt
 
 def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
