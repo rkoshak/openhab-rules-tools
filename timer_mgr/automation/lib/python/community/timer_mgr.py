@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from core.jsr223.scope import ir
-from core.jsr223.scope import items
 from core.actions import ScriptExecution
-from org.joda.time import DateTime # todo move to Java's DateTime
-import community.time_utils
-reload(community.time_utils)
 from community.time_utils import to_datetime
 
 class TimerMgr(object):
@@ -76,7 +71,8 @@ class TimerMgr(object):
         """
 
         try:
-            self.timers[key]['not_flapping']()
+            if key in self.timers and 'not_flapping' in self.timers[key]:
+                self.timers[key]['not_flapping']()
         finally:
             if key in self.timers:
                 del self.timers[key]
