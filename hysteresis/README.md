@@ -26,7 +26,7 @@ Argument | Purpose
 target | The target or setpoint value around which the hysteresis buffer is defined.
 value | The current sensor reading.
 low | Optional argument to define how much to subtract from the target to define the lower bound of the hysteresis buffer. Defaults to 0.
-high | Optional argument to define hom musch toadd to the target to define the upper bound of the hysteresis buffer. Defaults to 1.
+high | Optional argument to define how much to add to the target to define the upper bound of the hysteresis buffer. Defaults to 1.
 
 # Example
 

@@ -3,7 +3,7 @@ A series of utility functions useful for manipulating representations of time du
 
 # Purpose
 There are many ways to represent time durations.
-Most of the time, these durations will need to be converted to a DateTime object for use in scheduiling a Timer.
+Most of the time, these durations will need to be converted to a DateTime object for use in scheduling a Timer.
 This library has a number of methods to perform these conversions.
 
 # How it works

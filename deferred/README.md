@@ -58,7 +58,7 @@ from community.timer_mgr import defer, cancel, cancel_all
     # In a Rule, send a n update to Foo in 5 minutes using DateTime
     defer("Foo", "OFF", DateTime().now().plusMinutes(5), log, is_command=False)
 
-    # Cancel the deffered action for Foo
+    # Cancel the deferred action for Foo
     cancel("Foo")
 
     # Cancel all the deferred actions

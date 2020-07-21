@@ -9,7 +9,7 @@ Otherwise the user would have to cause the .py file to be reloaded.
 
 ## create_switch_trigger_item
 An Item is required to kick off the reload rule.
-This function creates a Swith Item if one doesn't already exist.
+This function creates a Switch Item if one doesn't already exist.
 
 Argument | Purpose
 -|-
@@ -22,7 +22,7 @@ create_switch_trigger_item("Reload_Debounce")
 
 The rule does not check to make sure that if the Item already exists that it's of a type that can receive an ON command.
 
-Returns True if successful in creating the Item or it alrady exists.
+Returns True if successful in creating the Item or it already exists.
 
 ## delete_rule
 
@@ -67,7 +67,7 @@ Argument | Purpose
 `item_name` | Name of the Item that will trigger the rule. If it doesn't exist it will be created.
 `name` | Name for the rule
 `function` | Called when the rule triggers
-`logger` | For logging errros
+`logger` | For logging errors
 `description` | Optional description of the rule
 `tags`| Optional tags for the rule
 
@@ -111,7 +111,7 @@ Returns a list of the Item names for which a rule trigger was created or None if
 
 ## generate_triggers
 Creates a rule trigger string for all the Items that possess a valid metadata of the given namespace as verified by check_config.
-The type of the Item rule trigger is indincated by event.
+The type of the Item rule trigger is indicated by event.
 
 Argument | Purpose
 -|-

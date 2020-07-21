@@ -31,7 +31,7 @@ gk = None
     if not gk:
         gk = new Gatekeeper(logger)
 
-    # Inside a rule, add a command to the queue and prevent another command unti
+    # Inside a rule, add a command to the queue and prevent another command until
     # a second after this command runs.
     gk.add_command(1000, lambda: events.sendCommand("Foo", ON))
 
@@ -50,7 +50,7 @@ gk = None
 
 @rule("Sprinkler system start")
 @when("Time cron cron 0 0 8 * * ?")
-@when("Item Irigation received command ON")
+@when("Item Irrigation received command ON")
 def irrigation(event):
 
     if not gk:
@@ -61,7 +61,7 @@ def irrigation(event):
         gk.cancel_all()
         events.sendCommand("gValves", "OFF")
 
-    # Schedule the irrigation valves to run in squence.
+    # Schedule the irrigation valves to run in sequence.
     irrigation.logInfo("Starting irrigation")
     gk.add_command((5*60*1000), lambda: events.sendCommand("Valve1", "ON")) # 5 minutes
     gk.add_command((7*60*1000), lambda: events.sendCommand("Valve2", "ON"))

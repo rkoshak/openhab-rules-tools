@@ -5,7 +5,7 @@ This is an implementation of [Design Pattern: Rule Latching](https://community.o
 This class keeps track of when the last command was passed to it and the amount of time to block any further commands, a latch.
 Andy commands that are sent to the class before the time has expired will be ignored.
 
-This class is similar to the gatekeeper class except that isntead of queueing up the commands, commands that occur during the timeout are ignored.
+This class is similar to the gatekeeper class except that instead of queuing up the commands, commands that occur during the timeout are ignored.
 
 # Requires
 - `time_utils` for converting many different ways to represent a time for the limit to a DateTime.
@@ -32,7 +32,7 @@ Argument | Purpose
 # Examples
 
 ```python
-from communite.rate_limit import RateLimit
+from community.rate_limit import RateLimit
 
 latch = RateLimit()
 ...
