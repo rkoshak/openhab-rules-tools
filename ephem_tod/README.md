@@ -12,7 +12,7 @@ This is adequate for many users, but some users may require a different set of t
 - `item_init`, optional, used for statically defined times of day (see examples below)
 - `timer_mgr` to manage the Timers
 - `time_utils` to process DateTimeTypes and it's needed by timer_mgr
-- `rules_utils` to dynamically recreate the rule on command when the Item metatada is changed
+- `rules_utils` to dynamically recreate the rule on command when the Item metadata is changed
 
 # How it works
 The Rule will create the following two Items if they do not already exist.
@@ -22,7 +22,7 @@ Item | Purpose
 `Reload_ETOD` | Switch Item, when it receives an ON command it will rebuild the Ephemeris Time of Day using the latest metadata configured on Items
 `TimeOfDay` | String Item that contains the current time of day. The values are defined with the metadata on the DateTime Items that drive the state machine.
 
-Rules have a limitation that there is no event created when Item metadata is added, mofified, or removed.
+Rules have a limitation that there is no event created when Item metadata is added, modified, or removed.
 Therefore there is no way to know when you've changed the Item metadata for an Item.
 Thus, if it doesn't already exist, a `Reload_ETOD` Item will be created that will recreate the Expire rule with new triggers based on the current metadata.
 After modifying expire Item metadata, send an `ON` command to the `Reload_ExTD` Item or execute the `Reload Ephemeris Time of Day` rule in PaperUI by clicking the "play" icon next to the rule in the list.
@@ -31,7 +31,7 @@ When the script is loaded or when the `Reload Ephemeris Time of Day` rule runs, 
 Invalid configs will generate errors in the logs.
 If the config is valid, changes to the Item will be added as a trigger to the Expire rule.
 
-The statemachine is driven by DateTime Items with `etod` metadata defined.
+The state machine is driven by DateTime Items with `etod` metadata defined.
 
 ```
 etod="STATE"[type="daytype", set="dayset", file="uri"]
@@ -39,7 +39,7 @@ etod="STATE"[type="daytype", set="dayset", file="uri"]
 
 Argument | Values | Purpose
 -|-|-
-`"STATE"` | The name of the state that starts at the date/time stored in this Item's state. | The String that gets commanded to the TimeOfDay Item which indicates the current timeof day state.
+`"STATE"` | The name of the state that starts at the date/time stored in this Item's state. | The String that gets commanded to the TimeOfDay Item which indicates the current time of day state.
 `type` | The Ephemeris type (see below) | Indicates what sort of day type is defined in Ephemeris, defaults to `default`.
 `set` | The name of the custom dayset | Only valid when type is `dayset`.
 `file` | Path to Ephemeris XML file | Only valid when type is `custom`, the path to the custom Ephemeris holiday configuration.
@@ -48,7 +48,7 @@ Ephemeris provides a number of ways to categorize days, daysets, and holidays.
 
 A dayset is a list of the days of the week with a name, for example weekend would include SATURDAY and SUNDAY by default.
 Weekday is a special dayset that is essentially those days not listed as a weekend.
-One can define a custom set of daysets (e.g. garabage-day=MONDAY) if desired.
+One can define a custom set of daysets (e.g. garbage-day=MONDAY) if desired.
 
 When Ephemeris is configured with a country and region, it loads a default list of "bank holidays" for that region.
 One can additionally define a custom set of holidays by creating an XML file.
@@ -91,12 +91,12 @@ DateTime Trash_Bed { init="00:02:00", etod="BED"[type="dayset", set="trash"] }
 // Default holiday
 DateTime Weekend_Day { channel="astro:sun:set120:set#start", etod="DAY"[type="holiday"] }
 DateTime Weekend_Evening { channel="astro:sun:local:set#start", etod="EVENING"[type="holiday"] }
-DateTime Default_BEd { init="00:02:00", etod="BED"[type="holiday"] }
+DateTime Default_Bed { init="00:02:00", etod="BED"[type="holiday"] }
 
 // Custom holiday
 DateTime Weekend_Day { channel="astro:sun:set120:set#start", etod="DAY"[type="custom", file="/openhab/conf/services/custom1.xml"] }
 DateTime Weekend_Evening { channel="astro:sun:local:set#start", etod="EVENING"[type="custom", file="/openhab/conf/services/custom1.xml"] }
-DateTime Default_BEd { init="00:02:00", etod="BED"[type="custom", file="/openhab/conf/services/custom1.xml"] }
+DateTime Default_Bed { init="00:02:00", etod="BED"[type="custom", file="/openhab/conf/services/custom1.xml"] }
 ```
 
 # Limitations
