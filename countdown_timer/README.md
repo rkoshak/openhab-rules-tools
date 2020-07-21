@@ -17,7 +17,7 @@ This creates an instance of the CountdownTimer.
 A number of arguments are required.
 
 ```python
-countdowTimer = new CountdownTimer(log, time, func, count_item)
+countdownTimer = new CountdownTimer(log, time, func, count_item)
 ```
 Argument | Purpose
 -|-

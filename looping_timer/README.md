@@ -54,7 +54,7 @@ timer = None
 def pull_charts(log, period, poll):
     """Called by the looping timer."""
 
-    # Calculate thg next polling time before doing the work so the polling is
+    # Calculate the next polling time before doing the work so the polling is
     # even. Make sure the period is longer than it takes to do the work though.
     next_time = to_datetime(poll_time)
 

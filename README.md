@@ -27,7 +27,7 @@ Once the tests have run, remove the test files so they do not run on every resta
 Some capabilities will automatically create needed Items if they do not already exist.
 
 # Usage
-Each rule and libary class and function has the usage information documented in the source code and the README.md file in each capability's folder.
+Each rule and library class and function has the usage information documented in the source code and the README.md file in each capability's folder.
 The unit tests are also another good place to find usage examples.
 
 # Future Plans
@@ -45,11 +45,11 @@ Capability | Type | Purpose | Dependencies
 `ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | `timer_mgr`, `time_utils`, `rules_utils`
 `expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils`
 `gatekeeper` | module | Enforces a delay between actions. | None
-`hystersis` | module | A simple function to calculate a hysteresis comparison. | None
+`hysteresis` | module | A simple function to calculate a hysteresis comparison. | None
 `item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None
 `looping_timer` | module | Class that implements a looping timer. | `time_utils`
-`mqtt_eb` | script | A set of rules that implement an MQTT event bus to synchronize two or more openHAB instnaces. | `rules_utils`, MQTT 2.5+ binding properly configured
+`mqtt_eb` | script | A set of rules that implement an MQTT event bus to synchronize two or more openHAB instances. | `rules_utils`, MQTT 2.5+ binding properly configured
 `rate_limit` | module | Enforces a timeout where actions that occur inside the timeout are ignored. | None
-`rules_utils` | module | Eome functions to help in the dynamic loading/reloading of rules to refresh their triggers. | None
-`time_utils` | module | Some functions to help parse and convert various representatiosns of time and time durations. | None
+`rules_utils` | module | Some functions to help in the dynamic loading/reloading of rules to refresh their triggers. | None
+`time_utils` | module | Some functions to help parse and convert various representations of time and time durations. | None
 `timer_mgr` | module | Manages a whole collection of Timers with four simple functions. | `time_utils`

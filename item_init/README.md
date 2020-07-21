@@ -9,7 +9,7 @@ There is a flag that indicates whether the initialize the Item only when it's NU
 There is also a flag to delete the metadata once the Item is initialized (only works if the Item and metadata is defined in JSONDB, not with .items files defined).
 
 # How it works
-Define the metadata on the Item of the followig format:
+Define the metadata on the Item of the following format:
 
 ```
 init="state"[override="True", clear="True"]
@@ -33,7 +33,7 @@ Switch Presence { init="OFF"[override="True"] }
 // Initialize MyLamp to 123,45,67 if it's NULL or UNDEF at start
 Color MyLamp { init="123,45,67" }
 
-// Initialize TerhermostSetpoint to 70 but only if it's NULL or UNDEF, remove
+// Initialize ThermostatSetpoint to 70 but only if it's NULL or UNDEF, remove
 // the init metadata after start.
 Number ThermostatSetpoint { init="70"[override="False", clear="True"] }
 
