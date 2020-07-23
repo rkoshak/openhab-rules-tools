@@ -38,23 +38,37 @@ def get_config(item_name, logger):
       An Item metadata Object or None if there is no such metadata or the
       metadata is malformed.
     """
-    try:
-        cfg = get_metadata(item_name, "debounce")
-        assert cfg, "There is no debounce metadata"
-        assert items[cfg.value], "The proxy Item {} does not exist".format(cfg.value)
-        assert "timeout" in cfg.configuration, "There is no timeout supplied"
-        assert parse_duration(cfg.configuration["timeout"]), "Timeout is not valid"
-        return cfg
-    except AssertionError:
-        init_logger.error("Debounce config on {} is not valid: {}"
-                          "\nExpected format is : debounce=\"ProxyItem\"[timeout=\"duration\", states=\"State1,State2\", command=\"True\"]"
-                          "\nwhere:"
-                          "\n  ProxyItem: name of the Item that will be commanded or updated after the debounce"
-                          "\n  timeout: required parameter with the duration of the format 'xd xh xm xs' where each field is optional and x is a number, 2s would be 2 seconds, 0.5s would be 500 msec"
-                          "\n  states: optional, list all the states that are debounced; when not present all states are debounced; states not in the list go directly to the proxy"
-                          "\n  command: optional, when True the proxy will be commanded; when False proxy will be updated, defaults to False"
-                          .format(item_name, get_value(item_name, "expire")))
+
+    error = False
+    cfg = get_metadata(item_name, "debounce")
+    if not cfg:
+        logger.error("Item {} has no debounce metadata!".format(item_name))
+        error = True
+    elif not cfg.value or cfg.value not in items:
+        logger.error("Proxy Item {} for Item {} does not exist!"
+                        .format(cfg.value, item_name))
+        error = True
+    elif not "timeout" in cfg.configuration:
+        logger.error("Debounce metadata for Item {} does not include a "
+                        "timeout property!".format(item_name))
+        error = True
+    elif not parse_duration(cfg.configuration["timeout"]):
+        logger.error("timeout property for Item {} is invalid!"
+                        .format(item_name))
+        error = True
+
+    if error:
+        logger.error("Debounce config on {} is not valid: {}"
+                        "\nExpected format is : debounce=\"ProxyItem\"[timeout=\"duration\", states=\"State1,State2\", command=\"True\"]"
+                        "\nwhere:"
+                        "\n  ProxyItem: name of the Item that will be commanded or updated after the debounce"
+                        "\n  timeout: required parameter with the duration of the format 'xd xh xm xs' where each field is optional and x is a number, 2s would be 2 seconds, 0.5s would be 500 msec"
+                        "\n  states: optional, list all the states that are debounced; when not present all states are debounced; states not in the list go directly to the proxy"
+                        "\n  command: optional, when True the proxy will be commanded; when False proxy will be updated, defaults to False"
+                        .format(item_name, get_value(item_name, "expire")))
         return None
+    else:
+        return cfg
 
 @log_traceback
 def end_debounce(state, proxy_name, is_command, log):
@@ -90,7 +104,7 @@ def debounce(event):
 
     timers.cancel(event.itemName)
 
-    isCommand = True if cfg.configuration["command"] == "True" else False
+    isCommand = True if "command" in cfg.configuration and cfg.configuration["command"] == "True" else False
     proxy = cfg.value
     states = [st.strip() for st in cfg.configuration["state"].split(",")] if "state" in cfg.configuration else None
     timeout = str(cfg.configuration["timeout"])
