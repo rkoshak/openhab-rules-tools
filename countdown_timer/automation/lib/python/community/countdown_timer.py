@@ -127,7 +127,7 @@ class CountdownTimer(object):
         return self.timer.hasTerminated()
 
     def cancel(self):
-        """ Cancels the Timer and resets the Item to 0. """
+        """Cancels the Timer and resets the Item to 0. """
         self.time_left = self.ZERO_SEC
         self.__update_item__()
         return self.timer.cancel()

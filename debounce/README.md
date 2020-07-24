@@ -7,16 +7,16 @@ When the state of a Group changes, wait a configured amount of time before trans
 - `rules_utils` to dynamically create the rule on command to refresh rule triggers when metadata changes
 
 # Purpose
-Often one will have a Group or Item that can flap (rapidly flip between states) and in cases where it changes rapidly, we want to wait for things to settle before we treate the change as "real".
+Often one will have a Group or Item that can flap (rapidly flip between states) and in cases where it changes rapidly, we want to wait for things to settle before we treat the change as "real".
 For example, a bad sensor may occasionally flap.
 Another example is we may want to wait a couple minutes after everyone leaves before setting an away Switch.
 
 # How it works
-To achieve this, we have a proxy Item assocaited with the sensor Item or Group Item (aggregation of sensors) and we set a Timer to wait a configured amount of time before updating the proxy Item.
+To achieve this, we have a proxy Item associated with the sensor Item or Group Item (aggregation of sensors) and we set a Timer to wait a configured amount of time before updating the proxy Item.
 There might be cases, such as with presence detection, where the debounce only occurs on one state but not the other (e.g. only debounce turning OFF, immediately process ON).
 
 At a minimum two Items are required:
-- Sensor Item or Group which represents the raw sensor events or aggregation of events in the Gruop case
+- Sensor Item or Group which represents the raw sensor events or aggregation of events in the Group case
 - Proxy Item which holds the debouncestate used to represent the sensor to openHAB.
 
 ```
@@ -24,7 +24,7 @@ Switch RawSensor { debounce="ProxySensor"[timeout="2m", state="OFF", command="Fa
 Switch ProxySensor
 ```
 
-Rules have a limitation that there is no event created when Item metadata is added, mofified, or removed.
+Rules have a limitation that there is no event created when Item metadata is added, modified, or removed.
 Therefore there is no way to know when you've changed the Item metadata for an Item.
 Thus, if it doesn't already exist, a `Reload_Debounce` Item will be created that will recreate the Expire rule with new triggers based on the current metadata.
 After modifying expire Item metadata, send an `ON` command to the `Reload_Debounce` Item or execute the `Reload Debounce` rule in PaperUI by clicking the "play" icon next to the rule in the list.
@@ -33,7 +33,7 @@ When the script is loaded or when the `Reload Debounce` rule runs, all the Items
 Invalid configs will generate errors in the logs.
 If the config is valid, changes to the Item will be added as a trigger to the Expire rule.
 
-An example of the expected cofiguration is on the `RawSensor` Item above.
+An example of the expected configuration is on the `RawSensor` Item above.
 
 Parameter | Purpose
 -|-
@@ -50,7 +50,7 @@ If the new state is a debounce state a new Timer is created.
 
 In all cases, if the new state is not a debounce state, the Proxy Item is immediately updated or commanded depending on the value of `command` but only if the Proxy Item's state is different.
 
-It should work with non-binary type Items but it's only ben tested with binary ones.
+It should work with non-binary type Items but it's only been tested with binary ones.
 
 # Examples
 
@@ -83,5 +83,5 @@ def away(event):
 ```
 
 # Limitations
-Adding new metatadata to Items will require a reload of the script file.
+Adding new metadata to Items will require a reload of the script file.
 If there are no Items with debounce metadata an error will appear when the script is loaded.
