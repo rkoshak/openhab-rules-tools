@@ -5,6 +5,7 @@ And still others need to be able to reset the state of an Item at openHAB start 
 
 # Purpose
 This script will initialize all Items with the `init` metadata defined at openHAB start.
+The name of the script starts with 300, so it will be loaded just after the helpers libraries which are numbered from 000 to 200.
 There is a flag that indicates whether the initialize the Item only when it's NULL or UNDEF or whether to override the Item's state.
 There is also a flag to delete the metadata once the Item is initialized (only works if the Item and metadata is defined in JSONDB, not with .items files defined).
 
