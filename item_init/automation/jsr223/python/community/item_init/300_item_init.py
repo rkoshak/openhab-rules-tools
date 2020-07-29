@@ -53,30 +53,22 @@ def item_init(event):
 
     item_init.log.info("Initializing Items")
     for item_name in [i for i in items if get_metadata(i, "init")]:
-        try:
-            value = get_value(item_name, "init")           
+        value = get_value(item_name, "init")
 
-            # Always update if override is True
-            if get_key_value(item_name, "init", "override") == "True":
-                post_update_if_different(item_name, value)
-                item_init.log.info("Overriding current value {} of {} to {}"
-                                    .format(items[item_name], item_name, value))
+        # Always update if override is True
+        if get_key_value(item_name, "init", "override") == "True":
+            post_update_if_different(item_name, value)
+            item_init.log.info("Overriding current value {} of {} to {}"
+                                .format(items[item_name], item_name, value))
 
-            # If not overridden, only update if the Item is currently NULL or UNDEF.
-            elif isinstance(items[item_name], UnDefType):
-                item_init.log.info("Initializing {} to {}"
-                                    .format(item_name, value))
-                postUpdate(item_name, value)
+        # If not overridden, only update if the Item is currently NULL or UNDEF.
+        elif isinstance(items[item_name], UnDefType):
+            item_init.log.info("Initializing {} to {}"
+                                .format(item_name, value))
+            postUpdate(item_name, value)
 
-            # Delete the metadata now that the Item is initialized.
-            if get_key_value(item_name, "init", "clear") == "true":
-                item_init.log.info("Removing init metadata from {}"
-                                    .format(item_name))
-                remove_metadata(item_name, "init")
-                
-        except:
-            #catch iitialization errors and go to the next item
-            item_init.log.warn("Could not set item {} to {}".format(item_name, value))
-            continue
-
-    item_init.log.info("Item initialization complete")
+        # Delete the metadata now that the Item is initialized.
+        if get_key_value(item_name, "init", "clear") == "true":
+            item_init.log.info("Removing init metadata from {}"
+                                .format(item_name))
+            remove_metadata(item_name, "init")
