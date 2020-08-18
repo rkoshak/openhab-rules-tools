@@ -26,7 +26,7 @@ Arguments | Purpose
 td = parse_duration("1d12h")
 ```
 
-Returns a Python datetime.timedelta. Returns `None` if the String isn't parsable. 
+Returns a Python datetime.timedelta. Returns `None` if the String isn't parsable.
 
 ## delta_to_datetime
 Converts a Python timedelta to a Joda DateTime.
@@ -61,12 +61,13 @@ Takes in a variety of types and converts them to a JodaDate time.
 - openHAB number type: returns now.plusMillis(when.intValue())
 - ISO8601 string: DateTime(when)
 - Duration definition: see parse_duration_to_datetime
+- Python datetime
 
 ```python
 dt = to_datetime("0.25s")
 ```
 
-Returns a Joda DateTime based on the passed in value. 
+Returns a Joda DateTime based on the passed in value.
 If the passed in value is a duration or timedelta or int, the DateTime is that amount of time from now.
 
 # Examples

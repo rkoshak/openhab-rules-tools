@@ -23,7 +23,6 @@ from core.log import log_traceback, logging, LOG_PREFIX
 from datetime import datetime, timedelta
 log = logging.getLogger("{}.TEST.util".format(LOG_PREFIX))
 
-
 func_called = False
 
 def test():
@@ -39,7 +38,6 @@ add_item(number, item_type="Number")
 add_item(string, item_type="String")
 
 try:
-
     # Test that func_called on even seconds.
     log.info("--------------------------- seconds")
     timer = CountdownTimer(log, "2s", test, number)

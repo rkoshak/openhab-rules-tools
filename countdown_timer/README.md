@@ -4,6 +4,9 @@ This library is written based off of the Rules DSL [Design Pattern: Countdown Ti
 This library represents a Timer that updates a passed in Item with the amount of time remaining on the timer.
 It supports representing the time as a number of seconds or as a string of the format `[D day[s], ][H]H:MM:SS`
 
+# Dependencies
+- `time_utils` to parse the debounce duration string
+
 # Purpose
 To show on the UI and/or use the amount of time remaining on a Timer in rules.
 
@@ -22,7 +25,7 @@ countdownTimer = new CountdownTimer(log, time, func, count_item)
 Argument | Purpose
 -|-
 log | The logger to use for logging out debug information. All log statements are at the debug level.
-time | The DateTime when the Timer should expire. For now it requires a Joda DateTime but that will change in OH 3.
+time | How long to set the timer for. Supports any of the types and formats supported by time_utils.to_datetime
 func | The function to call when the Timer expires.
 count_item | The name of the Number or String Item that keeps the time remaining on the Timer.
 
