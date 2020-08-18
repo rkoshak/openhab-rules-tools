@@ -113,7 +113,7 @@ def debounce(event):
         log.debug("Debouncing {} with proxy={}, command={}, timeout={}, and"
                   " states={}".format(event.itemName, proxy, isCommand,
                   timeout, states))
-        timers.check(event.itemName, timeout, function=lambda: end_debounce(event.itemState, proxy, isCommand, debounce.log))
+        timers.check(event.itemName, timeout, function=lambda: end_debounce(event.itemState, proxy, isCommand))
     else:
         log.debug("{} changed to {} which is not in {}, not debouncing"
                   .format(event.itemName, event.itemState, states))
