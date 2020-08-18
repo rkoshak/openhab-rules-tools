@@ -203,15 +203,20 @@ def ephem_tod(event):
 
     # If any are NULL, kick off the init rule.
     null_items = [i for i in start_times if isinstance(items[i], UnDefType)]
-    if null_items:
-        ephem_tod.log.warn("The following Items are are NULL: {} kicking off "
-                           "initialization".format(null_items))
+    if null_items and "InitItems" in items:
+        ephem_tod.log.warn("The following Items are are NULL/UNDEF, kicking off "
+                           "initialization using item_init: {}"
+                           .format(null_items))
         events.sendCommand("InitItems", "ON")
         from time import sleep
         sleep(5)
 
-    if [i for i in start_times if isinstance(items[i], UnDefType)]:
-        ephem_tod.log.error("There are still etod Items that are NULL, cancelling")
+    # Check to see if we still have NULL/UNDEF Items.
+    null_items = [i for i in start_times if isinstance(items[i], UnDefType)]
+    if null_items:
+        ephem_tod.log.error("The following Items are still NULL/UNDEF, "
+                            "cannot create Time of Day timers: {}"
+                            .format(null_items))
         return
 
     # Cancel existing Items and then generate all the timers for today.
