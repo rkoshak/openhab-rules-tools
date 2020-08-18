@@ -16,7 +16,7 @@ limitations under the License.
 
 from core.metadata import get_value
 from core.log import logging, LOG_PREFIX, log_traceback
-from community.time_utils import parse_duration, to_datetime
+from community.time_utils import parse_duration
 from community import deferred
 from community.rules_utils import create_simple_rule, delete_rule, load_rule_with_metadata
 
@@ -132,7 +132,7 @@ def get_config(i, log):
     # Make sure the event is valid
     if event not in ["state", "command"]:
         log.error("Invalid expire config: Unrecognized action '{}' for item '{}'"
-                  .format(event, item_name))
+                  .format(event, i))
         return None
 
     if isinstance(state, UnDefType) and event == "command":
@@ -196,7 +196,8 @@ def load_expire(event):
                    description="Drop in replacement for the Expire 1.x binding",
                    tags=["openhab-rules-tools","expire"])
     if expire_items:
-        [deferred.cancel(i) for i in deferred.timers.timers if not i in expire_items]
+        for i in [i for i in deferred.timers.timers if not i in expire_items]:
+            deferred.cancel(i)
 
 @log_traceback
 def scriptLoaded(*args):

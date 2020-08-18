@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from core.actions import ScriptExecution
 from core.jsr223.scope import events
 from org.joda.time import DateTime
 from community.time_utils import to_datetime

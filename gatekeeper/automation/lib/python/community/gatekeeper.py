@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections import deque
 from core.actions import ScriptExecution
 from org.joda.time import DateTime
 from Queue import Queue

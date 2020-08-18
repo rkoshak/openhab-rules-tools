@@ -13,8 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from core.rules import rule
-from core.triggers import when
 from core.metadata import get_metadata, get_key_value, get_value
 from core.actions import Ephemeris
 from core.utils import send_command_if_different
@@ -40,7 +38,7 @@ NAMESPACE = "etod"
 timers = TimerMgr()
 
 # Logger to use before
-init_logger = logging.getLogger("{}.Ephemeris Time of Day".format(LOG_PREFIX))
+log = logging.getLogger("{}.Ephemeris Time of Day".format(LOG_PREFIX))
 
 @log_traceback
 def check_config(i, log):
@@ -72,7 +70,7 @@ def check_config(i, log):
     return cfg
 
 @log_traceback
-def get_times(log):
+def get_times():
     """Gets the list of Items that define the start times for today. It uses
     Ephemeris to determine which set of Items to select. The hierarchy is:
         - custom: custom defined holidays
@@ -81,8 +79,6 @@ def get_times(log):
         - weekend: weekend as defined in Ephemeris
         - weekday: not weekend days
         - default: used when no other day type is detected for today
-    Arguments:
-        - log: the logger used to log out debug information
     Returns:
         - a list of names for DateTime Items; None if no valid start times were
         found.
@@ -124,18 +120,17 @@ def get_times(log):
     return start_times[day_type] if day_type else None
 
 @log_traceback
-def etod_transition(state, log):
+def etod_transition(state):
     """Called from the timers, transitions to the next time of day.
     Arguments:
         - state: the state to transition into
-        - log: logger to log debug information
     """
     log.info("Transitioning Time of Day from {} to {}"
              .format(items[ETOD_ITEM], state))
     events.sendCommand(ETOD_ITEM, state)
 
 @log_traceback
-def create_timers(start_times, log):
+def create_timers(start_times):
     """Creates Timers to transition the time of day based on the passed in list
     of DateTime Item names. If an Item is dated with yesterday, the Item is
     updated to today. The ETOD_ITEM is commanded to the current time of day if
@@ -143,7 +138,6 @@ def create_timers(start_times, log):
     Arguments:
         - start_times: list of names for DateTime Items containing the start
         times for each time period
-        - log: used to log debug information
     """
 
     now = DateTime().now()
@@ -175,7 +169,7 @@ def create_timers(start_times, log):
             log.debug("FUTURE: {} Scheduleing Timer for {}"
                      .format(state, trigger_time))
             timers.check(state, trigger_time,
-                         function=lambda st=state: etod_transition(st, log))
+                         function=lambda st=state: etod_transition(st))
 
         # If it's in the past but not after most_recent_time we can ignore it.
         else:
@@ -192,21 +186,21 @@ def ephem_tod(event):
     times for today), when ETOD_TRIGGER_ITEM (default is CalculateETOD) receives
     an ON command, or when any of the Items with etod metadata changes.
     """
-    ephem_tod.log.info("Recalculating time of day")
+    log.info("Recalculating time of day")
 
     # Get the start times.
-    start_times = get_times(ephem_tod.log)
+    start_times = get_times()
 
     if not start_times:
-        ephem_tod.log.error("No start times found! Cannot run the rule!")
+        log.error("No start times found! Cannot run the rule!")
         return
 
     # If any are NULL, kick off the init rule.
     null_items = [i for i in start_times if isinstance(items[i], UnDefType)]
     if null_items and "InitItems" in items:
-        ephem_tod.log.warn("The following Items are are NULL/UNDEF, kicking off "
-                           "initialization using item_init: {}"
-                           .format(null_items))
+        log.warn("The following Items are are NULL/UNDEF, kicking off "
+                 "initialization using item_init: {}"
+                 .format(null_items))
         events.sendCommand("InitItems", "ON")
         from time import sleep
         sleep(5)
@@ -214,19 +208,19 @@ def ephem_tod(event):
     # Check to see if we still have NULL/UNDEF Items.
     null_items = [i for i in start_times if isinstance(items[i], UnDefType)]
     if null_items:
-        ephem_tod.log.error("The following Items are still NULL/UNDEF, "
-                            "cannot create Time of Day timers: {}"
-                            .format(null_items))
+        log.error("The following Items are still NULL/UNDEF, "
+                  "cannot create Time of Day timers: {}"
+                  .format(null_items))
         return
 
     # Cancel existing Items and then generate all the timers for today.
     timers.cancel_all()
-    create_timers(start_times, ephem_tod.log)
+    create_timers(start_times)
 
     # Create a timer to run this rule again a little after midnight. Work around
     # to deal with the fact that cron triggers do not appear to be workind.
     reload_time = DateTime().now().withTime(0,2,0,0).plusDays(1)
-    ephem_tod.log.info("Creating reload timer for {}".format(reload_time))
+    log.info("Creating reload timer for {}".format(reload_time))
     timers.check("etod_reload", reload_time, function=lambda: ephem_tod(None))
 
 @log_traceback
@@ -237,20 +231,21 @@ def load_etod(event):
     """
 
     # Remove the existing rule if it exists.
-    if not delete_rule(ephem_tod, init_logger):
-        init_logger.error("Failed to delete rule!")
+    if not delete_rule(ephem_tod, log):
+        log.error("Failed to delete rule!")
         return None
 
     # Generate the rule triggers with the latest metadata configs.
     etod_items = load_rule_with_metadata(NAMESPACE, check_config, "changed",
                                          "Ephemeris Time of Day", ephem_tod,
-                                         init_logger,
+                                         log,
                                          description=("Creates the timers that "
                                                       "drive the {} state"
                                                       "machine".format(ETOD_ITEM)),
                                          tags=["openhab-rules-tools","etod"])
     if etod_items:
-        [timers.cancel(i) for i in timers.timers if not i in etod_items]
+        for i in [i for i in timers.timers if not i in etod_items]:
+            timers.cancel(i)
 
     # Generate the timers now.
     ephem_tod(None)
@@ -259,13 +254,13 @@ def load_etod(event):
 def scriptLoaded(*args):
     """Create the Ephemeris Time of Day rule."""
 
-    delete_rule(ephem_tod, init_logger)
+    delete_rule(ephem_tod, log)
     if create_simple_rule(ETOD_RELOAD_ITEM, "Reload Ephemeris Time of Day",
-            load_etod, init_logger,
+            load_etod, log,
             description=("Regenerates the Ephemeris Time of Day rule using the"
-                         " latest {} metadata. Run after adding or removing any"
-                         " {} metadata to/from and Item."
-                         .format(NAMESPACE, NAMESPACE)),
+                         " latest {0} metadata. Run after adding or removing any"
+                         " {0} metadata to/from and Item."
+                         .format(NAMESPACE)),
             tags=["openhab-rules-tools","etod"]):
         load_etod(None)
 
@@ -277,5 +272,5 @@ def scriptUnloaded():
     """
 
     timers.cancel_all()
-    delete_rule(ephem_tod, init_logger)
-    delete_rule(load_etod, init_logger)
+    delete_rule(ephem_tod, log)
+    delete_rule(load_etod, log)

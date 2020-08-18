@@ -13,9 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from core.log import log_traceback, logging, LOG_PREFIX
 from community.time_utils import to_datetime
 from org.joda.time import DateTime
-#from datetime import datetime, timedelta
 
 logger = logging.getLogger("{}.Rate Limit".format(LOG_PREFIX))
 
