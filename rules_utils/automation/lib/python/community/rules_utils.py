@@ -18,7 +18,7 @@ from core.rules import rule
 from core.triggers import when
 from core.metadata import get_value
 from core.jsr223 import scope
-from core.log import logging, LOG_PREFIX, log_traceback
+from core.log import log_traceback
 
 @log_traceback
 def create_switch_trigger_item(item_name, logger):

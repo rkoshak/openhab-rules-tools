@@ -13,12 +13,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from core.actions import ScriptExecution
-from core.date import to_joda_datetime, to_python_datetime
 from datetime import datetime, timedelta
+from core.actions import ScriptExecution
+from core.date import to_python_datetime
 from core.jsr223.scope import ir, events
-from org.eclipse.smarthome.core.library.items import NumberItem, StringItem
+from org.eclipse.smarthome.core.library.items import NumberItem
 from org.joda.time import DateTime
+
+ONE_SEC = timedelta(seconds=1)
+ZERO_SEC = timedelta()
 
 class CountdownTimer(object):
     """Implements a Timer that updates an Item every second with the amount of time
@@ -56,8 +59,6 @@ class CountdownTimer(object):
         self.log = log
         self.func = func
         self.count_item = count_item
-        self.ONE_SEC = timedelta(seconds=1)
-        self.ZERO_SEC = timedelta()
         self.timer = None
         self.start = datetime.today()
 
@@ -92,11 +93,11 @@ class CountdownTimer(object):
                        .format(self.time_left))
 
         # Subtract a second from the time left.
-        self.time_left = self.time_left - self.ONE_SEC
+        self.time_left = self.time_left - ONE_SEC
 
         # We have more time left, reschedule for a second into the future and
         # update the time_left Item.
-        if self.time_left > self.ZERO_SEC:
+        if self.time_left > ZERO_SEC:
             self.log.debug("Rescheduling the timer!")
             # Update the count Item.
             self.__update_item__()
@@ -106,16 +107,16 @@ class CountdownTimer(object):
             # this is the last iteration and schedule the Timer for the number
             # of milliseconds left.
             next_time = DateTime.now().plusSeconds(1)
-            if self.time_left < self.ONE_SEC:
-                next_time =  DateTime.now().plusMillis(
+            if self.time_left < ONE_SEC:
+                next_time = DateTime.now().plusMillis(
                     int(round(self.time_left.total_seconds() * 1000)))
             self.log.debug("Next timer will go off at {}".format(next_time))
-            self.timer = ScriptExecution.createTimer(next_time,self.__iterate__)
+            self.timer = ScriptExecution.createTimer(next_time, self.__iterate__)
 
         # Time's up, call the passed in function.
         else:
             self.log.debug("Time's up!")
-            self.time_left = self.ZERO_SEC
+            self.time_left = ZERO_SEC
             self.__update_item__()
             self.func()
 
@@ -128,6 +129,6 @@ class CountdownTimer(object):
 
     def cancel(self):
         """Cancels the Timer and resets the Item to 0. """
-        self.time_left = self.ZERO_SEC
+        self.time_left = ZERO_SEC
         self.__update_item__()
         return self.timer.cancel()

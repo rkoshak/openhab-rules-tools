@@ -25,6 +25,7 @@ def check_config(log):
 
     try:
         from configuration import mqtt_eb_name
+        log.info("Using event bus name of {}".format(mqtt_eb_name))
     except:
         log.error("mqtt_eb_name is not defined in configuration.py!")
         return False
@@ -92,21 +93,13 @@ def load_publisher():
 
     triggers = []
 
-    # Create triggers for all Items.
-    if puball:
-        [triggers.append("Item {} received update".format(i))
-         for i in items]
-        [triggers.append("Item {} received command".format(i))
-         for i in items]
-
-    # Create triggers only for those Items with eb_update and eb_command tags.
-    else:
-        [triggers.append("Item {} received update".format(i))
-         for i in items
-         if ir.getItem(i).getTags().contains("eb_update")]
-        [triggers.append("Item {} received command".format(i))
-         for i in items
-         if ir.getItem(i).getTags().contains("eb_command")]
+    # Create triggers for Items.
+    update_items = items if puball else [i for i in items if ir.getItem(i).getTags().contains("eb_update")]
+    command_items = items if puball else [i for i in items if ir.getItem(i).getTags().contains("eb_command")]
+    for i in update_items:
+        triggers.append("Item {} received update".format(i))
+    for i in command_items:
+        triggers.append("Item {} received command".format(i))
 
     # No triggers, no need for the rule.
     if not triggers:

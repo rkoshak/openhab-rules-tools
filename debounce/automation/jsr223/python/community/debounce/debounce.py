@@ -145,7 +145,7 @@ def load_debounce(event):
             timers.cancel(i)
 
         # Synchronize the debounce_item with it's configured proxy.
-        log.info("debounce_items = {}".format(debounce_items))
+        log.debug("debounce_items = {}".format(debounce_items))
         for i in debounce_items:
             cfg = get_config(i, log)
             if cfg:
