@@ -150,7 +150,7 @@ def expire_event(event):
 
     # Cancel any deffered action if the new state is UnDefType.
     if isinstance(event.itemState, UnDefType):
-        expire_event.log.debug("Item {} change to an UnDefType {}, cancelling timer"
+        expire_event.log.debug("Item {} changed to an UnDefType {}, cancelling timer"
                  .format(event.itemName, event.itemState))
         deferred.cancel(event.itemName)
         return
@@ -158,7 +158,8 @@ def expire_event(event):
     # Get the configuration for the Item.
     cfg = get_config(event.itemName, expire_event.log)
     if not cfg:
-        exipre_event.log.error("Item {} has an invalid expire config")
+        expire_event.log.error("Item {} has an invalid expire config"
+                 .format(event.itemName))
         deferred.cancel(event.itemName)
         return
 
