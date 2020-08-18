@@ -19,6 +19,7 @@ from core.date import to_python_datetime
 from core.jsr223.scope import ir, events
 from org.eclipse.smarthome.core.library.items import NumberItem
 from org.joda.time import DateTime
+from community.time_utils import to_datetime
 
 ONE_SEC = timedelta(seconds=1)
 ZERO_SEC = timedelta()
@@ -60,12 +61,13 @@ class CountdownTimer(object):
         self.func = func
         self.count_item = count_item
         self.timer = None
-        self.start = datetime.today()
+        self.start = to_python_datetime(DateTime().now())
 
         try:
-            self.end_time = to_python_datetime(time)
+            self.end_time = to_python_datetime(to_datetime(time))
         except TypeError:
             self.log.error("Time is not a recognized DateTime type")
+            return
 
         self.time_left = self.end_time - self.start
         self.__iterate__()

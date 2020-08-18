@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from core.log import logging, LOG_PREFIX
+from core.date import to_joda_datetime
 from org.joda.time import DateTime
 from core.jsr223 import scope
 
@@ -125,8 +126,10 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)))
         elif isinstance(when, (scope.DecimalType, scope.PercentType,
                             scope.QuantityType)) :
             dt = DateTime().now().plusMillis(when.intValue())
+        elif isinstance(when, datetime):
+            dt = to_joda_datetime(when)
         else:
-            log.warn("When is an unknown type!")
+            log.warn("When is an unknown type {}".format(type(when)))
     except:
         import traceback
         log.error("Exception: {}".format(traceback.format_exc()))
