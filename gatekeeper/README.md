@@ -2,6 +2,9 @@
 
 This library implements the [Gatekeeper Design Pattern](https://community.openhab.org/t/design-pattern-gate-keeper/36483) in Python.
 
+# Dependencies
+- `time_utils` to parse the debounce duration string
+
 # Purpose
 There are situations where one needs to add in delays between commands.
 Sometimes these delays are to deal with limitations of hardware that commands are sent to (e.g. don't send more than one command per 500 msec to  a Hue Hub).
@@ -14,7 +17,7 @@ All commands that require delays between them are passed to the instantiated gat
 
 Argument | Purpose
 -|-
-`pause` | The number of milliseconds to wait from the *start* of executing the command to when the next command is allowed to run. For example, if 1000 is passed in and the command takes 250 msec to run, the next command will not be allowed to run until 750 msec after the command returned.
+`pause` | A time duration in any of the formats supported by time_utils.to_datetime.
 `command` | The function to call.
 
 # Examples
@@ -34,6 +37,7 @@ gk = None
     # Inside a rule, add a command to the queue and prevent another command until
     # a second after this command runs.
     gk.add_command(1000, lambda: events.sendCommand("Foo", ON))
+    gk.add_command("2s", lambda: events.sendCommand("Bar", OFF))
 
     # Inside another rule where we want to clear the queue.
     gk.cancel_all()
@@ -63,10 +67,10 @@ def irrigation(event):
 
     # Schedule the irrigation valves to run in sequence.
     irrigation.logInfo("Starting irrigation")
-    gk.add_command((5*60*1000), lambda: events.sendCommand("Valve1", "ON")) # 5 minutes
-    gk.add_command((7*60*1000), lambda: events.sendCommand("Valve2", "ON"))
-    gk.add_command((3*60*1000), lambda: events.sendCommand("Valve3", "ON"))
-    gk.add_command((5*60*1000), lambda: events.sendCommand("Valve4", "ON"))
+    gk.add_command("5m", lambda: events.sendCommand("Valve1", "ON")) # 5 minutes
+    gk.add_command("7m", lambda: events.sendCommand("Valve2", "ON"))
+    gk.add_command("3m", lambda: events.sendCommand("Valve3", "ON"))
+    gk.add_command("5m", lambda: events.sendCommand("Valve4", "ON"))
     gk.add_command(10, lambda: irrigation.logInfo("Irrigation complete"))
 
 @rule("Cancel irrigation")

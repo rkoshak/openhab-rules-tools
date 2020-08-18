@@ -13,10 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+from Queue import Queue
 from core.actions import ScriptExecution
 from org.joda.time import DateTime
-from Queue import Queue
+from community.time_utils import to_datetime
 
 class Gatekeeper(object):
     """Keeps a queue of commands and enforce a minimum time after a command
@@ -62,9 +62,8 @@ class Gatekeeper(object):
 
         # Calculate how long to sleep
         delta = after - before
-        pause = cmd[0]
-        delay = pause - delta
-        trigger_time = DateTime.now().plusMillis(delay if delay > 0 else 0)
+        pause = to_datetime(cmd[0])
+        trigger_time = to_datetime(cmd[0]).minusMillis(delta)
 
         # Create/reschedule the Timer
         if not self.timer:
@@ -82,8 +81,7 @@ class Gatekeeper(object):
         takes 250 msec and the pause is 1000 msec, the next command will be
         allowed to execute 750 msec after the command returns.
         Args:
-            - pause: Time in milliseconds to wait until the next command will be
-            allowed to execute.
+            - pause: Time in any format supported by time_utils.to_datetime.
             - command: Lambda or function to call to execute the command.
         """
         self.commands.put((pause, command))

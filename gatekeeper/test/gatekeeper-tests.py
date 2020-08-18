@@ -53,8 +53,8 @@ try:
     log.info("Starting gatekeeper add_command test")
     start = time()
     gk.add_command(1000, test1_func)
-    gk.add_command(2000, test2_func)
-    gk.add_command(3000, test3_func)
+    gk.add_command("2s", test2_func)
+    gk.add_command("3s", test3_func)
     gk.add_command(500, test4_func)
 
     # The first command will execute immediate, the second one after a second,

@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import time
+import community.countdown_timer
+reload(community.countdown_timer)
 from community.countdown_timer import CountdownTimer
+import community.time_utils
+reload(community.time_utils)
 from core.log import log_traceback, logging, LOG_PREFIX
 from datetime import datetime, timedelta
 log = logging.getLogger("{}.TEST.util".format(LOG_PREFIX))
@@ -36,7 +40,7 @@ add_item(string, item_type="String")
 try:
     # Test that func_called on even seconds.
     log.info("--------------------------- seconds")
-    timer = CountdownTimer(log, (datetime.now() + timedelta(seconds=2)), test, number)
+    timer = CountdownTimer(log, "2s", test, number)
     time.sleep(2.1)
     assert func_called, "Test1: function wasn't called when timer expired"
 
@@ -91,6 +95,32 @@ try:
     time.sleep(1)
     log.info("string item is finally {}".format(items[string]))
     assert str(items[string]) == "0:00:00", "Tets4: countdown Item is not 0:00:00: {}".format(items[string])
+
+    # Test that we can use to_datetime formatted values
+    log.info("--------------------------- string time")
+    log.info("string item is starting at {}".format(items[string]))
+    timer = CountdownTimer(log, "5s", test, string)
+    time.sleep(0.1)
+    log.info("string item is now {}".format(items[string]))
+    assert str(items[string]).startswith("0:00:04"), "Tets4: countdown Item is not 0:00:04: {}".format(items[string])
+
+    time.sleep(1)
+    log.info("string item is now {}".format(items[string]))
+    assert str(items[string]).startswith("0:00:03"), "Tets4: countdown Item is not 0:00:03: {}".format(items[string])
+
+    time.sleep(1)
+    log.info("string item is now {}".format(items[string]))
+    assert str(items[string]).startswith("0:00:02"), "Tets4: countdown Item is not 0:00:03: {}".format(items[string])
+
+    time.sleep(1)
+    log.info("string item is now {}".format(items[string]))
+    assert str(items[string]).startswith("0:00:01"), "Tets4: countdown Item is not 0:00:01: {}".format(items[string])
+
+    time.sleep(1)
+    log.info("string item is finally {}".format(items[string]))
+    assert str(items[string]) == "0:00:00", "Tets4: countdown Item is not 0:00:00: {}".format(items[string])
+
+
 
     # Test that hasTerminated works
     log.info("--------------------------- hasTerminated()")
