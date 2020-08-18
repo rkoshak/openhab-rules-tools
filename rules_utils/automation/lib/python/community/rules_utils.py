@@ -198,8 +198,4 @@ def get_items_from_triggers(triggers):
         A list of item_names.
     """
 
-    item_names = []
-
-    [item_names.append(t.split(" ")[1] for t in triggers if t.startswith("Item"))]
-
-    return item_names
+    return [t.split(" ")[1] for t in triggers if t.startswith("Item")]

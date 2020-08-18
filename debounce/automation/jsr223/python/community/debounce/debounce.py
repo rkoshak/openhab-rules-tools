@@ -21,14 +21,14 @@ from community.time_utils import parse_duration
 from community.timer_mgr import TimerMgr
 from community.rules_utils import create_simple_rule, delete_rule, load_rule_with_metadata
 
-init_logger = logging.getLogger("{}.Debounce".format(LOG_PREFIX))
+log = logging.getLogger("{}.Debounce".format(LOG_PREFIX))
 
 timers = TimerMgr()
 
 RELOAD_DEBOUNCE_ITEM = "Reload_Debounce"
 
 @log_traceback
-def get_config(item_name, logger):
+def get_config(item_name, log):
     """Parses the config string to validate it's correctness and completeness.
     At a minimum it verifies the proxy Item exists, the timeout exists and is
     parsable.
@@ -42,36 +42,36 @@ def get_config(item_name, logger):
     error = False
     cfg = get_metadata(item_name, "debounce")
     if not cfg:
-        logger.error("Item {} has no debounce metadata!".format(item_name))
+        log.error("Item {} has no debounce metadata!".format(item_name))
         error = True
     elif not cfg.value or cfg.value not in items:
-        logger.error("Proxy Item {} for Item {} does not exist!"
+        log.error("Proxy Item {} for Item {} does not exist!"
                         .format(cfg.value, item_name))
         error = True
     elif not "timeout" in cfg.configuration:
-        logger.error("Debounce metadata for Item {} does not include a "
+        log.error("Debounce metadata for Item {} does not include a "
                         "timeout property!".format(item_name))
         error = True
     elif not parse_duration(cfg.configuration["timeout"]):
-        logger.error("timeout property for Item {} is invalid!"
+        log.error("timeout property for Item {} is invalid!"
                         .format(item_name))
         error = True
 
     if error:
-        logger.error("Debounce config on {} is not valid: {}"
-                        "\nExpected format is : debounce=\"ProxyItem\"[timeout=\"duration\", states=\"State1,State2\", command=\"True\"]"
-                        "\nwhere:"
-                        "\n  ProxyItem: name of the Item that will be commanded or updated after the debounce"
-                        "\n  timeout: required parameter with the duration of the format 'xd xh xm xs' where each field is optional and x is a number, 2s would be 2 seconds, 0.5s would be 500 msec"
-                        "\n  states: optional, list all the states that are debounced; when not present all states are debounced; states not in the list go directly to the proxy"
-                        "\n  command: optional, when True the proxy will be commanded; when False proxy will be updated, defaults to False"
-                        .format(item_name, get_value(item_name, "expire")))
+        log.error("Debounce config on {} is not valid: {}"
+                  "\nExpected format is : debounce=\"ProxyItem\"[timeout=\"duration\", states=\"State1,State2\", command=\"True\"]"
+                  "\nwhere:"
+                  "\n  ProxyItem: name of the Item that will be commanded or updated after the debounce"
+                  "\n  timeout: required parameter with the duration of the format 'xd xh xm xs' where each field is optional and x is a number, 2s would be 2 seconds, 0.5s would be 500 msec"
+                  "\n  states: optional, list all the states that are debounced; when not present all states are debounced; states not in the list go directly to the proxy"
+                  "\n  command: optional, when True the proxy will be commanded; when False proxy will be updated, defaults to False"
+                  .format(item_name, get_value(item_name, "expire")))
         return None
     else:
         return cfg
 
 @log_traceback
-def end_debounce(state, proxy_name, is_command, log):
+def end_debounce(state, proxy_name, is_command):
     """Called at the end of the debounce period, update or commands the proxy
     Item with the passed in state if it's different from the proxy's current
     state.
@@ -110,14 +110,14 @@ def debounce(event):
     timeout = str(cfg.configuration["timeout"])
 
     if not states or (states and str(event.itemState) in states):
-        debounce.log.debug("Debouncing {} with proxy={}, command={}, timeout={}, and"
-                      " states={}".format(event.itemName, proxy, isCommand,
-                      timeout, states))
+        log.debug("Debouncing {} with proxy={}, command={}, timeout={}, and"
+                  " states={}".format(event.itemName, proxy, isCommand,
+                  timeout, states))
         timers.check(event.itemName, timeout, function=lambda: end_debounce(event.itemState, proxy, isCommand, debounce.log))
     else:
-        debounce.log.debug("{} changed to {} which is not in {}, not debouncing"
-                      .format(event.itemName, event.itemState, states))
-        end_debounce(event.itemState, proxy, isCommand, debounce.log)
+        log.debug("{} changed to {} which is not in {}, not debouncing"
+                  .format(event.itemName, event.itemState, states))
+        end_debounce(event.itemState, proxy, isCommand)
 
 @log_traceback
 def load_debounce(event):
@@ -127,23 +127,34 @@ def load_debounce(event):
     automatically.
     """
 
-    if not delete_rule(debounce, init_logger):
-        init_logger.error("Failed to delete rule!")
+    if not delete_rule(debounce, log):
+        log.error("Failed to delete rule!")
         return
 
     debounce_items = load_rule_with_metadata("debounce", get_config, "changed",
-            "Debounce", debounce, init_logger,
+            "Debounce", debounce, log,
             description=("Delays updating a proxy Item until the configured "
                          "Item remains in that state for the configured amount "
                          "of time"),
             tags=["openhab-rules-tools","debounce"])
+
     if debounce_items:
-        [timers.cancel(i) for i in timers.timers if not i in debounce_items]
+        # Cancel any existing timers for Items that are no longer debounced.
+        # Leave the timers for those that are still debounced.
+        for i in [i for i in timers.timers if not i in debounce_items]:
+            timers.cancel(i)
+
+        # Synchronize the debounce_item with it's configured proxy.
+        log.info("debounce_items = {}".format(debounce_items))
+        for i in debounce_items:
+            cfg = get_config(i, log)
+            if cfg:
+                post_update_if_different(cfg.value, items[i].toString())
 
 @log_traceback
 def scriptLoaded(*args):
     if create_simple_rule(RELOAD_DEBOUNCE_ITEM, "Reload Debounce", load_debounce,
-                          init_logger,
+                          log,
                           description=("Recreates the Debounce rule with the "
                                        "latest debounce metadata. Run this rule "
                                        "when modifying debounce metadata"),
@@ -158,5 +169,5 @@ def scriptUnloaded():
     """
 
     timers.cancel_all()
-    delete_rule(load_debounce, init_logger)
-    delete_rule(debounce, init_logger)
+    delete_rule(load_debounce, log)
+    delete_rule(debounce, log)
