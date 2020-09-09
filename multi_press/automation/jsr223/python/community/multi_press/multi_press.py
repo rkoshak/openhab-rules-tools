@@ -22,9 +22,8 @@ import traceback
 from core.osgi import register_service, unregister_service
 from core.log import logging, LOG_PREFIX
 from java.util.concurrent import TimeUnit
-from org.eclipse.smarthome.core.library import CoreItemFactory
 from org.eclipse.smarthome.core.library.types import StringType
-from org.eclipse.smarthome.core.thing.profiles import ProfileTypeUID, ProfileTypeBuilder, \
+from org.eclipse.smarthome.core.thing.profiles import ProfileTypeUID, \
         ProfileFactory, ProfileTypeProvider, TriggerProfile
 
 log = logging.getLogger("{}.core.MultiPressProfile".format(LOG_PREFIX))
@@ -33,10 +32,6 @@ FACTORY_CLASS = "{}.{}".format(ProfileFactory.__module__, ProfileFactory.__name_
 PROVIDER_CLASS = "{}.{}".format(ProfileTypeProvider.__module__, ProfileTypeProvider.__name__)
 
 UID_MULTI_PRESS = ProfileTypeUID("jython", "multiPress")
-
-TYPE_MULTI_PRESS = ProfileTypeBuilder.newTrigger(UID_MULTI_PRESS, "Multi Press") \
-                                     .withSupportedItemTypes(CoreItemFactory.STRING) \
-                                     .build()
 
 try:
     class MultiPressProfile(TriggerProfile):
