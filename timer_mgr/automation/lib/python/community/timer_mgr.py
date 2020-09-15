@@ -140,7 +140,7 @@ class TimerMgr(object):
         return key in self.timers
 
     def cancel(self, key):
-        """Cancels the Timer assocaited with this key if one exists.
+        """Cancels the Timer associated with this key if one exists.
         Arguments:
             - key: Name of Timer.
         """
@@ -155,6 +155,7 @@ class TimerMgr(object):
         Cancels any existing Timers.
         """
 
-        for timer in self.timers.values():
-            if not timer['timer'].hasTerminated():
-                timer['timer'].cancel()
+        for key in self.timers:
+            if not self.timers[key]['timer'].hasTerminated():
+                self.timers[key]['timer'].cancel()
+            del self.timers[key]
