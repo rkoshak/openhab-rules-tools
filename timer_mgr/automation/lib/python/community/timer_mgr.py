@@ -16,6 +16,9 @@ limitations under the License.
 
 from core.actions import ScriptExecution
 from community.time_utils import to_datetime
+from core.log import log_traceback, logging, LOG_PREFIX
+
+TimerMgr_logger = logging.getLogger("{}.Timer Manager".format(LOG_PREFIX))
 
 class TimerMgr(object):
     """Keeps and manages a dictionary of Timers keyed on a String, typically an
@@ -110,25 +113,30 @@ class TimerMgr(object):
         """
 
         timeout = to_datetime(when)
-
+        TimerMgr_logger.debug("timeout is: " + str(timeout))
         # Timer exists: if the reschedule flag is set, reschedule it, otherwise
         # cancel it. If a flapping function was passed to us, call the flapping
         # function.
         if key in self.timers:
             if reschedule:
                 self.timers[key]['timer'].reschedule(timeout)
+                TimerMgr_logger.debug("rescheduling timer for: " + str(key))
             else:
                 self.cancel(key)
-            if flapping_function: flapping_function()
+                TimerMgr_logger.debug("Timer cancelled for: " + str(key))
+            if flapping_function: 
+                flapping_function()
+                TimerMgr_logger.debug("Running flapping function for: " + str(key))
 
         # No timer exists, create the Timer
         else:
+            TimerMgr_logger.debug("Creating timer for: " + str(key))
             timer = ScriptExecution.createTimer(timeout,
                         lambda: self.__not_flapping(key))
             self.timers[key] = { 'timer':        timer,
                                  'flapping':     flapping_function,
                                  'not_flapping': function if function else self.__noop}
-
+            TimerMgr_logger.debug("Timer created: " + str(self.timers[key]))
 
     def has_timer(self, key):
         """Checks to see if a Timer exists for the passed in key.
@@ -157,5 +165,7 @@ class TimerMgr(object):
 
         for key in self.timers:
             if not self.timers[key]['timer'].hasTerminated():
+                TimerMgr_logger.debug("Timer has not terminated cancelling for key : " + str(key))
                 self.timers[key]['timer'].cancel()
             del self.timers[key]
+            TimerMgr_logger.debug("Timer entry deleted for key : " + str(key))
