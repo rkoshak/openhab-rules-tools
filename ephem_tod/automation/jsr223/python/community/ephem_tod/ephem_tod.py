@@ -219,8 +219,10 @@ def ephem_tod(event):
 
     # Create a timer to run this rule again a little after midnight. Work around
     # to deal with the fact that cron triggers do not appear to be workind.
-    reload_time = DateTime().now().withTime(0,2,0,0).plusDays(1)
-    log.info("Creating reload timer for {}".format(reload_time))
+    reload_time = DateTime().now().withTime(0,5,0,0)
+    if reload_time.isBefore(DateTime().now()):
+        reload_time = DateTime().now().withTime(0,5,0,0).plusDays(1)
+    ephem_tod.log.info("Creating reload timer for {}".format(reload_time))
     timers.check("etod_reload", reload_time, function=lambda: ephem_tod(None))
 
 @log_traceback
