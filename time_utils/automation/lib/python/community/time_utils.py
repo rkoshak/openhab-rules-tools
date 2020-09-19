@@ -14,10 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import re
-from datetime import datetime, timedelta
+import sys
+import datetime
+if 'org.eclipse.smarthome.automation' in sys.modules or 'org.openhab.core.automation' in sys.modules:
+    # Workaround for Jython JSR223 bug where dates and datetimes are converted
+    # to java.sql.Date and java.sql.Timestamp
+    def remove_java_converter(clazz):
+        if hasattr(clazz, '__tojava__'):
+            del clazz.__tojava__
+    remove_java_converter(datetime.date)
+    remove_java_converter(datetime.datetime)
+from datetime import datetime, date, time, timedelta
 from core.log import logging, LOG_PREFIX
-from core.date import to_joda_datetime
+from core.date import to_joda_datetime, to_python_datetime, to_java_zoneddatetime
+from java.time import ZonedDateTime
+from java.time.temporal import ChronoUnit
 from org.joda.time import DateTime
+from org.eclipse.smarthome.core.library.types import DateTimeType, StringType, DecimalType, PercentType, QuantityType
 from core.jsr223 import scope
 
 duration_regex = re.compile(r'^((?P<days>[\.\d]+?)d)? *((?P<hours>[\.\d]+?)h)? *((?P<minutes>[\.\d]+?)m)? *((?P<seconds>[\.\d]+?)s)?$')
@@ -94,7 +107,7 @@ def is_iso8601(dt_str):
         pass
     return False
 
-def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
+def to_datetime(when, python = False, java=False, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     """Based on what type when is, converts when to a Joda DateTime object.
     Type:
         - DateTime: returns when as is
@@ -110,33 +123,72 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)))
     """
 
     dt = None
+    dt_python = None
+    dt_java = None
     try:
-        # TODO import the "real" classes. Scope goes away in looping timers.
         if isinstance(when, DateTime):
+            log.info("when is DateTime")
             dt = when
+            dt_java = to_java_zoneddatetime(dt)
+            dt_python = to_python_datetime(dt_java)
+
+        elif isinstance(when, int):
+            log.info("when is int")
+            dt = DateTime().now().plusMillis(when)
+            dt_java = ZonedDateTime.now().plus(when, ChronoUnit.MILLIS)
+            dt_python = to_python_datetime(dt_java)
+
+
+        elif isinstance(when, DateTimeType):
+            log.info("when is DateTimeType")
+            dt = DateTime(str(when))
+            dt_java = to_java_zoneddatetime(dt)
+            dt_python = to_python_datetime(dt_java)
+
+        elif isinstance(when, (DecimalType, PercentType, QuantityType)):
+            log.info("when is decimal, percent or quantity type")
+            dt = DateTime().now().plusMillis(when.intValue())
+            dt_python = datetime.now() + timedelta(milliseconds = when.intValue())
+            dt_java = to_java_zoneddatetime(dt_python)
+        
+        elif isinstance(when, datetime):
+            log.info("when is datetime")
+            dt_python = when
+            dt_java = to_java_zoneddatetime(when)
+            dt = to_joda_datetime(when.replace(tzinfo=None)) #get system time zone to avoid convertion errors
+            
+        elif isinstance(when, time):
+            log.info("when is python time object")
+            dt_java = ZonedDateTime.now().withHour(when.hour).withMinute(when.minute).withSecond(when.second)
+            dt_python = to_python_datetime(dt_java)
+            dt = to_joda_datetime(dt_java)
+
         elif isinstance(when, (str, unicode)):
             if is_iso8601(when):
+                log.info("when is iso8601")
                 dt = DateTime(when)
+                dt_python = datetime.strptime(when, "%Y-%m-%dT%H:%M:%SZ")
             else:
+                log.info("when is duration") 
+                log.info(str(when))               
                 dt = parse_duration_to_datetime(when, log)
-        elif isinstance(when, int):
-            dt = DateTime().now().plusMillis(when)
-        elif isinstance(when, (scope.DateTimeType)):
-            dt = DateTime(str(when))
-        elif isinstance(when, (scope.DecimalType, scope.PercentType,
-                            scope.QuantityType)) :
-            dt = DateTime().now().plusMillis(when.intValue())
-        elif isinstance(when, datetime):
-            dt = to_joda_datetime(when)
+                log.info("dt is " + str(dt)) 
+                dt_python = datetime.now() + parse_duration(when, log)
+
         else:
             log.warn("When is an unknown type {}".format(type(when)))
     except:
         import traceback
         log.error("Exception: {}".format(traceback.format_exc()))
     finally:
-        return dt
-
-def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
+        if python:
+            return dt_python
+        elif java:
+            return dt_java
+        else:
+            return dt
+            
+def to_today(when, python=False, java=False, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     """Takes a when (see to_datetime) and updates the date to today.
     Arguments:
         - when : One of the types or formats supported by to_datetime
@@ -144,9 +196,15 @@ def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     Returns:
         - DateTime specified by when with today's date.
     """
-
-    dt = to_datetime(when, log)
-    now = dt.now()
-
-    return now.withTime(dt.getHourOfDay(), dt.getMinuteOfHour(),
-                        dt.getSecondOfMinute(), 0)
+    
+    if python:
+        dt = to_datetime(when, python=True, log=log)
+        now = datetime.now()
+        return dt.replace(year=now.year, month=now.month, day=now.day)
+    
+    else:
+        dt = to_datetime(when, log=log)
+        now = dt.now()
+        
+    return (now.withTime(dt.getHourOfDay(), dt.getMinuteOfHour(),
+                    dt.getSecondOfMinute(), 0))
