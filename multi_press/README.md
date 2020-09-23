@@ -37,7 +37,7 @@ Command | Purpose
 
 When encountering a `HOLD` event previous taps are discarded, so if you tap-tap-hold the button, only `HOLD` is reported.
 
-When defining the item, `autoupdate=false` might be desirable to the item only received commands but never updates, unless you would like to have the last event reflected in the item state.
+When defining the item, `autoupdate=false` might be desirable so the item only receives commands but never updates, unless you would like to have the last event reflected in the item state.
 
 # Examples
 ```
