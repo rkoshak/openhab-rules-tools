@@ -14,18 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import re
-import sys
-import datetime
+import traceback
 from datetime import datetime, date, time, timedelta
+from dateutil import parser
 from core.log import logging, LOG_PREFIX
 from core.date import to_joda_datetime, to_python_datetime, to_java_zoneddatetime
+from core.jsr223 import scope
 from java.time import ZonedDateTime
 from java.time.temporal import ChronoUnit
 from org.joda.time import DateTime
-from org.eclipse.smarthome.core.library.types import DateTimeType, StringType, DecimalType, PercentType, QuantityType
-from core.jsr223 import scope
-import traceback
-from core.triggers import when
+
+
+
 
 duration_regex = re.compile(r'^((?P<days>[\.\d]+?)d)? *((?P<hours>[\.\d]+?)h)? *((?P<minutes>[\.\d]+?)m)? *((?P<seconds>[\.\d]+?)s)?$')
 iso8601_regex = re.compile(r'^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?(Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])?$')
@@ -75,6 +75,7 @@ def delta_to_datetime(td):
                .plusSeconds(td.seconds)
                .plusMillis(td.microseconds//1000))
 
+
 def parse_duration_to_datetime(time_str, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX))):
     """Parses the passed in time string (see parse_duration) and returns a Joda
     DateTime that amount of time from now.
@@ -117,32 +118,32 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)),
     """
     log.debug(output)
 
-    dt = None
+    dt_joda = None
     dt_python = None
     dt_java = None
 
     try:
         if isinstance(when, DateTime):
             log.debug('when is DateTime')
-            dt = when
-            dt_java = to_java_zoneddatetime(dt)
+            dt_joda = when
+            dt_java = to_java_zoneddatetime(dt_joda)
             dt_python = to_python_datetime(dt_java)
 
         elif isinstance(when, int):
             log.debug('when is int')
-            dt = DateTime().now().plusMillis(when)
+            dt_joda = DateTime().now().plusMillis(when)
             dt_java = ZonedDateTime.now().plus(when, ChronoUnit.MILLIS)
             dt_python = to_python_datetime(dt_java)
 
-        elif isinstance(when, DateTimeType):
+        elif isinstance(when, scope.DateTimeType):
             log.debug('when is DateTimeType')
-            dt = DateTime(str(when))
-            dt_java = to_java_zoneddatetime(dt)
+            dt_joda = DateTime(str(when))
+            dt_java = to_java_zoneddatetime(dt_joda)
             dt_python = to_python_datetime(dt_java)
 
-        elif isinstance(when, (DecimalType, PercentType, QuantityType)):
+        elif isinstance(when, (scope.DecimalType, scope.PercentType, scope.QuantityType)):
             log.debug('when is decimal, percent or quantity type')
-            dt = DateTime().now().plusMillis(when.intValue())
+            dt_joda = DateTime().now().plusMillis(when.intValue())
             dt_python = datetime.now() + timedelta(milliseconds = when.intValue())
             dt_java = to_java_zoneddatetime(dt_python)
 
@@ -151,28 +152,28 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)),
             dt_python = when
             dt_java = to_java_zoneddatetime(when)
             #get system time zone to avoid convertion errors
-            dt = to_joda_datetime(when.replace(tzinfo=None)) 
+            dt_joda = to_joda_datetime(when.replace(tzinfo=None)) 
 
         elif isinstance(when, time):
             log.debug('when is python time object')
             dt_java = ZonedDateTime.now().withHour(when.hour).withMinute(when.minute).withSecond(when.second)
             dt_python = to_python_datetime(dt_java)
-            dt = to_joda_datetime(dt_java)
+            dt_joda = to_joda_datetime(dt_java)
 
         elif isinstance(when, (str, unicode)):
             if is_iso8601(when):
-                log.info('when is iso8601: '+str(when))
-                dt = DateTime(when)
-                dt_python = datetime.strptime(str(when), "%Y-%m-%dT%H:%M:%S.%fffff%Z")
+                log.debug('when is iso8601: '+str(when))
+                dt_joda = DateTime(when)
+                dt_python = parser.parse(str(when))
                 #get system time zone to avoid convertion errors
                 dt_java = to_java_zoneddatetime(dt_python.replace(tzinfo=None))
             else:
                 log.debug('when is duration')
                 log.debug(str(when))
-                dt = parse_duration_to_datetime(when, log)
-                log.debug('dt is ' + str(dt))
+                dt_joda = parse_duration_to_datetime(when, log)
+                log.debug('dt_joda is ' + str(dt_joda))
                 dt_python = datetime.now() + parse_duration(when, log)
-                log.debug('dt python is ' + str(dt))
+                log.debug('dt python is ' + str(dt_python))
                 #get system time zone to avoid convertion errors
                 dt_java = to_java_zoneddatetime(dt_python.replace(tzinfo=None))
         else:
@@ -188,7 +189,7 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)),
         return dt_java
     else:
         log.debug("returning dt joda")
-        return dt
+        return dt_joda
 
 def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)), output='Joda'):
     """Takes a when (see to_datetime) and updates the date to today.
@@ -210,4 +211,4 @@ def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)), ou
         now = dt.now()
 
     return (now.withTime(dt.getHourOfDay(), dt.getMinuteOfHour(),
-                    dt.getSecondOfMinute(), 0))
+                         dt.getSecondOfMinute(), 0))
