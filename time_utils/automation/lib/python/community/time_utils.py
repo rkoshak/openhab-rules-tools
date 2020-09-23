@@ -129,13 +129,30 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)),
             dt_java = to_java_zoneddatetime(dt_joda)
             dt_python = to_python_datetime(dt_java)
 
+        elif isinstance(when, (str, unicode)):
+            if is_iso8601(when):
+                log.debug('when is iso8601: '+str(when))
+                dt_joda = DateTime(when)
+                dt_python = parser.parse(str(when))
+                #get system time zone to avoid convertion errors
+                dt_java = to_java_zoneddatetime(dt_python.replace(tzinfo=None))
+            else:
+                log.debug('when is duration')
+                log.debug(str(when))
+                dt_joda = parse_duration_to_datetime(when, log)
+                log.debug('dt_joda is ' + str(dt_joda))
+                dt_python = datetime.now() + parse_duration(when, log)
+                log.debug('dt python is ' + str(dt_python))
+                #get system time zone to avoid convertion errors
+                dt_java = to_java_zoneddatetime(dt_python.replace(tzinfo=None))
+
         elif isinstance(when, int):
             log.debug('when is int')
             dt_joda = DateTime().now().plusMillis(when)
             dt_java = ZonedDateTime.now().plus(when, ChronoUnit.MILLIS)
             dt_python = to_python_datetime(dt_java)
 
-        elif isinstance(when, scope.DateTimeType):
+        elif isinstance(when, (scope.DateTimeType)):
             log.debug('when is DateTimeType')
             dt_joda = DateTime(str(when))
             dt_java = to_java_zoneddatetime(dt_joda)
@@ -160,22 +177,6 @@ def to_datetime(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)),
             dt_python = to_python_datetime(dt_java)
             dt_joda = to_joda_datetime(dt_java)
 
-        elif isinstance(when, (str, unicode)):
-            if is_iso8601(when):
-                log.debug('when is iso8601: '+str(when))
-                dt_joda = DateTime(when)
-                dt_python = parser.parse(str(when))
-                #get system time zone to avoid convertion errors
-                dt_java = to_java_zoneddatetime(dt_python.replace(tzinfo=None))
-            else:
-                log.debug('when is duration')
-                log.debug(str(when))
-                dt_joda = parse_duration_to_datetime(when, log)
-                log.debug('dt_joda is ' + str(dt_joda))
-                dt_python = datetime.now() + parse_duration(when, log)
-                log.debug('dt python is ' + str(dt_python))
-                #get system time zone to avoid convertion errors
-                dt_java = to_java_zoneddatetime(dt_python.replace(tzinfo=None))
         else:
             log.warn('When is an unknown type {}'.format(type(when)))
     except:
