@@ -70,6 +70,7 @@ class MultiPressProfile(TriggerProfile):
                         lambda: self.__clicks(), delay, TimeUnit.MILLISECONDS)
             else:
                 self.clicks = 0
+                self.callback.sendCommand(StringType("RELEASE"))
 
     def onStateUpdateFromItem(self, state):
         """
