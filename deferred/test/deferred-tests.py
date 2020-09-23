@@ -1,6 +1,6 @@
 import community.deferred
 reload(community.deferred)
-from community.deferred import deferred, cancel_all, cancel
+from community.deferred import defer, cancel_all, cancel
 from core.log import log_traceback, logging, LOG_PREFIX
 from org.joda.time import DateTime
 import time
@@ -22,34 +22,34 @@ try:
 
     # Schedule based on DT
     t = DateTime.now().plusSeconds(1)
-    deferred(item, "ON", t, log)
+    defer(item, "ON", t, log)
     time.sleep(1.1)
     assert items[item] == ON, "Item didn't go to ON after a second with specific time"
 
     # Schedule based on duration
-    deferred(item, "OFF", "1s", log)
+    defer(item, "OFF", "1s", log)
     time.sleep(1.1)
     assert items[item] == OFF, "Item didn't go to OFF after a second with duration"
 
     # Reschedule
-    deferred(item, "ON", "1s", log)
+    defer(item, "ON", "1s", log)
     time.sleep(0.1)
     assert items[item] == OFF, "Item isn't still OFF after initial schedule"
-    deferred(item, "ON", "2s", log)
+    defer(item, "ON", "2s", log)
     time.sleep(1)
     assert items[item] == OFF, "Timer didn't get rescheduled!"
     time.sleep(1.1)
     assert items[item] == ON, "Timer didn't reschedule on time!"
 
     # Cancel
-    deferred(item, "OFF", "1s", log)
+    defer(item, "OFF", "1s", log)
     assert items[item] == ON, "Item isn't still ON after last test"
     cancel(item)
     time.sleep(1.1)
     assert items[item] == ON, "Timer didn't cancel!"
 
     # Cancel All
-    deferred(item, "OFF", "1s", log)
+    defer(item, "OFF", "1s", log)
     cancel_all()
     time.sleep(1.1)
     assert items[item] == ON, "Timer didn't cancel all"
