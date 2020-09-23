@@ -13,16 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-scriptExtension.importPreset(None) # fix for compatibility with Jython > 2.7.0
-
-import core
 import traceback
+import core
 from core.osgi import register_service, unregister_service
 from core.log import logging, LOG_PREFIX
 from java.util.concurrent import TimeUnit
 from org.eclipse.smarthome.core.library.types import StringType
-from org.eclipse.smarthome.core.thing.profiles import ProfileTypeUID, \
-        ProfileFactory, ProfileTypeProvider, TriggerProfile
+from org.eclipse.smarthome.core.thing.profiles import ProfileTypeUID, ProfileFactory, \
+    TriggerProfile
+
+scriptExtension.importPreset(None) # fix for compatibility with Jython > 2.7.0
 
 log = logging.getLogger("{}.MultiPress".format(LOG_PREFIX))
 
@@ -32,7 +32,7 @@ UID_MULTI_PRESS = ProfileTypeUID("jython", "multiPress")
 
 class MultiPressProfile(TriggerProfile):
     """
-    The profile class is instantiated when a link using this profile gets triggered for the first 
+    The profile class is instantiated when a link using this profile gets triggered for the first
     time. Holds configuration, callback and internal state of the profile.
     """
 
@@ -41,7 +41,8 @@ class MultiPressProfile(TriggerProfile):
         Constructor
         """
 
-        log.info("Initializing MultiPressProfile with configuration {}".format(context.configuration))
+        log.info("Initializing MultiPressProfile with configuration {}"
+                 .format(context.configuration))
         self.callback = callback
         self.context = context
         self.future = None
@@ -54,20 +55,20 @@ class MultiPressProfile(TriggerProfile):
         Gets called every time the channel triggers and tracks the number of consecutive taps.
         """
 
-        if self.__stateChanged(event):
+        if self.__state_changed(event):
             self.__cancel()
 
             if self.state:
                 delay = int(str(self.context.configuration.get("longDelay") or "1000"))
                 log.debug("Arming {} ms timer for multiPress profile".format(delay))
                 self.future = self.context.executorService.schedule(
-                        lambda: self.__longPress(), delay, TimeUnit.MILLISECONDS)
+                    lambda: self.__long_press(), delay, TimeUnit.MILLISECONDS)
             elif self.clicks != -1:
                 delay = int(str(self.context.configuration.get("shortDelay") or "200"))
                 log.debug("Arming {} ms timer for multiPress profile".format(delay))
                 self.clicks += 1
                 self.future = self.context.executorService.schedule(
-                        lambda: self.__clicks(), delay, TimeUnit.MILLISECONDS)
+                    lambda: self.__clicks(), delay, TimeUnit.MILLISECONDS)
             else:
                 self.clicks = 0
                 self.callback.sendCommand(StringType("RELEASE"))
@@ -79,8 +80,6 @@ class MultiPressProfile(TriggerProfile):
         to be read-only.
         """
 
-        pass
-
     def __cancel(self):
         """
         Cancels any previously scheduled timer.
@@ -90,31 +89,31 @@ class MultiPressProfile(TriggerProfile):
             self.future.cancel(True)
             self.future = None
 
-    def __stateChanged(self, event):
+    def __state_changed(self, event):
         """
         Translates the trigger event into a boolean representing the current state and returns
-        if the state has changed since the last invocation. This allows for devices that 
-        occasionally report an event although the button has not been touched (i.e. Shelly 
+        if the state has changed since the last invocation. This allows for devices that
+        occasionally report an event although the button has not been touched (i.e. Shelly
         Dimmer).
         """
 
-        onValue = str(self.context.configuration.get("on") or "ON")
-        offValue = str(self.context.configuration.get("off") or "OFF")
-        if event == onValue:
-            newState = True
-        elif event == offValue:
-            newState = False
+        on_value = str(self.context.configuration.get("on") or "ON")
+        off_value = str(self.context.configuration.get("off") or "OFF")
+        if event == on_value:
+            new_state = True
+        elif event == off_value:
+            new_state = False
         else:
             log.warn("Channel has triggered unrecognized event {}".format(event))
             return False
 
-        if self.state != newState:
-            self.state = newState
+        if self.state != new_state:
+            self.state = new_state
             return True
 
         return False
 
-    def __longPress(self):
+    def __long_press(self):
         """
         Gets invoked by a timer firing after longDelay ms and reports a HOLD event to the item.
         """
@@ -125,7 +124,7 @@ class MultiPressProfile(TriggerProfile):
 
     def __clicks(self):
         """
-        Gets invoked by a timer firing after shortDelay ms and reports the number of taps 
+        Gets invoked by a timer firing after shortDelay ms and reports the number of taps
         encountered consecutively.
         """
 
@@ -135,7 +134,7 @@ class MultiPressProfile(TriggerProfile):
 
 class MultiPressProfileFactory(ProfileFactory):
     """
-    The profile factory class gets injected into OpenHABs service registry and can thus be used 
+    The profile factory class gets injected into OpenHABs service registry and can thus be used
     by specifying "jython:multiPress" as a profile when linking channels and items.
     """
 
@@ -153,7 +152,7 @@ class MultiPressProfileFactory(ProfileFactory):
 
         return [UID_MULTI_PRESS]
 
-try:        
+try:
     core.MultiPressProfileFactory = MultiPressProfileFactory()
 except:
     core.MultiPressProfileFactory = None
