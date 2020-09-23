@@ -15,7 +15,7 @@ limitations under the License.
 """
 import re
 import traceback
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, time, timedelta
 from dateutil import parser
 from core.log import logging, LOG_PREFIX
 from core.date import to_joda_datetime, to_python_datetime, to_java_zoneddatetime
