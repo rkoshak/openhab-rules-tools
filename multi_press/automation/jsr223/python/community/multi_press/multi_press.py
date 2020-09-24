@@ -43,6 +43,7 @@ class MultiPressProfile(TriggerProfile):
     framework!
     """
 
+    @log_traceback
     def __init__(self, callback, context):
         """Initializes the profile's context and state.
         Arguments:
@@ -91,11 +92,13 @@ class MultiPressProfile(TriggerProfile):
                 self.clicks = 0
                 self.callback.sendCommand(StringType("RELEASE"))
 
+    @log_traceback
     def onStateUpdateFromItem(self, state):
         """See Profile#onStateUpdateFromItem
         Ignored since channel is supposed to be read-only.
         """
 
+    @log_traceback
     def __cancel(self):
         """Cancels any previously scheduled timer."""
 
@@ -103,6 +106,7 @@ class MultiPressProfile(TriggerProfile):
             self.future.cancel(True)
             self.future = None
 
+    @log_traceback
     def __state_changed(self, event):
         """Translates the trigger event into a boolean representing the current state and returns
         True if the state has changed since the last invocation. This allows for devices that
@@ -126,6 +130,7 @@ class MultiPressProfile(TriggerProfile):
 
         return False
 
+    @log_traceback
     def __long_press(self):
         """Gets invoked by a timer firing after longDelay ms and reports a HOLD event to the 
         item.
@@ -135,6 +140,7 @@ class MultiPressProfile(TriggerProfile):
         self.callback.sendCommand(StringType("HOLD"))
         self.clicks = -1
 
+    @log_traceback
     def __clicks(self):
         """Gets invoked by a timer firing after shortDelay ms and reports the number of taps
         encountered consecutively.
@@ -152,6 +158,7 @@ class MultiPressProfileFactory(ProfileFactory):
     by the framework!
     """
 
+    @log_traceback
     def createProfile(self, type, callback, context):
         """See ProfileFactory#createProfile
         Called when a link using this profile gets triggered for the first time.
@@ -159,6 +166,7 @@ class MultiPressProfileFactory(ProfileFactory):
 
         return MultiPressProfile(callback, context)
 
+    @log_traceback
     def getSupportedProfileTypeUIDs(self):
         """See ProfileFactory#getSupportedProfileTypeUIDs
         Reports which profiles this factory supports to OpenHAB's service registry.
