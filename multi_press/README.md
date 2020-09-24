@@ -51,19 +51,20 @@ Item MyButton { channel="mqtt:topic:mosquitto:MyDevice:Input"[profile="jython:mu
 Item MyButton { channel="mqtt:topic:mosquitto:MyDevice:Input"[profile="jython:multiPress", on="1", off="0", shortDelay=250, longDelay=2000] }
 
 // Example rule
-rule "MyButton functions"
-when
-    Item MyButton received command
-then
-    if (receivedCommand == "1") {
-        MyCeilingLamp.sendCommand(ON if MyCeilingLamp.state == OFF else OFF)
-    } else if (receivedCommand == "2") {
-        MyReadingLamp.sendCommand(ON if MyReadingLamp.state == OFF else OFF)
-    } else if (receivedCommand == "HOLD") {
-        MyCeilingLamp.sendCommand(OFF)
-        MyReadingLamp.sendCommand(OFF)
-    }
-end
+@rule("MyButton functions")
+@when("Item MyButton received command")
+def my_button_funcs(event):
+    if str(event.itemCommand) == "1":
+        __toggle("MyCeilingLamp")
+    elif str(event.itemCommand) == "2":
+        __toggle("MyReadingLamp")
+    elif str(event.itemCommand) == "HOLD":
+        events.sendCommand("MyCeilingLamp", "OFF")
+        events.sendCommand("MyReadingLamp", "OFF")
+
+def __toggle(item_name):
+    item = ir.getItem(item_name)
+    events.sendCommand(item, "ON" if str(item.state) == "OFF" else "OFF")
 ```
 
 # Limitations

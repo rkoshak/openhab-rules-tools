@@ -13,32 +13,50 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import traceback
-import core
 from core.osgi import register_service, unregister_service
-from core.log import logging, LOG_PREFIX
+from core.log import logging, log_traceback, LOG_PREFIX
+from core.jsr223.scope import StringType
 from java.util.concurrent import TimeUnit
-from org.eclipse.smarthome.core.library.types import StringType
-from org.eclipse.smarthome.core.thing.profiles import ProfileTypeUID, ProfileFactory, \
-    TriggerProfile
+
+# imports not supported by core.jsr223.scope
+try:
+    from org.eclipse.smarthome.core.thing.profiles import ProfileTypeUID, ProfileFactory, \
+        TriggerProfile
+except:
+    from org.openhab.core.thing.profiles import ProfileTypeUID, ProfileFactory, \
+        TriggerProfile
 
 scriptExtension.importPreset(None) # fix for compatibility with Jython > 2.7.0
 
 log = logging.getLogger("{}.MultiPress".format(LOG_PREFIX))
 
-FACTORY_CLASS = "{}.{}".format(ProfileFactory.__module__, ProfileFactory.__name__)
-
 UID_MULTI_PRESS = ProfileTypeUID("jython", "multiPress")
 
+SERVICE_CLASS = "{}.{}".format(ProfileFactory.__module__, ProfileFactory.__name__)
+FACTORY_INSTANCE = None
+
 class MultiPressProfile(TriggerProfile):
-    """
-    The profile class is instantiated when a link using this profile gets triggered for the first
-    time. Holds configuration, callback and internal state of the profile.
+    """The profile class is instantiated when a link using this profile gets triggered for the 
+    first time and stores the current state and context. 
+    ATTENTION:
+    This class is not intended for use by scripts. It will be instantiated and managed by the
+    framework!
     """
 
     def __init__(self, callback, context):
-        """
-        Constructor
+        """Initializes the profile's context and state.
+        Arguments:
+            - callback: The ProfileCallback object used to communicate with the linked item and 
+            channel
+            - context: The ProfileContext object holding the profile configuration and rules 
+            scheduler
+        Members:
+            - callback
+            - context
+            - future: A ScheduledFuture representing the running timer or None if no timer is 
+            active
+            - state: The current state of the button prior to any invocation to track changes
+            - clicks: The number of taps counted so far
         """
 
         log.info("Initializing MultiPressProfile with configuration {}"
@@ -49,10 +67,10 @@ class MultiPressProfile(TriggerProfile):
         self.state = False
         self.clicks = 0
 
+    @log_traceback
     def onTriggerFromHandler(self, event):
-        """
-        Overrides TriggerProfile#onTriggerFromHandler
-        Gets called every time the channel triggers and tracks the number of consecutive taps.
+        """See TriggerProfile#onTriggerFromHandler
+        Tracks state changes and the time in between to count taps and hold/release events.
         """
 
         if self.__state_changed(event):
@@ -74,25 +92,20 @@ class MultiPressProfile(TriggerProfile):
                 self.callback.sendCommand(StringType("RELEASE"))
 
     def onStateUpdateFromItem(self, state):
-        """
-        Overrides TriggerProfile#onStateUpdateFromItem
-        Gets called every time the item updates its state. Ignored since channel is supposed
-        to be read-only.
+        """See Profile#onStateUpdateFromItem
+        Ignored since channel is supposed to be read-only.
         """
 
     def __cancel(self):
-        """
-        Cancels any previously scheduled timer.
-        """
+        """Cancels any previously scheduled timer."""
 
         if not self.future is None:
             self.future.cancel(True)
             self.future = None
 
     def __state_changed(self, event):
-        """
-        Translates the trigger event into a boolean representing the current state and returns
-        if the state has changed since the last invocation. This allows for devices that
+        """Translates the trigger event into a boolean representing the current state and returns
+        True if the state has changed since the last invocation. This allows for devices that
         occasionally report an event although the button has not been touched (i.e. Shelly
         Dimmer).
         """
@@ -114,8 +127,8 @@ class MultiPressProfile(TriggerProfile):
         return False
 
     def __long_press(self):
-        """
-        Gets invoked by a timer firing after longDelay ms and reports a HOLD event to the item.
+        """Gets invoked by a timer firing after longDelay ms and reports a HOLD event to the 
+        item.
         """
 
         log.debug("Detected long press on multiPress profile")
@@ -123,8 +136,7 @@ class MultiPressProfile(TriggerProfile):
         self.clicks = -1
 
     def __clicks(self):
-        """
-        Gets invoked by a timer firing after shortDelay ms and reports the number of taps
+        """Gets invoked by a timer firing after shortDelay ms and reports the number of taps
         encountered consecutively.
         """
 
@@ -133,46 +145,42 @@ class MultiPressProfile(TriggerProfile):
         self.clicks = 0
 
 class MultiPressProfileFactory(ProfileFactory):
-    """
-    The profile factory class gets injected into OpenHABs service registry and can thus be used
+    """The profile factory class gets injected into OpenHABs service registry and can thus be used
     by specifying "jython:multiPress" as a profile when linking channels and items.
+    ATTENTION:
+    This class is not intended for use by scripts. It will be instantiated only once and managed 
+    by the framework!
     """
 
     def createProfile(self, type, callback, context):
-        """
+        """See ProfileFactory#createProfile
         Called when a link using this profile gets triggered for the first time.
         """
 
         return MultiPressProfile(callback, context)
 
     def getSupportedProfileTypeUIDs(self):
-        """
-        Reports, which profiles this factory supports to OpenHAB's service registry.
+        """See ProfileFactory#getSupportedProfileTypeUIDs
+        Reports which profiles this factory supports to OpenHAB's service registry.
         """
 
         return [UID_MULTI_PRESS]
 
-try:
-    core.MultiPressProfileFactory = MultiPressProfileFactory()
-except:
-    core.MultiPressProfileFactory = None
-    log.error(traceback.format_exc())
-
+@log_traceback
 def scriptLoaded(*args):
-    """
-    Registers the profile factory in OpenHAB's service registry.
-    """
+    """Registers the profile factory in OpenHAB's service registry."""
 
-    if core.MultiPressProfileFactory is not None:
-        register_service(core.MultiPressProfileFactory, [FACTORY_CLASS])
-        log.debug("Registered service")
+    global FACTORY_INSTANCE
+    FACTORY_INSTANCE = MultiPressProfileFactory()
+    register_service(FACTORY_INSTANCE, [SERVICE_CLASS])
+    log.debug("Registered service MultiPressProfileFactory")
 
+@log_traceback
 def scriptUnloaded():
-    """
-    Removes the profile factory from OpenHAB's service registry.
-    """
+    """Removes the profile factory from OpenHAB's service registry."""
 
-    if core.MultiPressProfileFactory is not None:
-        unregister_service(core.MultiPressProfileFactory)
-        core.MultiPressProfileFactory = None
+    global FACTORY_INSTANCE
+    if FACTORY_INSTANCE is not None:
+        unregister_service(FACTORY_INSTANCE)
+        FACTORY_INSTANCE = None
         log.debug("Unregistered service")
