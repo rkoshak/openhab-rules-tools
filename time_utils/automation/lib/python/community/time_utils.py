@@ -15,7 +15,7 @@ limitations under the License.
 """
 import re
 import traceback
-from datetime import datetime, time, timedelta
+from datetime import datetime, date, time, timedelta
 from core.log import logging, LOG_PREFIX
 from core.date import to_joda_datetime, to_python_datetime, to_java_zoneddatetime
 from core.jsr223 import scope
@@ -202,14 +202,15 @@ def to_today(when, log=logging.getLogger("{}.time_utils".format(LOG_PREFIX)), ou
 
     if output == 'Python':
         dt = to_datetime(when, log=log, output = 'Python')
-        now = datetime.now()
-        return dt.replace(year=now.year, month=now.month, day=now.day)
+        return datetime.combine(date.today(), dt.timetz())
     
     elif output == 'Java':
         dt = to_datetime(when, log=log, output = 'Java')
-        return (ZonedDateTime.now().withHour(dt.getHour())
-                                   .withMinute(dt.getMinute())
-                                   .withSecond(dt.getSecond()))
+        now = dt.now()
+        return (now.withHour(dt.getHour())
+                   .withMinute(dt.getMinute())
+                   .withSecond(dt.getSecond())
+                   .withNano(dt.getNano()))
         
     else:
         dt = to_datetime(when, log=log)
