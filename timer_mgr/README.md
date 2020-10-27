@@ -89,7 +89,7 @@ tm = new TimerMgr()
     # minutes to post a message to the Alert Item. If it's NIGHT time,
     # reschedule the Timer. If the door is CLOSED, cancel the reminder
     # Timer.
-    if items[itemName == OPEN]:
+    if items[itemName] == OPEN:
         reminder_timers.check(itemName,
                               "1h",
                               lambda: events.postUpdate("AlertItem", "{} has been open for an hour!".format(itemName)),

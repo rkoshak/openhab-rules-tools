@@ -26,12 +26,12 @@ Switch ProxySensor
 
 Rules have a limitation that there is no event created when Item metadata is added, modified, or removed.
 Therefore there is no way to know when you've changed the Item metadata for an Item.
-Thus, if it doesn't already exist, a `Reload_Debounce` Item will be created that will recreate the Expire rule with new triggers based on the current metadata.
-After modifying expire Item metadata, send an `ON` command to the `Reload_Debounce` Item or execute the `Reload Debounce` rule in PaperUI by clicking the "play" icon next to the rule in the list.
+Thus, if it doesn't already exist, a `Reload_Debounce` Item will be created that will recreate the Debounce rule with new triggers based on the current metadata.
+After modifying debounce Item metadata, send an `ON` command to the `Reload_Debounce` Item or execute the `Reload Debounce` rule in PaperUI by clicking the "play" icon next to the rule in the list.
 
-When the script is loaded or when the `Reload Debounce` rule runs, all the Items with expire metadata are obtained and the configuration checked for validity.
+When the script is loaded or when the `Reload Debounce` rule runs, all the Items with debounce metadata are obtained and the configuration checked for validity.
 Invalid configs will generate errors in the logs.
-If the config is valid, changes to the Item will be added as a trigger to the Expire rule.
+If the config is valid, changes to the Item will be added as a trigger to the Debounce rule.
 
 An example of the expected configuration is on the `RawSensor` Item above.
 
