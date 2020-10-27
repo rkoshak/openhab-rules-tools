@@ -29,11 +29,6 @@ init_logger = logging.getLogger("{}.Expire Init".format(LOG_PREFIX))
 special_types = { "UNDEF": UnDefType.UNDEF,
                   "NULL":  UnDefType.NULL }
 
-# Define on which event the expiration timer should be reset. Prominent options:
-# received update   -> resets as soon as an update arrives, even if the value does not change
-# changed           -> resets after an update that changes the value of the item
-UPDATE_EVENT = "changed"
-
 @log_traceback
 def get_config(i, log):
     """Parses the expire metadata and generates a dict with the values. If the
@@ -196,7 +191,7 @@ def load_expire(event):
     automatically.
     """
 
-    expire_items = load_rule_with_metadata("expire", get_config, UPDATE_EVENT,
+    expire_items = load_rule_with_metadata("expire", get_config, "received update",
                    "Expire", expire_event, init_logger,
                    description="Drop in replacement for the Expire 1.x binding",
                    tags=["openhab-rules-tools","expire"])
