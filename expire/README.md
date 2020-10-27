@@ -3,8 +3,6 @@ This rule implements a replacement for the Expire 1.x binding.
 It is not intended to be a permanent solution and likely will not be maintained for long after OH 3.0 comes out.
 The purpose of the library is to be a drop in replacement of the Expire binding to allow users who depend on the Expire binding the chance to move to openHAB 3.0 without needing to rework Rules and Item configs first.
 
-Please note the difference that with the Expire binding, item expiration timers got reset on an "received update" event, whereas this script per default resets on an "changed" event. I.e. with this script, one will get expirations if items are updated with the same value / their value does not change. To change this behavior, modify the script variable `UPDATE_EVENT`.
-
 # Purpose
 Item metadata that is nearly identical to the binding config for the Expire 1.x binding is used to define a base state and a time to wait after the Item changes from that state before updating or commanding the Item back to that state.
 
@@ -20,7 +18,7 @@ When a 1.x version binding is uninstalled, it's binding config appears to openHA
 These rules find all the Items that have an expire metadata and reimplements the Expire 1.x binding's behavior.
 When an Item changes to a state different from the expire configured state, a Timer is set for the duration.
 At the end of the time, the Item is updated to or commanded to the expire state.
-If the Item changes while a Timer exists, the Timer is either canceled if it changed to the expire state or it is rescheduled.
+If for the Item a "received update" event is triggered (which is triggered even when the value stays the same) while a Timer exists, the Timer is either canceled if the item changed to the expire state or the timer is rescheduled.
 
 Rules have a limitation that there is no event created when Item metadata is added, modified, or removed.
 Therefore there is no way to know when you've changed the Item metadata for an Item.
