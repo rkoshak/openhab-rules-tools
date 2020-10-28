@@ -146,7 +146,7 @@ def get_config(i, log):
 
 @log_traceback
 def expire_event(event):
-    """Called when any Item with a valid expire config changes state."""
+    """Called when any Item with a valid expire config receives an update."""
 
     # Cancel any deffered action if the new state is UnDefType.
     if isinstance(event.itemState, UnDefType):
