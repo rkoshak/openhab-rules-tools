@@ -146,7 +146,7 @@ def get_config(i, log):
 
 @log_traceback
 def expire_event(event):
-    """Called when any Item with a valid expire config changes state."""
+    """Called when any Item with a valid expire config receives an update."""
 
     # Cancel any deffered action if the new state is UnDefType.
     if isinstance(event.itemState, UnDefType):
@@ -191,7 +191,7 @@ def load_expire(event):
     automatically.
     """
 
-    expire_items = load_rule_with_metadata("expire", get_config, "changed",
+    expire_items = load_rule_with_metadata("expire", get_config, "received update",
                    "Expire", expire_event, init_logger,
                    description="Drop in replacement for the Expire 1.x binding",
                    tags=["openhab-rules-tools","expire"])

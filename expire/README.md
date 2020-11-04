@@ -18,7 +18,7 @@ When a 1.x version binding is uninstalled, it's binding config appears to openHA
 These rules find all the Items that have an expire metadata and reimplements the Expire 1.x binding's behavior.
 When an Item changes to a state different from the expire configured state, a Timer is set for the duration.
 At the end of the time, the Item is updated to or commanded to the expire state.
-If the Item changes while a Timer exists, the Timer is either canceled if it changed to the expire state or it is rescheduled.
+If for the Item a "received update" event is triggered (which is triggered even when the value stays the same) while a Timer exists, the Timer is either canceled if the item changed to the expire state or the timer is rescheduled.
 
 Rules have a limitation that there is no event created when Item metadata is added, modified, or removed.
 Therefore there is no way to know when you've changed the Item metadata for an Item.
