@@ -57,7 +57,7 @@ def mqtt_eb_pub(event):
     from configuration import mqtt_eb_name, mqtt_eb_broker
 
     is_cmd = hasattr(event, 'itemCommand')
-    msg = str(event.itemCommand if is_cmd else event.itemState)
+    msg = "{}".format(event.itemCommand if is_cmd else event.itemState)
     topic = "{}/out/{}/{}".format(mqtt_eb_name, event.itemName,
                                   "command" if is_cmd else "state")
     retained = False if is_cmd else True
