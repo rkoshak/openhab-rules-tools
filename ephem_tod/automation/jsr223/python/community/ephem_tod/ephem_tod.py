@@ -95,7 +95,7 @@ def get_times():
                    'weekday': types("weekday") if not Ephemeris.isWeekend() else [],
                    'weekend': types("weekend") if Ephemeris.isWeekend() else [],
                    'dayset': cond(types('dayset'),
-                                lambda i: Ephemeris.isInDaySet(get_key_value(i, "set"))),
+                                lambda i: Ephemeris.isInDayset(get_key_value(i, NAMESPACE, "set"))),
                    'holiday': cond(types('holiday'),
                                 lambda i: Ephemeris.isBankHoliday()),
                    'custom': cond(types('custom'),
