@@ -17,7 +17,109 @@ This class implements all the book keeping and presents a simple interface to cr
 # How it works
 The class provides four functions.
 
-## check
+## JavaScript
+### check
+This is the function that will be used the most.
+
+```javascript
+tm.check(key, when, function, reschedule, flapping_function);
+```
+
+Argument | Purpose
+-|-
+`key` | The unique name for the Timer. Most often this will be the Item name.
+`when` | The amount of time to pass before the Timer expires.
+`function` | An optional function or lambda to call when the Timer expires.
+`flapping_function` | An optional function or lambda to call when check is called and a Timer already exists. Can be useful to, for example, take some action when a device is flapping.
+`reschedule` | An optional flag indicating that if the Timer exists when check is called, reschedule the Timer. Defaults to `False`.
+
+`when` can be any one of:
+- `ZonedDateTime`
+- openHAB `DateTimeType`
+- ISO 8601 formatted String
+- `int`, `long` which will be treated as the number of milliseconds into the future
+- openHAB number types (DecimalType, PercentType, or QuantityType), treated as number of milliseconds into the future
+- Duration string of the format `xdxhxmxs` where each field is optional and x is a number (int or float). For example `1h2s` would be one hour and two seconds into the future
+
+### hasTimer
+Returns true is there is a Timer by the passed in name.
+
+```javascript
+if(tm.has_timer("Name")) {
+    // do something
+}
+```
+
+### cancel
+Cancels the Timer by the given name.
+Does nothing if no Timer by that name exists.
+
+```javascript
+tm.cancel("Name");
+```
+
+### cancelAll
+Cancels all the existing Timers.
+Useful to be called from a script_unload function.
+
+```javascript
+tm.cancelAll();
+```
+
+### Examples
+
+```javascript
+this.OPENHAB_CONF = (this.OPENHAB_CONF === undefined) ? java.lang.System.getenv("OPENHAB_CONF") : this.OPENHAB_CONF;
+load(OPENHAB_CONF+'/automation/lib/javascript/community/timerMgr.js');
+var Log = Java.type("org.openhab.core.model.script.actions.Log");
+
+// Only create a new manager if one doesn't already exist or else it will be wiped out each time the rule runs
+this.tm = (this.tm === undefined) ? new TimerMgr() : this.tm;
+
+...
+
+    /**
+     * In a Rule, check to see if a Timer exists for this Item. If one
+     * exists, log a warning statement that the Item is flapping.
+     * Otherwise, set a half second timer and update the Time Item
+     * associated with the Item.
+     */
+   this.tm.check(event.itemName,
+                 500,
+                 function() { events.postUpdate(event.itemName + "Time", new DateTimeType().toString()); },
+                 true,
+                 function() { Log.logWarn("Test", event.itemName + " is flapping!"); });
+
+...
+
+    /**
+     * In a Rule, if the door is OPEN, create a timer to go off in 60
+     * minutes to post a message to the Alert Item. If it's NIGHT time,
+     * reschedule the Timer. If the door is CLOSED, cancel the reminder
+     * Timer.
+     */
+    if(items[itemName] == OPEN) {
+        this.tm.check(itemName,
+                      "1h",
+                      function() { events.postUpdate("AlertItem", itemName + "has been open for an hour!"); },
+                      items["vTimeOfDay"].toString() == "NIGHT");
+    else {
+        this.tm.cancel(itemName);
+    }
+
+...
+
+    // Check to see if a Timer exists for the Item.
+    if(reminder_timers.has_timer(itemName)) {
+        Log.logWarn("Test", "There already is a timer for " + itemName + "!");
+    }
+```
+
+### Testing
+Copy the contents of timerMgr_tests.js to a new Script created in MainUI on openHAB 3 and press the Play button.
+
+## Jython
+### check
 This is the function that will be used the most.
 
 ```python
@@ -39,7 +141,7 @@ Argument | Purpose
 - openHAB number types (DecimalType, PercentType, or QuantityType), treated as number of milliseconds into the future
 - Duration string of the format `xdxhxmxs` where each field is optional and x is a number (int or float). For example `1h2s` would be one hour and two seconds into the future
 
-## has_timer
+### has_timer
 Returns True is there is a Timer by the passed in name.
 
 ```python
@@ -47,7 +149,7 @@ if tm.has_timer("Name"):
     # do something
 ```
 
-## cancel
+### cancel
 Cancels the Timer by the given name.
 Does nothing if no Timer by that name exists.
 
@@ -55,7 +157,7 @@ Does nothing if no Timer by that name exists.
 tm.cancel("Name")
 ```
 
-## cancel_all
+### cancel_all
 Cancels all the existing Timers.
 Useful to be called from a script_unload function.
 
@@ -63,7 +165,7 @@ Useful to be called from a script_unload function.
 tm.cancel_all()
 ```
 
-# Examples
+### Examples
 
 ```python
 from community.timer_mgr import TimerMgr
@@ -103,3 +205,6 @@ tm = new TimerMgr()
     if reminder_timers.has_timer(itemName):
         my_rule.log.warn("There already is a timer for {}!".format(itemName))
 ```
+### Tests
+Copy timer_mgr-tests.py to /etc/openhab2/automation/jsr223/python/personal.
+Remove the file afterwords or the tests will run every time openHAB starts up.
