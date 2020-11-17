@@ -1,0 +1,297 @@
+triggers:
+  - id: "1"
+    configuration:
+      groupName: TimesOfDay
+    type: core.GroupStateChangeTrigger
+  - id: "2"
+    configuration:
+      startlevel: 0
+    type: core.SystemStartlevelTrigger
+  - id: "4"
+    label: One minute after midnight
+    configuration:
+      time: 00:01
+    type: timer.TimeOfDayTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >
+        // Imports
+
+        var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.TimeOfDay");
+
+        scriptExtension.importPreset("default");
+
+        this.Ephemeris = (this.Ephemeris === undefined) ? Java.type("org.openhab.core.model.script.actions.Ephemeris") : this.Ephemeris;
+
+        this.ZonedDateTime = (this.ZonedDateTime === undefined) ? Java.type("java.time.ZonedDateTime") : this.ZonedDateTime;
+
+
+        //   Get Metadata query stuff
+
+        this.FrameworkUtil = (this.FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : this.FrameworkUtil;
+
+        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(scriptExtension.class) : this._bundle;
+
+        this.bundle_context = (this.bundle_context === undefined) ? this._bundle.getBundleContext() : this.bundle_context;
+
+        this.MetadataRegistry_Ref = (this.MetadataRegistry_Ref === undefined) ? bundle_context.getServiceReference("org.openhab.core.items.MetadataRegistry") : this.MetadataRegistry_Ref;
+
+        this.MetadataRegistry = (this.MetadataRegistry === undefined) ? bundle_context.getService(MetadataRegistry_Ref) : this.MetadataRegistry;
+
+        this.Metadata = (this.Metadata === undefined) ? Java.type("org.openhab.core.items.Metadata") : this.Metadata;
+
+        this.MetadataKey = (this.MetadataKey === undefined) ? Java.type("org.openhab.core.items.MetadataKey") : this.MetadataKey;
+
+
+        // Constants
+
+        var ETOD_ITEM = "TimeOfDay";
+
+        var ETOD_GROUP = "TimesOfDay";
+
+        var DAY_TYPES = ["default", "weekday", "weekend", "dayset", "holiday", "custom"];
+
+        var EXPECTED = "Invalid metadata for Item! "
+                     + "Expected metadata in the form of etod=\"STATE\"[type=\"daytype\", set=\"dayset\", file=\"uri\"] "
+                     + "where set is required if type is dayset and file is required if type is custom.";
+        var ETOD_NAMESPACE = "etod";
+
+
+        // Load and instantiate TimerMgr
+
+        this.OPENHAB_CONF = (this.OPENHAB_CONF === undefined) ? java.lang.System.getenv("OPENHAB_CONF") : this.OPENHAB_CONF;
+
+        load(OPENHAB_CONF+'/automation/lib/javascript/community/timerMgr.js');
+
+        load(OPENHAB_CONF+'/automation/lib/javascript/community/timeUtils.js');
+
+        this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers;
+
+
+        // Return the value or a key value from the Item's metadata
+
+        var getValue = function(item, namespace, key) {
+          var md = MetadataRegistry.get(new MetadataKey(namespace, item));
+          if(md === null || md === undefined) {
+            return null;
+          }
+          else if(key === undefined) {
+            return md.value;
+          }
+          else {
+            return md.configuration[key];
+          }
+        }
+
+
+        // Verify Item and Item metadata
+
+        var verifyMetadata = function(item) {
+          if(items[item].class == UnDefType.class) {
+            return "Item's state is " + items[items];
+          }
+          if(getValue(item, ETOD_NAMESPACE) === null) {
+            return "Item lacks metadata or metadata value.";
+          }
+          var type = getValue(item, ETOD_NAMESPACE, "type");
+          if(type === null) {
+            return "Item lacks a type key."
+          }
+          
+          if(DAY_TYPES.indexOf(type) < 0) {
+            return type + " is not a valid day type, expected one of " + DAY_TYPES + ".";
+          }
+          
+          if(type == "dayset" && getValue(item, ETOD_NAMESPACE, "set") === null) {
+            return type + " requires a 'set' value to be defined.";
+          }
+          
+          if(type == "custom" && getValue(item, ETOD_NAMESPACE, "file")) {
+            return type + " requires a 'file' value to be defined.";
+          }
+          
+          return null;
+        }
+
+
+        // Get a list of all the Items that have ephem metadata with type
+
+        var getType = function(etodItems, type){
+          return etodItems.stream()
+                          .filter(function(item){ 
+                              return getValue(item.name, ETOD_NAMESPACE, "type") == type;
+                           })
+                          .toArray();
+        }
+
+
+        // Pull the set of Items for today based on Ephemeris
+
+        var getTodayItems = function(etodItems) {
+          /** 
+          Get the Items for today. Hierarchy is:
+            - custom
+            - holiday
+            - dayset
+            - weekend
+            - weekday
+            - default
+          */
+          var startTimes = {"default": getType(etodItems, "default"),
+                            "weekday": (!Ephemeris.isWeekend()) ? getType(etodItems, "weekday") : [],
+                            "weekend": (Ephemeris.isWeekend()) ? getType(etodItems, "weekend") : [],
+                            "dayset": etodItems.stream()
+                                               .filter(function(item) {
+                                                  return getValue(item.name, ETOD_NAMESPACE, "type") == "dayset"
+                                                         && Ephemeris.isInDayset(getValue(item.name, ETOD_NAMESPACE, "set"));
+                                               })
+                                               .toArray(),
+                            "holiday": (Ephemeris.isBankHoliday()) ? getType(etodItems, "holiday") : [],
+                            "custom": etodItems.stream()
+                                               .filter(function(item) {
+                                                  return getValue(item.name, ETOD_NAMESPACE, "type") == "custom"
+                                                         && Ephemeris.isBankHoliday(0, getValue(item.name, ETOD_NAMESPACE, "file"));
+                                               })
+                                               .toArray()
+                           };
+
+          var dayType = null;
+          if(startTimes["custom"].length > 0) {
+            dayType = "custom";
+          }
+          else if(startTimes["holiday"].length > 0) {
+            dayType = "holiday";
+          }
+          else if(startTimes["dayset"].length > 0) {
+            dayType = "dayset";
+          }
+          else if(startTimes["weekend"].length > 0) {
+            dayType = "weekend";
+          }
+          else if(startTimes["weekday"].length > 0) {
+            dayType = "weekday";
+          }
+          else if(startTimes["default"].length > 0) {
+            dayType = "default";
+          }
+
+          logger.info("Today is a " + dayType + " day.");
+          return (dayType === null) ? null : startTimes[dayType];
+
+          
+        }
+
+
+        // Update Items to today
+
+        var moveTimes = function(times) {
+          var now = ZonedDateTime.now();
+          for each(var time in times) {
+            if(time.state.zonedDateTime.isBefore(now.withHour(0).withMinute(0).withSecond(0))) {
+              events.postUpdate(time.name, toToday(items[time.name]).toString());
+              logger.info("Moved " + time.name + " to today.");
+            }
+          }
+        }
+
+
+        // Create timers for all Items with a time in the future
+
+        var createTimers = function(times) {
+          var now = ZonedDateTime.now();
+          var mostRecentTime = now.minusDays(1);
+          var mostRecentState = items[ETOD_ITEM];
+          
+          for each (var time in times) {
+            var name = time.name;
+            var dt = time.state.zonedDateTime
+            var state = getValue(name, ETOD_NAMESPACE);
+            
+            if(dt.isBefore(now) && dt.isAfter(mostRecentTime)) {
+              logger.debug("NOW:    " + state + " start time " + dt + " is in the past " 
+                           + " after " + mostRecentTime);
+              mostRecentTime = dt;
+              mostRecentState = state;
+            }
+            
+            else if(dt.isAfter(now)) {
+              logger.debug("FUTURE: " + state + " scheduleing timer for " + dt);
+              timers.check(state, dt, function() { etodTransition(state); });
+            }
+            
+            else {
+              logger.debug("PAST  : " + state + " start time of " + dt + " is before " 
+                           + now + " and before " + mostRecentState + " " + mostRecentTime);
+                          
+            }
+          }
+          
+          logger.debug("Created " + (Object.keys(this.timers.timers).length - 1) + " time of day timers");
+          logger.info("The current time of day is " + mostRecentState);
+          if(items[ETOD_ITEM] != mostRecentState) {
+            events.sendCommand(ETOD_ITEM, mostRecentState);
+          }
+        }
+
+
+        // Transition to a new Time of Day
+
+        var etodTransition = function(state) {
+          logger.info("Transitioning Time fo Day from " + items[ETOD_ITEM] + " to " + state);
+          events.sendCommand(ETOD_ITEM, state);
+        }
+
+
+        //--------------------------------------------
+
+        // Main body of rule
+
+
+        // Skip if we have a flapping timer set
+
+        if(!this.timers.hasTimer("ephem_tod_rule")) {
+
+          // Check that all the required Items and Groups exist
+          if(items[ETOD_ITEM] === undefined) {
+            throw "The " + ETOD_ITEM + " Item is not defined!";
+          }
+          if(items[ETOD_GROUP] === undefined) {
+            throw "The " + ETOD_GROUP + " Group is not defined!";
+          }
+
+          var etodItems = ir.getItem("TimesOfDay").getMembers();
+          
+          if(etodItems.size() == 0) {
+            throw ETOD_GROUP + " has no members!";
+          }
+
+          // Check the metadata for all the relevant Items
+          for each (var item in etodItems) {
+            var verify = verifyMetadata(item.name);
+            if(verify !== null) {
+              throw "Item " + item.name + ". " + EXPECTED + " " + verify;
+            }
+          }
+
+          // Get the time Items for today
+          var times = getTodayItems(etodItems);
+          if(times === null){
+            throw "No set of date times were found for today! Do you have a default set of date times?";
+          }
+          
+          // Update the Items to today
+          moveTimes(times);
+
+          // Schedule a timer to wait for all the Items to update before creating the Timers.
+          this.timers.check("ephem_tod_rule", 
+                            "1s", 
+                            function() { createTimers(times);}, 
+                            true, 
+                            function() { logger.info("Flapping timer, waiting before creating timers for time of day"); });
+
+        }
+    type: script.ScriptAction
