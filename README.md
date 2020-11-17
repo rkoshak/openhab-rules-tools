@@ -37,19 +37,19 @@ The ultimate goal is to develop rule templates usable from the OH UI Rules Edito
 
 # List of capabilities
 
-Capability | Type | Purpose | Dependencies
--|-|-|-
-`countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | None
-`debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | `timer_mgr`, `time_utils`, `rules_utils`
-`deferred` | module | Schedules a command or update to be sent to an Item in the future. |  `timer_mgr`, `time_utils`
-`ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | `timer_mgr`, `time_utils`, `rules_utils`
-`expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils`
-`gatekeeper` | module | Enforces a delay between actions. | None
-`hysteresis` | module | A simple function to calculate a hysteresis comparison. | None
-`item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None
-`looping_timer` | module | Class that implements a looping timer. | `time_utils`
-`mqtt_eb` | script | A set of rules that implement an MQTT event bus to synchronize two or more openHAB instances. | `rules_utils`, MQTT 2.5+ binding properly configured
-`rate_limit` | module | Enforces a timeout where actions that occur inside the timeout are ignored. | None
-`rules_utils` | module | Some functions to help in the dynamic loading/reloading of rules to refresh their triggers. | None
-`time_utils` | module | Some functions to help parse and convert various representations of time and time durations. | None
-`timer_mgr` | module | Manages a whole collection of Timers with four simple functions. | `time_utils`
+Capability | Type | Purpose | Dependencies | Jython | JavaScript (JSONDB) | Notes
+-|-|-|-|-|-|-|-
+`countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | None | X |  
+`debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | `timer_mgr`, `time_utils`, `rules_utils` | X | X | JavaScript version does not require `rules_utils`
+`deferred` | module | Schedules a command or update to be sent to an Item in the future. |  `timer_mgr`, `time_utils` | X | |
+`ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | `timer_mgr`, `time_utils`, `rules_utils` | X | X | JavaScript version does not require `rules_utils`
+`expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils` | X | | Deprecated for openHAB 3, it will be part of the core.
+`gatekeeper` | module | Enforces a delay between actions. | `time_utils` | X | |
+`hysteresis` | module | A simple function to calculate a hysteresis comparison. | None | X | |
+`item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None | X | | Deprecated for openHAB 3, it's better to initialize Items from the UI
+`looping_timer` | module | Class that implements a looping timer. | `time_utils` | X | |
+`mqtt_eb` | script | A set of rules that implement an MQTT event bus to synchronize two or more openHAB instances. | `rules_utils`, MQTT 2.5+ binding properly configured | X | | For simple openHAB to openHAB connections use the new Remote openHAB binding
+`rate_limit` | module | Enforces a timeout where actions that occur inside the timeout are ignored. | `time_utils` | X | |
+`rules_utils` | module | Some functions to help in the dynamic loading/reloading of rules to refresh their triggers. | None | X | |
+`time_utils` | module | Some functions to help parse and convert various representations of time and time durations. | None | X | X |
+`timer_mgr` | module | Manages a whole collection of Timers with four simple functions. | `time_utils` | X | |
