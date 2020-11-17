@@ -1,0 +1,88 @@
+triggers:
+  - id: "1"
+    configuration:
+      groupName: Debounce
+    type: core.GroupStateChangeTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: >
+        var logger =
+        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.Debounce");
+
+
+        // Get Metadata query stuff
+
+        this.FrameworkUtil = (this.FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : this.FrameworkUtil;
+
+        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(scriptExtension.class) : this._bundle;
+
+        this.bundle_context = (this.bundle_context === undefined) ? this._bundle.getBundleContext() : this.bundle_context;
+
+        this.MetadataRegistry_Ref = (this.MetadataRegistry_Ref === undefined) ? bundle_context.getServiceReference("org.openhab.core.items.MetadataRegistry") : this.MetadataRegistry_Ref;
+
+        this.MetadataRegistry = (this.MetadataRegistry === undefined) ? bundle_context.getService(MetadataRegistry_Ref) : this.MetadataRegistry;
+
+        this.Metadata = (this.Metadata === undefined) ? Java.type("org.openhab.core.items.Metadata") : this.Metadata;
+
+        this.MetadataKey = (this.MetadataKey === undefined) ? Java.type("org.openhab.core.items.MetadataKey") : this.MetadataKey;
+
+
+        // Load and instantiate a TimerMgr
+
+        this.OPENHAB_CONF = (this.OPENHAB_CONF === undefined) ? java.lang.System.getenv("OPENHAB_CONF") : this.OPENHAB_CONF;
+
+        load(this.OPENHAB_CONF+'/automation/lib/javascript/community/timerMgr.js');
+
+        this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers;
+
+
+        // Get and parse the metadata
+
+        var cfg = MetadataRegistry.get(new MetadataKey("debounce", event.itemName));
+
+
+        // Fail fast if there is no config
+
+        if(cfg === null) {
+          logger.warn(event.itemName + " does not have debounce metadata");
+        }
+
+
+        else {
+          var end_debounce = function(state, proxy, isCommand) {
+            logger.debug("End debounce for " + proxy + " new state = " + state + " curr state = " + items[proxy]);
+            if(isCommand && items[proxy] != state) {
+              events.sendCommand(proxy, state);
+            }
+            else if (items[proxy].toString != state) {
+              events.postUpdate(proxy, state);
+            }
+          }
+          
+          // TODO: Add error checking
+          var proxy = cfg.value;
+          var isCommand = "command" in cfg.configuration && cfg.configuration["command"].toLowerCase() == "true";
+          var timeout = cfg.configuration["timeout"];
+          var stStr = cfg.configuration["state"];
+          var split = stStr.split(",");
+          var states = [];
+          for(st in split) {
+            states.push(split[st]);
+          }
+
+          if(states.length == 0 || (states.length > 0 && states.indexOf(event.itemState.toString()) >= 0)) {
+            logger.debug("Debouncing " + event.itemName + " with proxy = " + proxy + " timeout = " + timeout 
+                        + " and states = " + states);
+            this.timers.check(event.itemName, timeout, 
+                              function() { end_debounce(event.itemState, proxy, isCommand); });    
+          }
+          else {
+            logger.debug(event.itemName + " changed to " + event.itemState + " with is not debouncing");
+            end_debounce(event.itemState, proxy, isCommand);
+          }
+        }
+    type: script.ScriptAction
