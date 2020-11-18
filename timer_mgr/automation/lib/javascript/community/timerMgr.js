@@ -1,10 +1,8 @@
-'use strict';
-
-
 /**
  * Constructor, initializes the logger, imports the needed stuff and creates an empty timers dict.
  */
 var TimerMgr = function() {
+  'use strict';
   var OPENHAB_CONF = java.lang.System.getenv("OPENHAB_CONF");
   this.log = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.TimerMgr");
   this.log.debug("Building timerMgr instance.");
@@ -18,6 +16,7 @@ var TimerMgr = function() {
 /**
  * Private function that gets called when the timer expires. It does some cleanup and executes
  * the passed in timer lambda, if there was one.
+ * @param {*} the unique name for the timer, can be anything supported by a dict but will usually be a string
  */
 TimerMgr.prototype._notFlapping = function(key) {
   this.log.debug("Timer expired for " + key);
@@ -84,8 +83,8 @@ TimerMgr.prototype.check = function(key, when, func, reschedule, flappingFunc) {
 },
 
 /**
- * Returns true if the timer by that name exists
  * @param {*} key unique name for the timer
+ * @return true if the timer exitst, false otherwise
  */
 TimerMgr.prototype.hasTimer = function(key) {
   return key in this.timers;

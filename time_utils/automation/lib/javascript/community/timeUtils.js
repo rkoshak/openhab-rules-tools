@@ -8,7 +8,6 @@
   var LocalDateTime = (context.LocalDateTime === undefined) ? Java.type("java.time.LocalDateTime") : context.LocalDateTime;
   var ZoneId = (context.ZoneId === undefined) ? Java.type("java.time.ZoneId") : context.ZoneId;
   var ChronoUnit = (context.ChronoUnit === undefined) ? Java.type("java.time.temporal.ChronoUnit") : context.ChronoUnit;
-  var Calendar = (context.Calendar === undefined) ? Java.type("java.util.Calendar") : context.Calendar;
   var Duration = (context.Duration === undefined) ? Java.type("java.time.Duration") : context.Duration;
   var DateTimeType = (context.DateTimeType === undefined) ? Java.type("org.openhab.core.types.DateTimeType") : context.DateTimeType;
   var DecimalType = (context.DecimalType === undefined) ? Java.type("org.openhab.core.types.DecimalType") : context.DecimalType;
@@ -29,7 +28,8 @@
    *  - 5m
    *  - 1h23m
    * 
-   * returns a Duration Object
+   * @param {string} timeStr 
+   * @return {java.time.Duration} the string parsed to a Duration
    */
   context.parseDuration = function(timeStr) {
     var regex = new RegExp(/[\d]+[d|h|m|s|z]/gi);
@@ -58,6 +58,8 @@
 
   /** 
    * Adds the passed in Duration to now and returns the resultant ZonedDatetime. 
+   * @param {string | java.time.Duration} dur the duration to add to now, if a string see parseDuration above
+   * @return {java.time.ZonedDateTime} instant that is dur away from now
    */
   context.durationToDateTime = function(dur) {
     if(dur instanceof  Duration) {
@@ -69,7 +71,7 @@
   }
 
   /** 
-   * Returns true if the passed in string conforms to ISO 8601. 
+   * @return {Boolean} Returns true if the passed in string conforms to ISO 8601. 
    */
   context.isISO8601 = function(dtStr) {
     var regex = new RegExp(/^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?(Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])?$/);
@@ -83,6 +85,8 @@
    *  - Number types which are treated as milliseconds to add to now
    *  - openHAB Number Types which are treated as milliseconds to add to now
    *  - openHAB DateTimeType
+   * @param {string|int|long|java.time.Duration|java.lang.Number|org.openhab.core.types.DateTimeType|org.openhab.core.types.DecimalType|org.openhab.core.types.QuantityType|java.time.Duration|java.time.ZonedDateTime} when the representation of time converted to ZonedDateTime
+   * @return {java.time.ZonedDateTime} when converted to a ZonedDateTime
    */
   context.toDateTime = function(when) {
     var dt = null;
@@ -122,6 +126,7 @@
 
   /** 
    * Moves the passed in ZonedDateTime to today. 
+   * @return {java.time.ZonedDateTime} when converted to a ZonedDateTime and moved to today's date
    */
   context.toToday = function(when) {
     var now = ZonedDateTime.now();
