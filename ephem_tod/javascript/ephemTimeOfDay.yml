@@ -61,7 +61,7 @@ actions:
         var ETOD_NAMESPACE = "etod";
 
 
-        // Load and instantiate TimerMgr
+        // Load TimerMgr
 
         this.OPENHAB_CONF = (this.OPENHAB_CONF === undefined) ? java.lang.System.getenv("OPENHAB_CONF") : this.OPENHAB_CONF;
 
@@ -69,11 +69,14 @@ actions:
 
         load(OPENHAB_CONF+'/automation/lib/javascript/community/timeUtils.js');
 
-        this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers;
 
-
-        // Return the value or a key value from the Item's metadata
-
+        /**
+         * Return the value or a key value from the Item's metadata
+         * @param {string} item name of the item
+         * @param {string} namespace metadata namespace to pull
+         * @param {string} key index into the configuration dict for the value
+         * @return {string} value assocaited with key or null if it doesn't exist.
+         */
         var getValue = function(item, namespace, key) {
           var md = MetadataRegistry.get(new MetadataKey(namespace, item));
           if(md === null || md === undefined) {
@@ -88,8 +91,11 @@ actions:
         }
 
 
-        // Verify Item and Item metadata
-
+        /**
+         * Verify Item and Item metadata
+         * @param {string} item name of the Item
+         * return {string} error string or null if the metadata checks out
+         */
         var verifyMetadata = function(item) {
           if(items[item].class == UnDefType.class) {
             return "Item's state is " + items[items];
@@ -118,8 +124,12 @@ actions:
         }
 
 
-        // Get a list of all the Items that have ephem metadata with type
-
+        /**
+         * Get a list of all the Items that have ephem metadata with type
+         * @param {java.util.List} etodItems collection of all the ETOD Items
+         * @param {string} type the type of day 
+         * @return {java.util.List} those Items with a type metadata matching type
+         */
         var getType = function(etodItems, type){
           return etodItems.stream()
                           .filter(function(item){ 
@@ -129,8 +139,11 @@ actions:
         }
 
 
-        // Pull the set of Items for today based on Ephemeris
-
+        /**
+         * Pull the set of Items for today based on Ephemeris
+         * @param {java.util.List} etodItems collection of all ETOD Items
+         * @return {java.util.List} only those Items defined for today's daytype
+         */
         var getTodayItems = function(etodItems) {
           /** 
           Get the Items for today. Hierarchy is:
@@ -186,8 +199,10 @@ actions:
         }
 
 
-        // Update Items to today
-
+        /**
+         * Update Items to today
+         * @param {java.util.List} times list of all the ETOD Items for today
+         */
         var moveTimes = function(times) {
           var now = ZonedDateTime.now();
           for each(var time in times) {
@@ -199,8 +214,10 @@ actions:
         }
 
 
-        // Create timers for all Items with a time in the future
-
+        /**
+         * Create timers for all Items with a time in the future
+         * @param {java.util.List} times list of all the ETOD Items for todayu
+         */
         var createTimers = function(times) {
           var now = ZonedDateTime.now();
           var mostRecentTime = now.minusDays(1);
@@ -238,8 +255,11 @@ actions:
         }
 
 
-        // Transition to a new Time of Day
-
+        /**
+         * Transition to a new Time of Day
+         * @TODO look into moving this to another rule we can call so it shows up in schedule
+         * @param {string} state the new time of day state
+         */
         var etodTransition = function(state) {
           logger.info("Transitioning Time fo Day from " + items[ETOD_ITEM] + " to " + state);
           events.sendCommand(ETOD_ITEM, state);
@@ -249,6 +269,8 @@ actions:
         //--------------------------------------------
 
         // Main body of rule
+
+        this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers;
 
 
         // Skip if we have a flapping timer set
