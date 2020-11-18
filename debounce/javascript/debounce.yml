@@ -31,58 +31,80 @@ actions:
         this.MetadataKey = (this.MetadataKey === undefined) ? Java.type("org.openhab.core.items.MetadataKey") : this.MetadataKey;
 
 
-        // Load and instantiate a TimerMgr
+        // Load TimerMgr
 
         this.OPENHAB_CONF = (this.OPENHAB_CONF === undefined) ? java.lang.System.getenv("OPENHAB_CONF") : this.OPENHAB_CONF;
 
         load(this.OPENHAB_CONF+'/automation/lib/javascript/community/timerMgr.js');
 
-        this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers;
 
 
-        // Get and parse the metadata
 
-        var cfg = MetadataRegistry.get(new MetadataKey("debounce", event.itemName));
-
-
-        // Fail fast if there is no config
-
-        if(cfg === null) {
-          logger.warn(event.itemName + " does not have debounce metadata");
+        /**
+         * Get and check the item metadata.
+         * @return {dict} The metadata parsed and validated
+         */
+        var checkMetadata = function(itemName) {
+          var USAGE = "Debounce metadata should follow debounce=ProxyItem[command=true, timeout='2s', state='ON,OFF']."
+          var cfg = MetadataRegistry.get(new MetadataKey("debounce", itemName));
+          if(cfg === null) {
+            throw itemName + " does not have debounce metadata! " + USAGE;
+          }
+          
+          if(cfg.value === undefined || cfg.value === null) {
+            throw itemName + " does not have a proxy Item defined! " + USAGE;
+          }
+          if(cfg.configuration["timeout"] == undefined || cfg.configuration["timeout"] === null) {
+            throw itemName + " does not have a timeout parameter defined! " + USAGE;
+          }
+          var dict = {"proxy": cfg.value,
+                      "timeout": cfg.configuration["timeout"],
+                      "command": "command" in cfg.configuration && cfg.configuration["command"].toLowerCase() == "true",
+                      };
+                      
+          var stateStr = cfg.configuration["state"];
+          var split = stateStr.split(",");
+          dict["states"] = [];
+          for(st in split) {
+            dict["states"].push(split[st]);
+          }
+          return dict;
         }
 
 
-        else {
-          var end_debounce = function(state, proxy, isCommand) {
-            logger.debug("End debounce for " + proxy + " new state = " + state + " curr state = " + items[proxy]);
-            if(isCommand && items[proxy] != state) {
-              events.sendCommand(proxy, state);
-            }
-            else if (items[proxy].toString != state) {
-              events.postUpdate(proxy, state);
-            }
+        /**
+         * Called when the debounce timer expires, transfers the current state to the 
+         * proxy Item.
+         * @param {string} state the state to transfer to the proxy Item
+         * @param {string} name of the proxy Item
+         * @param {Boolean} when true, the state is sent as a command
+         */
+        var end_debounce = function(state, proxy, isCommand) {
+          logger.debug("End debounce for " + proxy + " new state = " + state + " curr state = " + items[proxy]);
+          if(isCommand && items[proxy] != state) {
+            events.sendCommand(proxy, state);
           }
-          
-          // TODO: Add error checking
-          var proxy = cfg.value;
-          var isCommand = "command" in cfg.configuration && cfg.configuration["command"].toLowerCase() == "true";
-          var timeout = cfg.configuration["timeout"];
-          var stStr = cfg.configuration["state"];
-          var split = stStr.split(",");
-          var states = [];
-          for(st in split) {
-            states.push(split[st]);
+          else if (items[proxy].toString != state) {
+            events.postUpdate(proxy, state);
           }
+        }
 
-          if(states.length == 0 || (states.length > 0 && states.indexOf(event.itemState.toString()) >= 0)) {
-            logger.debug("Debouncing " + event.itemName + " with proxy = " + proxy + " timeout = " + timeout 
-                        + " and states = " + states);
-            this.timers.check(event.itemName, timeout, 
-                              function() { end_debounce(event.itemState, proxy, isCommand); });    
-          }
-          else {
-            logger.debug(event.itemName + " changed to " + event.itemState + " with is not debouncing");
-            end_debounce(event.itemState, proxy, isCommand);
-          }
+
+        this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers;
+
+        var cfg = checkMetadata(event.itemName);
+
+
+        if(cfg["states"].length == 0 || 
+          (cfg["states"].length > 0 && cfg["states"].indexOf(event.itemState.toString()) >= 0)) {
+          logger.debug("Debouncing " + event.itemName + " with proxy = " + cfg["proxy"] 
+                       + " timeout = " + cfg["timeout"] + " and states = " + cfg["states"]);
+          this.timers.check(event.itemName, cfg["timeout"], 
+                            function() { end_debounce(event.itemState, cfg["proxy"], cfg["command"]); });    
+        }
+
+        else {
+          logger.debug(event.itemName + " changed to " + event.itemState + " with is not debouncing");
+          end_debounce(event.itemState, cfg["proxy"], cfg["command"]);
         }
     type: script.ScriptAction
