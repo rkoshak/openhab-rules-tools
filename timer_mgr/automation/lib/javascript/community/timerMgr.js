@@ -104,7 +104,7 @@ TimerMgr.prototype.cancel = function(key) {
 /**
  * Cancels all the timers.
  */
-TimerMgr.prototype.canceAll = function() {
+TimerMgr.prototype.cancelAll = function() {
   for (key in this.timers) {
     if (!this.timers[key]["timer"].hasTerminated()) {
       this.log.debug("Timer has not terminated, cancelling timer " + key);
