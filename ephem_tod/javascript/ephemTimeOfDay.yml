@@ -5,7 +5,7 @@ triggers:
     type: core.GroupStateChangeTrigger
   - id: "2"
     configuration:
-      startlevel: 0
+      startlevel: 20
     type: core.SystemStartlevelTrigger
   - id: "4"
     label: One minute after midnight
@@ -98,26 +98,26 @@ actions:
          */
         var verifyMetadata = function(item) {
           if(items[item].class == UnDefType.class) {
-            return "Item's state is " + items[items];
+            return item +"'s state is " + items[items];
           }
           if(getValue(item, ETOD_NAMESPACE) === null) {
-            return "Item lacks metadata or metadata value.";
+            return item + " lacks metadata or metadata value.";
           }
           var type = getValue(item, ETOD_NAMESPACE, "type");
           if(type === null) {
-            return "Item lacks a type key."
+            return item + " lacks a type key."
           }
           
           if(DAY_TYPES.indexOf(type) < 0) {
-            return type + " is not a valid day type, expected one of " + DAY_TYPES + ".";
+            return item + " has " + type + " which is not a valid day type, expected one of " + DAY_TYPES + ".";
           }
           
           if(type == "dayset" && getValue(item, ETOD_NAMESPACE, "set") === null) {
-            return type + " requires a 'set' value to be defined.";
+            return item + " has type " + type + " which requires a 'set' value to be defined.";
           }
           
           if(type == "custom" && getValue(item, ETOD_NAMESPACE, "file")) {
-            return type + " requires a 'file' value to be defined.";
+            return item + " has type " + type + " which requires a 'file' value to be defined.";
           }
           
           return null;
@@ -195,6 +195,7 @@ actions:
           logger.info("Today is a " + dayType + " day.");
           return (dayType === null) ? null : startTimes[dayType];
 
+
           
         }
 
@@ -218,39 +219,44 @@ actions:
          * Create timers for all Items with a time in the future
          * @param {java.util.List} times list of all the ETOD Items for todayu
          */
-        var createTimers = function(times) {
-          var now = ZonedDateTime.now();
-          var mostRecentTime = now.minusDays(1);
-          var mostRecentState = items[ETOD_ITEM];
-          
-          for each (var time in times) {
-            var name = time.name;
-            var dt = time.state.zonedDateTime
-            var state = getValue(name, ETOD_NAMESPACE);
-            
-            if(dt.isBefore(now) && dt.isAfter(mostRecentTime)) {
-              logger.debug("NOW:    " + state + " start time " + dt + " is in the past " 
-                           + " after " + mostRecentTime);
-              mostRecentTime = dt;
-              mostRecentState = state;
+        var createTimersGenerator = function(times, timers) {
+          return function() {
+            var now = ZonedDateTime.now();
+            var mostRecentTime = now.minusDays(1);
+            var mostRecentState = items[ETOD_ITEM];
+
+            logger.debug("Cancelling any existing timers");
+            timers.cancelAll();
+            logger.debug("Existing timers have been cancelled");
+            for each (var time in times) {
+              var name = time.name;
+              var dt = time.state.zonedDateTime
+              var state = getValue(name, ETOD_NAMESPACE);
+
+              if(dt.isBefore(now) && dt.isAfter(mostRecentTime)) {
+                logger.debug("NOW:    " + state + " start time " + dt + " is in the past " 
+                             + " after " + mostRecentTime);
+                mostRecentTime = dt;
+                mostRecentState = state;
+              }
+
+              else if(dt.isAfter(now)) {
+                logger.debug("FUTURE: " + state + " scheduleing timer for " + dt);
+                timers.check(state, dt, etodTransitionGenerator(state));
+              }
+
+              else {
+                logger.debug("PAST  : " + state + " start time of " + dt + " is before " 
+                             + now + " and before " + mostRecentState + " " + mostRecentTime);
+
+              }
             }
-            
-            else if(dt.isAfter(now)) {
-              logger.debug("FUTURE: " + state + " scheduleing timer for " + dt);
-              timers.check(state, dt, function() { etodTransition(state); });
+
+            logger.debug("Created " + (Object.keys(timers.timers).length - 1) + " time of day timers");
+            logger.info("The current time of day is " + mostRecentState);
+            if(items[ETOD_ITEM] != mostRecentState) {
+              events.sendCommand(ETOD_ITEM, mostRecentState);
             }
-            
-            else {
-              logger.debug("PAST  : " + state + " start time of " + dt + " is before " 
-                           + now + " and before " + mostRecentState + " " + mostRecentTime);
-                          
-            }
-          }
-          
-          logger.debug("Created " + (Object.keys(this.timers.timers).length - 1) + " time of day timers");
-          logger.info("The current time of day is " + mostRecentState);
-          if(items[ETOD_ITEM] != mostRecentState) {
-            events.sendCommand(ETOD_ITEM, mostRecentState);
           }
         }
 
@@ -260,15 +266,21 @@ actions:
          * @TODO look into moving this to another rule we can call so it shows up in schedule
          * @param {string} state the new time of day state
          */
-        var etodTransition = function(state) {
-          logger.info("Transitioning Time fo Day from " + items[ETOD_ITEM] + " to " + state);
-          events.sendCommand(ETOD_ITEM, state);
+        var etodTransitionGenerator = function(state) {
+          return function() {
+            logger.info("Transitioning Time of Day from " + items[ETOD_ITEM] + " to " + state);
+            events.sendCommand(ETOD_ITEM, state);
+          }
         }
 
 
         //--------------------------------------------
 
         // Main body of rule
+
+        if(this.timers === undefined){
+          logger.debug("Creating timer manager");
+        }
 
         this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers;
 
@@ -295,7 +307,7 @@ actions:
           for each (var item in etodItems) {
             var verify = verifyMetadata(item.name);
             if(verify !== null) {
-              throw "Item " + item.name + ". " + EXPECTED + " " + verify;
+              throw verify + "\n" + EXPECTED;
             }
           }
 
@@ -310,8 +322,8 @@ actions:
 
           // Schedule a timer to wait for all the Items to update before creating the Timers.
           this.timers.check("ephem_tod_rule", 
-                            "1s", 
-                            function() { createTimers(times);}, 
+                            "30s", 
+                            createTimersGenerator(times, this.timers), 
                             true, 
                             function() { logger.info("Flapping timer, waiting before creating timers for time of day"); });
 
