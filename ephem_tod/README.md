@@ -94,7 +94,7 @@ DateTime Default_Bed (TimesOfDay) { etod="BED"[type="default"] }
 // Weekend day, notice that not all the states are listed, the unlisted states are skipped
 DateTime Weekend_Day (TimesOfDay) { channel="astro:sun:set120:set#start", etod="DAY"[type="weekend"] }
 DateTime Weekend_Evening (TimesOfDay) { channel="astro:sun:local:set#start", etod="EVENING"[type="weekend"] }
-DateTime Default_Bed (TimesOfDay) { etod="BED"[type="weekend"] }
+DateTime Weekend_Bed (TimesOfDay) { etod="BED"[type="weekend"] }
 
 // Custom dayset
 DateTime Trash_Morning (TimesOfDay) { etod="MORNING"[type="dayset", set="trash"] }
@@ -105,14 +105,14 @@ DateTime Trash_Night (TimesOfDay) { etod="NIGHT"[type="dayset", set="trash"] }
 DateTime Trash_Bed (TimesOfDay) { etod="BED"[type="dayset", set="trash"] }
 
 // Default holiday
-DateTime Weekend_Day (TimesOfDay) { channel="astro:sun:set120:set#start", etod="DAY"[type="holiday"] }
-DateTime Weekend_Evening (TimesOfDay) { channel="astro:sun:local:set#start", etod="EVENING"[type="holiday"] }
-DateTime Default_Bed (TimesOfDay) { etod="BED"[type="holiday"] }
+DateTime Holiday_Day (TimesOfDay) { channel="astro:sun:set120:set#start", etod="DAY"[type="holiday"] }
+DateTime Holiday_Evening (TimesOfDay) { channel="astro:sun:local:set#start", etod="EVENING"[type="holiday"] }
+DateTime Holiday_Bed (TimesOfDay) { etod="BED"[type="holiday"] }
 
 // Custom holiday
-DateTime Weekend_Day (TimesOfDay) { channel="astro:sun:set120:set#start", etod="DAY"[type="custom", file="/openhab/conf/services/custom1.xml"] }
-DateTime Weekend_Evening (TimesOfDay) { channel="astro:sun:local:set#start", etod="EVENING"[type="custom", file="/openhab/conf/services/custom1.xml"] }
-DateTime Default_Bed (TimesOfDay) { etod="BED"[type="custom", file="/openhab/conf/services/custom1.xml"] }
+DateTime Custum_Day (TimesOfDay) { channel="astro:sun:set120:set#start", etod="DAY"[type="custom", file="/openhab/conf/services/custom1.xml"] }
+DateTime Custum_Evening (TimesOfDay) { channel="astro:sun:local:set#start", etod="EVENING"[type="custom", file="/openhab/conf/services/custom1.xml"] }
+DateTime Custum_Bed (TimesOfDay) { etod="BED"[type="custom", file="/openhab/conf/services/custom1.xml"] }
 ```
 
 ## Python
@@ -128,7 +128,7 @@ DateTime Default_Bed { init="00:02:00", etod="BED"[type="default"] }
 // Weekend day, notice that not all the states are listed, the unlisted states are skipped
 DateTime Weekend_Day { channel="astro:sun:set120:set#start", etod="DAY"[type="weekend"] }
 DateTime Weekend_Evening { channel="astro:sun:local:set#start", etod="EVENING"[type="weekend"] }
-DateTime Default_Bed { init="00:02:00", etod="BED"[type="weekend"] }
+DateTime Weekend_Bed { init="00:02:00", etod="BED"[type="weekend"] }
 
 // Custom dayset
 DateTime Trash_Morning { init="06:00:00", etod="MORNING"[type="dayset", set="trash"] }
@@ -141,12 +141,12 @@ DateTime Trash_Bed { init="00:02:00", etod="BED"[type="dayset", set="trash"] }
 // Default holiday
 DateTime Weekend_Day { channel="astro:sun:set120:set#start", etod="DAY"[type="holiday"] }
 DateTime Weekend_Evening { channel="astro:sun:local:set#start", etod="EVENING"[type="holiday"] }
-DateTime Default_Bed { init="00:02:00", etod="BED"[type="holiday"] }
+DateTime Holiday_Bed { init="00:02:00", etod="BED"[type="holiday"] }
 
 // Custom holiday
-DateTime Weekend_Day { channel="astro:sun:set120:set#start", etod="DAY"[type="custom", file="/openhab/conf/services/custom1.xml"] }
-DateTime Weekend_Evening { channel="astro:sun:local:set#start", etod="EVENING"[type="custom", file="/openhab/conf/services/custom1.xml"] }
-DateTime Default_Bed { init="00:02:00", etod="BED"[type="custom", file="/openhab/conf/services/custom1.xml"] }
+DateTime Custum_Day { channel="astro:sun:set120:set#start", etod="DAY"[type="custom", file="/openhab/conf/services/custom1.xml"] }
+DateTime Custom_Evening { channel="astro:sun:local:set#start", etod="EVENING"[type="custom", file="/openhab/conf/services/custom1.xml"] }
+DateTime Custom_Bed { init="00:02:00", etod="BED"[type="custom", file="/openhab/conf/services/custom1.xml"] }
 ```
 
 # Limitations
