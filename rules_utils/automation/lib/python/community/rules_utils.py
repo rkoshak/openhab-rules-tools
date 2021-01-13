@@ -20,6 +20,7 @@ from core.metadata import get_value
 from core.jsr223 import scope
 from core.log import log_traceback
 
+
 @log_traceback
 def create_switch_trigger_item(item_name, logger):
     """Checks to see if the passed in Item exists and if it doesn't creates it
@@ -50,6 +51,7 @@ def create_switch_trigger_item(item_name, logger):
     else:
         return True
 
+
 @log_traceback
 def delete_rule(function, logger):
     """Deletes a rule attached to the passed in function, if it exists.
@@ -72,6 +74,7 @@ def delete_rule(function, logger):
         return False
     else:
         return True
+
 
 @log_traceback
 def create_rule(name, triggers, function, logger, description=None, tags=None):
@@ -100,6 +103,7 @@ def create_rule(name, triggers, function, logger, description=None, tags=None):
         logger.error("Failed to create rule {}".format(name))
         return False
 
+
 @log_traceback
 def create_simple_rule(item_name, name, function, logger, description=None,
                        tags=None):
@@ -123,9 +127,10 @@ def create_simple_rule(item_name, name, function, logger, description=None,
             return True
     return False
 
+
 @log_traceback
 def load_rule_with_metadata(namespace, check_config, event, rule_name, function,
-                            logger, description=None, tags=None):
+                            logger, description=None, tags=None, systemstarted=False):
     """Creates a rule triggered by event on all Items with valid a valid
     configuration for the passed in namespace. Based additions to the original
     submission of the Expire binding to the openhab-helper-libraries by
@@ -144,6 +149,7 @@ def load_rule_with_metadata(namespace, check_config, event, rule_name, function,
         - logger: log errors and information statements
         - descrption: optional description to apply to the rule
         - tags: optional tags to apply to the rule
+        - systemstarted: optional system started trigger
     Returns:
         None if there was an error creating the rule, the list of Item names
         for which a trigger was created on the new rule if successful.
@@ -162,11 +168,15 @@ def load_rule_with_metadata(namespace, check_config, event, rule_name, function,
                     .format(namespace))
         return None
 
+    if systemstarted:
+        triggers = ["System started"] + triggers
+
     # Create the rule.
     if not create_rule(rule_name, triggers, function, logger, description, tags):
         return None
 
     return get_items_from_triggers(triggers)
+
 
 def generate_triggers(namespace, check_config, event, logger):
     """Generates a trigger for all Items with namespace metadata that passes
@@ -182,11 +192,12 @@ def generate_triggers(namespace, check_config, event, logger):
     """
 
     triggers = []
-    for i in [ i for i in scope.items if get_value(i, namespace) ]:
+    for i in [i for i in scope.items if get_value(i, namespace)]:
         if check_config(i, logger):
             triggers.append("Item {} {}".format(i, event))
 
     return triggers
+
 
 def get_items_from_triggers(triggers):
     """Given a list of Item rule triggers, extract the names of the Items and
