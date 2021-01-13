@@ -108,6 +108,7 @@ actions:
 
         else {
           logger.info(event.itemName + " changed to " + event.itemState + " which is not debouncing");
+          this.timers.cancel(event.itemName);
           end_debounce_generator(event.itemState, cfg["proxy"], cfg["command"])();
         }
     type: script.ScriptAction
