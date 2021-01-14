@@ -30,8 +30,8 @@ Argument | Purpose
 `key` | The unique name for the Timer. Most often this will be the Item name.
 `when` | The amount of time to pass before the Timer expires.
 `function` | An optional function or lambda to call when the Timer expires.
-`flapping_function` | An optional function or lambda to call when check is called and a Timer already exists. Can be useful to, for example, take some action when a device is flapping.
 `reschedule` | An optional flag indicating that if the Timer exists when check is called, reschedule the Timer. Defaults to `False`.
+`flapping_function` | An optional function or lambda to call when check is called and a Timer already exists. Can be useful to, for example, take some action when a device is flapping.
 
 `when` can be any one of:
 - `ZonedDateTime`
@@ -45,7 +45,7 @@ Argument | Purpose
 Returns true is there is a Timer by the passed in name.
 
 ```javascript
-if(tm.has_timer("Name")) {
+if(tm.hasTimer("Name")) {
     // do something
 }
 ```
