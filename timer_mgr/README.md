@@ -29,7 +29,7 @@ Argument | Purpose
 -|-
 `key` | The unique name for the Timer. Most often this will be the Item name.
 `when` | The amount of time to pass before the Timer expires.
-`function` | An optional function or lambda to call when the Timer expires.
+`function` | An optional function or lambda to call when the Timer expires. Parameter key is passed through.
 `reschedule` | An optional flag indicating that if the Timer exists when check is called, reschedule the Timer. Defaults to `False`.
 `flapping_function` | An optional function or lambda to call when check is called and a Timer already exists. Can be useful to, for example, take some action when a device is flapping.
 
@@ -86,9 +86,9 @@ this.tm = (this.tm === undefined) ? new TimerMgr() : this.tm;
      */
    this.tm.check(event.itemName,
                  500,
-                 function() { events.postUpdate(event.itemName + "Time", new DateTimeType().toString()); },
+                 function(key) { events.postUpdate(key + "Time", new DateTimeType().toString()); },
                  true,
-                 function() { Log.logWarn("Test", event.itemName + " is flapping!"); });
+                 function(key) { Log.logWarn("Test", key + " is flapping!"); });
 
 ...
 
@@ -101,7 +101,7 @@ this.tm = (this.tm === undefined) ? new TimerMgr() : this.tm;
     if(items[itemName] == OPEN) {
         this.tm.check(itemName,
                       "1h",
-                      function() { events.postUpdate("AlertItem", itemName + "has been open for an hour!"); },
+                      function(key) { events.postUpdate("AlertItem", key + "has been open for an hour!"); },
                       items["vTimeOfDay"].toString() == "NIGHT");
     else {
         this.tm.cancel(itemName);
