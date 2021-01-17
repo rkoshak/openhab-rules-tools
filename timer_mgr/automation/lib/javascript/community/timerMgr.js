@@ -22,7 +22,7 @@ TimerMgr.prototype._notFlapping = function(key) {
   this.log.debug("Timer expired for " + key);
   if (key in this.timers && "notFlapping" in this.timers[key]) {
     this.log.debug("Calling expired function " + this.timers[key]["notFlapping"]);
-    this.timers[key]["notFlapping"]();
+    this.timers[key]["notFlapping"](key);
   }
   if (key in this.timers){
     this.log.debug("Deleting the expired timer");
