@@ -13,6 +13,60 @@ This class implements all the book keeping and presents a simple interface to cr
 # How it works
 The class provides three functions including the consructor.
 
+## JavaScript
+## loop
+This is the function that will be used the most. When the function gets called it immediately starts the timer loop.
+
+```javascript
+lp.loop(func, when);
+```
+
+Argument | Purpose
+-|-
+`function` | Function that gets called when the timer expires. It must return the time for the next iteration of the loop in any format supported by time_utils.to_datetime. When function returns None the looping stops.
+`when` | Optional argument to delay when the first iteration of the loop runs. Any value supported by time_utils.to_datetime is supported. By default it is undefined which means `function` is called immediately.
+
+## cancel
+Cancels the Timer.
+Does nothing if the timer has already terminated.
+
+```javascript
+lp.cancel();
+```
+
+## hasTerminated
+Returns True if the timer has terminated or if it doesn't exist for some reason.
+
+```javascript
+if(lp.hasTerminated()){
+    // do something
+} 
+```
+
+# Examples
+
+Here's a simple timer that waits for 8 seconds initially and then counts down from 10 every second.
+
+```javascript
+this.OPENHAB_CONF = java.lang.System.getenv("OPENHAB_CONF");
+this.logger = (this.logger === undefined) ? Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.LoopingTimer") : this.logger; 
+load(OPENHAB_CONF+'/automation/lib/javascript/community/loopingTimer.js');
+this.lp = (this.lp === undefined) ? new LoopingTimer() : this.lp;
+
+var i = 10;
+
+var countdown = function (){
+  logger.info(i);
+  i = i-1;
+  if(i>=0) return "1s"; 
+}
+
+this.lp.loop(countdown,"8s");
+
+```
+
+
+## Jython
 ## LoopingTimer
 This is the constructor. When the class is created it immediately starts the timer loop.
 
