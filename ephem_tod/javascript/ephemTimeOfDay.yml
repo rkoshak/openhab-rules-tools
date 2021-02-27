@@ -116,12 +116,12 @@ actions:
             return item + " has type " + type + " which requires a 'set' value to be defined.";
           }
           
-          if(type == "custom" && getValue(item, ETOD_NAMESPACE, "file")) {
+          if(type == "custom" && getValue(item, ETOD_NAMESPACE, "file") === null ) {
             return item + " has type " + type + " which requires a 'file' value to be defined.";
           }
           
           return null;
-        }
+        
 
 
         /**
