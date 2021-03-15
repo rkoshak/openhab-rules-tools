@@ -18,6 +18,7 @@ if(!isISO8601("2020-11-06 13:03:00")) {
   logger.info("It's not ISO8601!");
 }
 
+var ZonedDateTime = Java.type("java.time.ZonedDateTime");
 dt = ZonedDateTime.now()
 logger.info("Already ZDT: " + toDateTime(dt));
 logger.info("ISO8601: " + toDateTime("2020-11-06T13:03:01"));
