@@ -131,7 +131,8 @@
   context.toToday = function(when) {
     var now = ZonedDateTime.now();
     var dt = toDateTime(when);
-    return dt.withYear(now.getYear()).withMonth(now.getMonthValue()).withDayOfMonth(now.getDayOfMonth());
+    return dt.withYear(now.getYear()).withMonth(now.getMonthValue()).withDayOfMonth(now.getDayOfMonth()).withZoneSameLocal(now.getOffset());
+
   }
   
   })(this);
