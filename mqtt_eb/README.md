@@ -1,6 +1,7 @@
 # MQTT Event Bus
 A set of rules that enable the creation of an MQTT Event Bus.
-These rules do require some configuration of the MQTT binding as well as the definition of some variables in configuration.py.
+These rules do require some configuration of the MQTT binding as well as the definition of some variables in configuration.py for Python.
+They require configuration of the MQTT binding as well as the creation of a couple of Groups for JavaScript.
 
 # Purpose
 There are times where a user has more than one instance of openHAB running and needs to mirror the Items hosted in one instance in the other instance.
@@ -8,12 +9,20 @@ For example, it might be required to host an instance of OH closer to the hardwa
 A user may need to run an older version of OH for compatibility reasons but want to take advantage of new capabilities as well.
 There may be a remote instance of openHAB monitoring and controlling a separate building in another location that needs to be monitored from the "main" openHAB.
 
+Alternatively one may want to publish and/or subscribe to MQTT messages to/from some other external service (e.g. a custom UI).
+
 The event bus can support a one-to-one relationship between two instances of openHAB or a star shaped topology where there is one main openHAB instance with many satellite instances feeding into it.
 The library would need modifications to support a many-to-many topology.
 More on topologies is below.
 
 # Requirements
+
+## Python
+- openHAB 2.5 with the Jython add-on and Helper Library
 - `rules_tools` used to reload the rules when the configuration changes.
+
+## JavaScript
+- openHAB 3
 
 # How it works
 The rules are split into two parts: publisher and subscription.
@@ -32,12 +41,12 @@ The topic is defined by:
     <openHAB name>/out/<Item Name>/[state|command]
 
 So, given "main-openhab" as the `<openHAB name>` and "MyItem" as the `<Item Name>`, updates will be published to `main-openhab/out/MyItem/state` and command published to `main-openhab/out/MyItem/command`.
-`<openHAB name>` is defined in `configuration.py` as `mqtt_eb_name`.
 
 In addition to publish Items updates and commands, the Publisher will also publish the message `ONLINE` to `<openHAB name>/status` when it first comes online as a retained message.
 The MQTT broker Thing should be configured to publish `OFFLINE` as a retained message to this same topic as the LWT.
 This allows other instances to know when that instance is online or offline.
 
+### Python Configuration
 The publisher also has a few variables that need to be created and populated in `configuration.py`.
 
 Variable | Purpose
@@ -48,6 +57,16 @@ Variable | Purpose
 
 After changing any of the three variables in `configuration.py` or changing the tags on any Items, the rule needs to be reloaded.
 Either send an `ON` command to `Reload_MQTT_PUB` (it will be created automatically if it doesn't already exist) or trigger the "Reload MQTT event bus Publisher" rule manually from PaperUI which will recreate the rule with the new configuration.
+
+### JavaSCript Configuration
+The publisher rule depends on the creation of two Groups: `PubItems_CMD` and `PubItems_UPD`.
+Add as members those Items that should have their commands published to `PubItems_CMD` and add as members those Items that should have their state updates published to `PubItems_UPD`.
+
+By default, `<openHAB name>` is hard coded in `mqtt-eb-online.yml` and `mqtt-eb-pub.yml` in the `openHAB_name` variable at the top of the Script Action as "remote".
+Modify both rules to change this.
+
+Note: this is a first release. 
+This will eventually become a rule template where these changes can be set as properties.
 
 ## Subscriber
 The Subscriber rule is responsible for receiving the messages published to the event bus and updating or commanding the Items that have the same name as indicated by the topic with the message received.
@@ -60,13 +79,25 @@ The subscriber requires an event trigger Channel to be created on the MQTT Broke
 The subscription for that channel should be `<openHAB name>/[in|out]/*`.
 What to put for the two options depends on the desired topology.
 
+### Python Configuration
 Once the trigger Channel is created, the Channel ID needs to be set to the `mqtt_eb_chan` variable in `configuration.py`.
 If `mqtt_eb_chan` is changed, send an `ON` command to `Reload_MQTT_SUB` or trigger the "Reload MQTT event bus Subscription" rule manually from PaperUI which will recreate the rule with the new Channel as the trigger.
+
+### JavaScript Configuration
+Once the trigger Channel is created, modify the trigger for the `mqtt-eb-sub.yml` rule to use that Channel.
+
+## One-Way Topology
+The One-Way Topology ios best for cases where the "remote" openHAB instance is only publishing sensor readings and not reacting to commands.
+Only one root MQTT topic is required.
+The remote openHAB instance will publish to `remote/out/...` and the "main" openHAB instance will subscribe to `/remote/out/*`.
+
+The remote openHAB only needs to deploy the `mqtt-eb-pub.yml` and optionally the `mqtt-eb-online.yml` rule.
+The local openHAB only needs to deploy the `mqtt-eb-sub.yml` rule.
 
 ## One-to-One Topology
 In a One-to-One Topology, there are only two instances of openHAB.
 For this discussion let's call them `local` and `remote`.
-Then configure the two instances as follows:
+Configure the two instances as follows:
 
 Name|Publish Topic|Subscribe Topic
 -|-|-
@@ -75,6 +106,7 @@ Name|Publish Topic|Subscribe Topic
 
 Local publishes to it's own out topic and subscribes to remote's out topic.
 Conversely, remote publishes to it's own out topic and subscribes to local's out topic.
+All the rules must be deployed to both instances. 
 
 ## Star Topology
 In a star topology there is one central 'main' openHAB instance and multiple "satellite" openHAB instances.
@@ -98,7 +130,7 @@ All Items that need to be synchronized to `main` must have a unique name across 
 ## Many to Many Topology
 This topology is not recommended for use because it is almost impossible to avoid infinite loops.
 
-# Examples
+# Python Config Example
 
 ## Tagging Items for the event bus
 ```

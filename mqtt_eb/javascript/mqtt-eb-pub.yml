@@ -1,0 +1,33 @@
+triggers:
+  - id: "1"
+    configuration:
+      groupName: PubItems_CMD
+    type: core.GroupCommandTrigger
+  - id: "2"
+    configuration:
+      groupName: PubItems_UPD
+    type: core.GroupStateUpdateTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >
+        var Log = Java.type("org.openhab.core.model.script.actions.Log");
+
+        var openHAB_name = "remote";
+
+        var isState = (event.itemState !== undefined);
+
+        var topic = openHAB_name + "/out/" + event.itemName + ((isState) ? "/state" : "/command");
+
+        var msg = ((isState) ? event.itemState : event.itemCommand).toString();
+
+
+        Log.logInfo("MQTT_EB", "Topic: " + topic + " Message: " + msg + " Retained: " + isState);
+
+        var mqtt = actions.get("mqtt", "mqtt:broker:argus");
+
+        mqtt.publishMQTT(topic, msg, isState); // retained true for updates
+    type: script.ScriptAction
