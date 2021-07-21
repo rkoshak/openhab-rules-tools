@@ -58,7 +58,7 @@ Capability | Type | Purpose | Dependencies | Jython | JavaScript | Notes
 -|-|-|-|-|-|-
 `countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | None | X |  
 `debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | `timer_mgr`, `time_utils`, `rules_utils` | X | X | JavaScript version does not require `rules_utils`
-`deferred` | module | Schedules a command or update to be sent to an Item in the future. |  `timer_mgr`, `time_utils` | X | |
+`deferred` | module | Schedules a command or update to be sent to an Item in the future. |  `timer_mgr`, `time_utils` | X | X |
 `ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | All: `timer_mgr`, `time_utils` Python: `rules_utils` | X | X | JavaScript version does not require `rules_utils`
 `expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils` | X | | Deprecated for openHAB 3, it is part of the core.
 `gatekeeper` | module | Enforces a delay between actions. | `time_utils` | X | |
