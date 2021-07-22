@@ -5,14 +5,25 @@ When any of the doors open a timer is set for that door in order to send an aler
 This requires a separate Timer for each Item.
 
 # Dependencies
+
+## Python
+- openHAB 2.x
+- Next-Gen Rules Engine
+- Jython add-on
+- Helper Libraries
 - time_utils: uses time_utils to convert various time duration formats to a DateTime usable by createTimer.
+
+## JavaScript
+- openHAB 3.x
+- time_utils: to convert various time duration foirmats to a ZonedDateTime.
 
 # Limitations
 This class cannot be used to program looping timers.
+See `looping_timer` for a way to implement that.
 
 # Purpose
 Creating a separate Timer for each Item of a given type is a common requirement and requires the user to do all the book keeping and management of the Timers manually.
-This class implements all the book keeping and presents a simple interface to create, check for the existence of a Timer, cancelling of Timers, etc.
+This class implements all the book keeping and presents a simple interface to create, check for the existence of a Timer, cancelling of Timers, taking an alternative action if the timer does exist, etc.
 
 # How it works
 The class provides four functions.
