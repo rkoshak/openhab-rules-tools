@@ -1,5 +1,5 @@
 # Time Utils
-A series of utility functions useful for manipulating representations of time durations.
+A series of utility functions useful for manipulating representations of time and urations.
 
 # Purpose
 There are many ways to represent time durations.
@@ -11,7 +11,7 @@ This library has a number of methods to perform these conversions.
 ## JavaScript
 The JavaScript version of this library was written for an only tested on openHAB 3.
 It does not support Joda DateTime.
-This library does not depend on the openHAB Helper Liobraries.
+This library does not depend on the openHAB Helper Libraries.
 
 ### parseDuration
 This function will take a duration string and convert it to a Java Duration Object.

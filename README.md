@@ -57,13 +57,13 @@ The unit tests are also another good place to find usage examples.
 Capability | Type | Purpose | Dependencies | Jython | JavaScript | Notes
 -|-|-|-|-|-|-
 `countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | None | X |  
-`debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | `timer_mgr`, `time_utils`, `rules_utils` | X | X | JavaScript version does not require `rules_utils`
-`deferred` | module | Schedules a command or update to be sent to an Item in the future. |  `timer_mgr`, `time_utils` | X | X |
+`debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | All: `timer_mgr`, `time_utils`, Python: `rules_utils` | X | X | JavaScript version does not require `rules_utils`
+`deferred` | module | Schedules a command or update to be sent to an Item in the future. | `timer_mgr`, `time_utils` | X | X |
 `ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | All: `timer_mgr`, `time_utils` Python: `rules_utils` | X | X | JavaScript version does not require `rules_utils`
-`expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils` | X | | Deprecated for openHAB 3, it is part of the core.
+`expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils` | X | NA | Deprecated for openHAB 3, it is part of the core.
 `gatekeeper` | module | Enforces a delay between actions. | `time_utils` | X | |
 `hysteresis` | module | A simple function to calculate a hysteresis comparison. | None | X | |
-`item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None | X | | Deprecated for openHAB 3, it's better to initialize Items from the UI and use restoreOnStartup
+`item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None | X | NA | Deprecated for openHAB 3, it's better to initialize Items from the UI and use restoreOnStartup
 `looping_timer` | module | Class that implements a looping timer. | `time_utils` | X | |
 `mqtt_eb` | script | A set of rules that implement an MQTT event bus to synchronize two or more openHAB instances. | Python: `rules_utils`, MQTT 2.5+ binding properly configured, JavaScript: MQTT 3.x binding properly configured, creation of two Group Items | X | X | For simple openHAB to openHAB connections use the new Remote openHAB binding
 `rate_limit` | module | Enforces a timeout where actions that occur inside the timeout are ignored. | `time_utils` | X | X |
