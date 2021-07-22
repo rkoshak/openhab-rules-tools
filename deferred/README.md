@@ -31,6 +31,9 @@ Argument | Purpose
 `log` |logger
 `is_command` | Indicates whether to send a command or post update
 
+A second call to defer while a timer already exists will cause the timer to be rescheduled with `when`.
+Beware, `value` is ignored in that case.
+If you want to reschedule and change the `value` you must call `cancel` first.
 
 ### cancel
 Cancels the Timer for the given Item.
@@ -76,7 +79,7 @@ Import the `deferred.js` library and use the `Deferred` class.
 This is the function you will use the most
 
 ```
-Defer.defer(target, value, when, isCommand);
+Deferred.defer(target, value, when, isCommand);
 ```
 
 Argument | Purpose
@@ -86,18 +89,22 @@ Argument | Purpose
 `when` | The time to issue the command or state. See `to_datetime` in time_utils for details
 `isCommand` | Indicates whether to send a command or post update. This parameter is optional and defaults to false
 
+A second call to defer while a timer already exists will cause the timer to be rescheduled with `when`.
+Beware, `value` is ignored in that case.
+If you want to reschedule and change the `value` you must call `cancel` first.
+
 ### `cancel`
 Cancels the Timer for the given Item.
 
 ```javascript
-Defer.cancel("ItemName");
+Deferred.cancel("ItemName");
 ```
 
 ### `cancel_all`
 Cancels all the existing Timers.
 
 ```javascript
-Defer.cancel_all();
+Deferred.cancel_all();
 ```
 
 ### Examples
