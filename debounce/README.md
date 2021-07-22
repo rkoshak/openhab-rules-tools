@@ -3,14 +3,26 @@ When the state of an Item changes, wait a configured amount of time before trans
 The Items are designated and time is defined by Item metadata.
 
 # Dependencies
+
+## Python
+- openHAB 2.x
+- Next-Gen Rules Engine installed and configured
+- Jython Helper Libraries installed and configured
 - `time_utils` to parse the debounce duration strings
 - `timer_mgr` to manage the timers
 - `rules_utils` to dynamically create the rule on command to refresh rule triggers when metadata changes; only required for the Jython version
+
+## JavaScript
+- openHAB 3.x
+- `time_utils` to parse the debounce duration strings
+- `timer_mgr` to manage the timers
+- Group Item named `Debounce`
 
 # Purpose
 Often one will have a Group or Item that can flap (rapidly flip between states) and in cases where it changes rapidly, we want to wait for things to settle before we treat the change as "real".
 For example, a bad sensor may occasionally flap.
 Another example is we may want to wait a couple minutes after everyone leaves before setting an away Switch.
+This is often called debouncing.
 
 # How it works
 To achieve this, we have a proxy Item associated with the sensor Item or Group Item (aggregation of sensors) and we set a Timer to wait a configured amount of time before updating the proxy Item.
@@ -44,14 +56,10 @@ In all cases, if the new state is not a debounce state, the Proxy Item is immedi
 It should work with non-binary type Items but it's only been tested with binary ones.
 
 ## JavaScript
-This code does not depend on the openHAB Helper Libraries.
 All Items that need to be debounce need to be added a to a Group named `Debounce`.
 When any member of that Group's state changes the rule will trigger to debounce the Item based on the metadata.
 
-NOTE: This rule does not have any error checking. 
-
 ## Jython
-This code depedns on the openHAB Helper Libraries.
 Rules have a limitation that there is no event created when Item metadata is added, modified, or removed.
 Therefore there is no way to know when you've changed the Item metadata for an Item.
 Thus, if it doesn't already exist, a `Reload_Debounce` Item will be created that will recreate the Debounce rule with new triggers based on the current metadata.
