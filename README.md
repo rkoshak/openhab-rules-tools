@@ -66,7 +66,7 @@ Capability | Type | Purpose | Dependencies | Jython | JavaScript | Notes
 `item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None | X | | Deprecated for openHAB 3, it's better to initialize Items from the UI and use restoreOnStartup
 `looping_timer` | module | Class that implements a looping timer. | `time_utils` | X | |
 `mqtt_eb` | script | A set of rules that implement an MQTT event bus to synchronize two or more openHAB instances. | Python: `rules_utils`, MQTT 2.5+ binding properly configured, JavaScript: MQTT 3.x binding properly configured, creation of two Group Items | X | X | For simple openHAB to openHAB connections use the new Remote openHAB binding
-`rate_limit` | module | Enforces a timeout where actions that occur inside the timeout are ignored. | `time_utils` | X | |
+`rate_limit` | module | Enforces a timeout where actions that occur inside the timeout are ignored. | `time_utils` | X | X |
 `rules_utils` | module | Some functions to help in the dynamic loading/reloading of rules to refresh their triggers. | None | X | |
 `time_utils` | module | Some functions to help parse and convert various representations of time and time durations. | None | X | X |
 `timer_mgr` | module | Manages a whole collection of Timers with four simple functions. | `time_utils` | X | X |
