@@ -61,7 +61,7 @@ Capability | Type | Purpose | Dependencies | Jython | JavaScript | Notes
 `deferred` | module | Schedules a command or update to be sent to an Item in the future. | `timer_mgr`, `time_utils` | X | X |
 `ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | All: `timer_mgr`, `time_utils` Python: `rules_utils` | X | X | JavaScript version does not require `rules_utils`
 `expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils` | X | NA | Deprecated for openHAB 3, it is part of the core.
-`gatekeeper` | module | Enforces a delay between actions. | `time_utils` | X | |
+`gatekeeper` | module | Enforces a delay between actions. | `time_utils` | X | X |
 `hysteresis` | module | A simple function to calculate a hysteresis comparison. | None | X | |
 `item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None | X | NA | Deprecated for openHAB 3, it's better to initialize Items from the UI and use restoreOnStartup
 `looping_timer` | module | Class that implements a looping timer. | `time_utils` | X | |

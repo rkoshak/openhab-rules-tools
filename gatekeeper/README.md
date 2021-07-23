@@ -1,12 +1,21 @@
 # Gatekeeper
 
-This library implements the [Gatekeeper Design Pattern](https://community.openhab.org/t/design-pattern-gate-keeper/36483) in Python.
+This library implements the [Gatekeeper Design Pattern](https://community.openhab.org/t/design-pattern-gate-keeper/36483) in Python and JavaScript.
 
 # Dependencies
-- `time_utils` to parse the debounce duration string
+
+## Python
+- openHAB 2.x
+- Next-Gen Rule Engine installed and configured
+- Helper Libraries installed and configured
+- `time_utils` to parse the delay string
+
+## JavaScript
+- openHAB 3.x
+- `time_utils` to parse the delay string
 
 # Purpose
-There are situations where one needs to add in delays between commands.
+There are situations where one needs to add in delays between commands that come in very close together.
 Sometimes these delays are to deal with limitations of hardware that commands are sent to (e.g. don't send more than one command per 500 msec to  a Hue Hub).
 Other times there may be a sequence of commands to send with a delay between the commands, such as implemented in the [Cascading Timers Design Pattern](https://community.openhab.org/t/design-pattern-cascading-timers/31791).
 A third example is where one wants to make sure that a TTS command has finished speaking before issuing a new announcement.
@@ -21,7 +30,44 @@ Argument | Purpose
 `command` | The function to call.
 
 # Examples
-## Basic Usage
+
+## JavaScript
+```javascript
+var OPENHAB_CONF = java.lang.System.getenv("OPENHAB_CONF");
+load(OPENHAB_CONF + "/automation/lib/javascript/community/gatekeeper.js");
+
+this.gk = (this.gk === undefined) ? new Gatekeeper() : this.gk;
+
+// Add a command to the queue and prevent another command until a second has passed
+gk.addCommand("1s", function(){ events.sendCommand("Foo", "ON"); });
+
+// Cancel all the commands on the queue
+gk.cancelAll();
+```
+
+### Cascading Timers Example
+```javascript
+var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Irrigation");
+var OPENHAB_CONF = java.lang.System.getenv("OPENHAB_CONF");
+load(OPENHAB_CONF + "/automation/lib/javascript/community/gatekeeper.js");
+
+this.gk = (this.gk === undefined) ? new Gatekeeper() : this.gk;
+
+if(event.itemCommand = ON) {
+  logger.info("Starting Irrigation");
+  this.gk.addCommand("5m", function(){ events.sendCommand("Valve1", "ON"); });
+  this.gk.addCommand("7m", function(){ events.sendCommand("Valve2", "ON"); });
+  this.gk.addCommand("3m", function(){ events.sendCommand("Valve3", "ON"); });
+  this.gk.addCommand("5m", function(){ events.sendCommand("Valve4", "ON"); });
+  this.gk.addCommand(10, function(){ logger.info("Irrigation complete");});
+}
+else {
+  this.gk.cancelAll();
+  events.sendCommand("gValves", "OFF");
+}
+```
+
+## Python
 ```python
 from community.gatekeeper import Gatekeeper
 
@@ -43,7 +89,7 @@ gk = None
     gk.cancel_all()
 
 ```
-## Cascading Timers Example
+### Cascading Timers Example
 
 ```python
 from core.rules import rule
