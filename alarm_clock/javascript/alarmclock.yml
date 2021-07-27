@@ -1,0 +1,73 @@
+triggers:
+  - id: "1"
+    configuration:
+      itemName: AlarmClock
+    type: core.ItemStateChangeTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: >-
+        // Change to ID of the Script Rule
+
+        var alarmScriptId = "alarm_script"; 
+
+
+        var FrameworkUtil = Java.type("org.osgi.framework.FrameworkUtil");
+
+        var ScriptExecution = Java.type("org.openhab.core.model.script.actions.ScriptExecution");
+
+        var ZDT = Java.type("java.time.ZonedDateTime");
+
+
+        var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Alarm");
+
+
+        // Declaring the variable like this preserves the value from one run to the next
+
+        this.timer = (this.timer === undefined) ? null : this.timer;
+
+
+        // Body of the timer, calls a UI Script with the ID "alarm_script"
+
+        var callScript = function() {
+
+          logger.info("About to call script action");
+          
+          // Get the RuleManager
+          var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
+          var bundle_context = _bundle.getBundleContext()
+          var classname = "org.openhab.core.automation.RuleManager"
+          var RuleManager_Ref = bundle_context.getServiceReference(classname);
+          var RuleManager = bundle_context.getService(RuleManager_Ref);
+
+          RuleManager.runNow(alarmScriptId);
+        }
+
+
+        // No alarm schedculed
+
+        if(items["AlarmClock"].class != DateTimeType.class || items["AlarmClock"].getZonedDateTime().isBefore(ZDT.now())) {
+          logger.info("No alarm scheduled");
+          if(this.timer !== null) {
+            this.timner.cancel();
+          }
+        }
+
+        // create or schedule a timer to run at the configured time
+
+        else {
+          logger.info("Scheduling alarm for " + items["AlarmClock"]);
+
+          if(this.timer !== null) {
+            logger.info("Rescheduling alarm");
+            this.timer.reschedule(items["AlarmClock"].getZonedDateTime());
+          }
+          else {
+            logger.info("Setting a new alarm");
+            this.timer = ScriptExecution.createTimer(items["AlarmClock"].getZonedDateTime(), callScript)
+          }
+        }
+    type: script.ScriptAction
