@@ -57,7 +57,7 @@ The unit tests are also another good place to find usage examples.
 Capability | Type | Purpose | Dependencies | Jython | JavaScript | Notes
 -|-|-|-|-|-|-
 `alarm_clock` | script | Implements an alarm clock, can be used with the Android app. | None | | X |
-`countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | None | X |  
+`countdown_timer` | module | Implements a Timer that updates an Item with the number of seconds remaining on the timer every second until the Timer expires. | All: `timer_mgr` | X | X |  
 `debounce` | script | Implements debounce or antiflapping on Items with "debounce" metadata. | All: `timer_mgr`, `time_utils`, Python: `rules_utils` | X | X | JavaScript version does not require `rules_utils`
 `deferred` | module | Schedules a command or update to be sent to an Item in the future. | `timer_mgr`, `time_utils` | X | X |
 `ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | All: `timer_mgr`, `time_utils` Python: `rules_utils` | X | X | JavaScript version does not require `rules_utils`
