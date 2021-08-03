@@ -52,7 +52,7 @@ actions:
         if(items["AlarmClock"].class != DateTimeType.class || items["AlarmClock"].getZonedDateTime().isBefore(ZDT.now())) {
           logger.info("No alarm scheduled");
           if(this.timer !== null) {
-            this.timner.cancel();
+            this.timer.cancel();
           }
         }
 
