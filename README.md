@@ -63,6 +63,7 @@ Capability | Type | Purpose | Dependencies | Jython | JavaScript | Notes
 `ephem_tod` | script | Implements the Time of Day design pattern example using Item metadata and Ephemeris. | All: `timer_mgr`, `time_utils` Python: `rules_utils` | X | X | JavaScript version does not require `rules_utils`
 `expire` | script | A drop in replacement for the Expire 1.x binding. | `deferred`, `timer_mgr`, `time_utils`, `rules_utils` | X | NA | Deprecated for openHAB 3, it is part of the core.
 `gatekeeper` | module | Enforces a delay between actions. | `time_utils` | X | X |
+[`group_utils`](group_utils/README.md) | module | Work with group members' names, labels and states. | None |  | X | Maintained by [@florian-h05](https://github.com/florian-h05)
 `hysteresis` | module | A simple function to calculate a hysteresis comparison. | None | X | |
 `item_init` | script | Rule that runs at startup or when commanded that initializes the state of Items as defined in the Item's metadata. | None | X | NA | Deprecated for openHAB 3, it's better to initialize Items from the UI and use restoreOnStartup
 `looping_timer` | module | Class that implements a looping timer. | `time_utils` | X | |
@@ -72,4 +73,4 @@ Capability | Type | Purpose | Dependencies | Jython | JavaScript | Notes
 `time_utils` | module | Some functions to help parse and convert various representations of time and time durations. | None | X | X |
 `timer_mgr` | module | Manages a whole collection of Timers with four simple functions. | `time_utils` | X | X |
 
-A module is a library that needs to be imported into a rule. A script is a flly functional rule.
+A module is a library that needs to be imported into a rule. A script is a fully functional rule.
