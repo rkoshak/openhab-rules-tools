@@ -6,7 +6,7 @@
  * @florian-h05(https://github.com/florian-h05)
  */
 
-(function (context) {
+ (function (context) {
   /**
    * Imports.
    */
@@ -163,41 +163,32 @@
   }
 
   /**
-   * Returns the number of states matching the given operator and target.
+   * Count the number of direct members' states matching the given comparison function.
    *
-   * @param {*} items Array of states
-   * @param {*} op Operator, valid: equal, notEqual, larger, largerEqual, smaller, smallerEqual
-   * @param {*} comp State to compare with
+   * @param {string} group Name of the openHAB group
+   * @param {string} compareFunc Comparison function, example: function (i) { return i.getState() == ON }
+   * @returns {number} States matching the given comparison function
    */
-  context.count = function (items, op, comp) {
-    var counter = 0
-    for (var i = 0; i < items.length; ++i) {
-      if (op === 'equal') {
-        if (items[i] == comp) {
-          ++counter
-        }
-      } else if (op === 'notEqual') {
-        if (items[i] != comp) {
-          ++counter
-        }
-      } else if (op === 'larger') {
-        if (items[i] > comp) {
-          ++counter
-        }
-      } else if (op === 'largerEqual') {
-        if (items[i] >= comp) {
-          ++counter
-        }
-      } else if (op === 'smaller') {
-        if (items[i] < comp) {
-          ++counter
-        }
-      } else if (op === 'smallerEqual') {
-        if (items[i] <= comp) {
-          ++counter
-        }
-      }
-    }
-    return counter
+  context.countMembers = function (group, compareFunc) {
+    return context.itemRegistry.getItem(group)
+      .getMembers()
+      .stream()
+      .filter(compareFunc)
+      .collect(Collectors.counting())
+  }
+
+  /**
+   * Count the number of all (also child) members' states matching the given comparison function.
+   *
+   * @param {string} group Name of the openHAB group
+   * @param {string} compareFunc Comparison function, example: function (i) { return i.getState() == ON }
+   * @returns {number} States matching the given comparison function
+   */
+  context.countAllMembers = function (group, compareFunc) {
+    return context.itemRegistry.getItem(group)
+      .getAllMembers()
+      .stream()
+      .filter(compareFunc)
+      .collect(Collectors.counting())
   }
 })(this)
