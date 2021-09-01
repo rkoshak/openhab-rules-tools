@@ -2,12 +2,16 @@
 A collection of utility functions to work with group members' names, labels and states.
 
 # Purpose
-Get the names, labels or states of the direct or all members of a group. Perform the arithmetic operations known from the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items) on the states or count how many members' states match a given expression.
+Get the names, labels or states of the direct or all members of a group. 
+Perform the arithmetic operations known from the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items) on the states or count how many members' states match a given expression.
 
 # How it works
 
 ## JavaScript
-The JavaScript version of this library was created and tested on openHAB 3.0 and 3.1. This library has no dependencies. It does not work with the GraalVM JavaScript add-on. The class provides four functions.
+The JavaScript version of this library was created and tested on openHAB 3.0 and 3.1. 
+This library has no dependencies. 
+It does not work with the GraalVM JavaScript add-on. 
+The class provides four functions.
 
 ### Create an instance of group_utils
 ```javascript
@@ -45,7 +49,9 @@ Argument | Purpose | Required
 `characteristic` | Defines what you get from the members. Valid are: name (default), label, state. | yes
 
 ### arithmetic
-Perform arithmetic operations on the states of Number members. This functionality is the same as in the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items). The function returns the value from the given function.
+Perform arithmetic operations on the states of Number members. 
+This functionality is the same as in the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items). 
+The function returns the value from the given function.
 ```javascript
 // get the states
 var group = GroupUtils.getMembers(groupname, 'state')
@@ -66,7 +72,8 @@ Argument | Purpose | Required
 `func` | Defines which function to perform, valid: MAX, MIN, AVG, SUM. | yes
 
 ### count
-Count the states matching a given comparison expression. This functionality is the same as in the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items).
+Count the states matching a given comparison expression. 
+This functionality is the same as in the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items).
 The function returns how many members match the given comparison expression.
 ```javascript
 // get the states
@@ -96,6 +103,3 @@ There are no tests, as the library has no dependencies it should always work.
 
 ## Jython
 Currently, there is no Jython version of this library.
-
-# Disclaimer
-This library class is maintained by [@florian-h05](https://github.com/florian-h05) and also maintained in the repository [openhab-conf](https://github.com/florian-h05/openhab-conf).
