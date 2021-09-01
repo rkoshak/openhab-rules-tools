@@ -14,12 +14,13 @@
   var Collectors = Java.type('java.util.stream.Collectors')
 
   /**
-   * Get the direct members of a group.
+   * Private function to get the direct members of a group.
    *
-   * @param {*} group Name of the openHAB group
-   * @param {*} characteristic Which characteristic of the members you get, valid: name (default), label, state
+   * @param {string} group Name of the openHAB group
+   * @param {string} characteristic Which characteristic of the members you get, valid: name (default), label, state
+   * @returns {Array} Given characteristic of direct members
    */
-  context.getMembers = function (group, characteristic) {
+  function getMembers (group, characteristic) {
     logger.debug('Getting direct members of group ' + group)
     var groupMembers = context.itemRegistry.getItem(group) // an Java ArrayList
       .getMembers()
@@ -38,15 +39,46 @@
   }
 
   /**
-   * Get all (also childs) members of a group.
+   * Get the direct members' names of a group.
    *
-   * @param {*} group Name of the openHAB group
-   * @param {*} characteristic Which characteristic of the members you get, valid: name (default), label, state
+   * @param {string} group Name of the openHAB group
+   * @returns {Array} Names of direct members
    */
-  context.getAllMembers = function (group, characteristic) {
+  context.getMembersNames = function (group) {
+    return getMembers(group, 'name')
+  }
+
+  /**
+   * Get the direct members' states of a group.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {Array} States of direct members
+   */
+  context.getMembersStates = function (group) {
+    return getMembers(group, 'state')
+  }
+
+  /**
+   * Get the direct members' labels of a group.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {Array} Labels of direct members
+   */
+  context.getMembersLabels = function (group) {
+    return getMembers(group, 'label')
+  }
+
+  /**
+   * Private function to get all (also childs) members of a group.
+   *
+   * @param {string} group Name of the openHAB group
+   * @param {string} characteristic Which characteristic of the members you get, valid: name (default), label, state
+   * @returns {Array} Given characteristic of all members
+   */
+  function getAllMembers (group, characteristic) {
     logger.debug('Getting all members of group ' + group)
     var groupAllMembers = context.itemRegistry.getItem(group) // an Java ArrayList
-      .getMembers()
+      .getAllMembers()
       .stream()
       .map(function (i) {
         if (characteristic === 'label') {
@@ -59,6 +91,36 @@
       })
       .collect(Collectors.toList())
     return Java.from(groupAllMembers) // convert to JavaScript Array
+  }
+
+  /**
+   * Get all (also childs) members' names of a group.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {Array} Names of all members
+   */
+  context.getAllMembersNames = function (group) {
+    return getAllMembers(group, 'name')
+  }
+
+  /**
+   * Get all (also childs) members' states of a group.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {Array} States of all members
+   */
+  context.getAllMembersStates = function (group) {
+    return getAllMembers(group, 'state')
+  }
+
+  /**
+   * Get all (also childs) members' labels of a group.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {Array} Labels of all members
+   */
+  context.getAllMembersLabels = function (group) {
+    return getAllMembers(group, 'label')
   }
 
   /**
