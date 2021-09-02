@@ -6,7 +6,7 @@
  * @florian-h05(https://github.com/florian-h05)
  */
 
- (function (context) {
+(function (context) {
   /**
    * Imports.
    */
@@ -72,7 +72,7 @@
    * Get the direct members' labels of a group as a concatenated string.
    *
    * @param {string} group Name of the openHAB group
-   * @returns {String} Concatenated labels of direct members
+   * @returns {string} Concatenated labels of direct members
    */
   context.getMembersLabelsString = function (group) {
     logger.debug('Getting direct members of group ' + group)
@@ -144,7 +144,7 @@
    * Get all (also childs) members' labels of a group as a concatenated string.
    *
    * @param {string} group Name of the openHAB group
-   * @returns {String} Concatenated labels of direct members
+   * @returns {string} Concatenated labels of direct members
    */
   context.getAllMembersLabelsString = function (group) {
     logger.debug('Getting all members of group ' + group)
@@ -158,42 +158,149 @@
   }
 
   /**
-   * Perform arithmetic operations on an given array of states.
+   * Private function to get numeric states of direct members of a group.
+   * This function only uses Items of type: Number, Dimmer, Rollershutter.
+   * Units of measurement are ignored.
    *
-   * @param {*} items Array of states
-   * @param {*} func Arithmetic function to perform, valid: SUM, AVG, MIN, MAX
+   * @param {string} group  Name of the openHAB group
+   * @returns {*} Statistics for Java Collectors.summarizingDouble()
    */
-  context.arithmetic = function (items, func) {
-    if (func === 'SUM') {
-      var sum = items[0]
-      for (var i = 1; i < items.length; i++) {
-        sum += items[i]
-      }
-      return sum
-    } else if (func === 'AVG') {
-      var sum = items[0]
-      for (var i = 1; i < items.length; i++) {
-        sum += items[i]
-      }
-      var avg = sum / items.length
-      return avg
-    } else if (func === 'MIN') {
-      var min = items[0]
-      for (var i = 1; i < items.length; ++i) {
-        if (items[i] < min) {
-          min = items[i]
+  function getMembersNumeric (group) {
+    return context.itemRegistry.getItem(group)
+      .getMembers()
+      .stream()
+      .filter(function (i) {
+        // Log: Check for Item of type: Number, Dimmer or Rollershutter
+        if (!((i.getType() === 'Number') || (i.getType() === 'Dimmer') || (i.getType() === 'Rollershutter'))) {
+          logger.debug(i.getName() + ' ignored, no supported type: ' + i.getType())
         }
-      }
-      return min
-    } else if (func === 'MAX') {
-      var max = items[0]
-      for (var i = 1; i < items.length; ++i) {
-        if (items[i] > max) {
-          max = items[i]
+        // Log: Check for UnDefType (NULL or UNDEF)
+        if (items[i.getName()].class === UnDefType.class) {
+          logger.debug(i.getName() + ' ignored, state is UNDEF or NULL.')
         }
-      }
-      return max
-    }
+        return (
+          // Check for Item of type: Number, Dimmer or Rollershutter
+          ((i.getType() === 'Number') || (i.getType() === 'Dimmer') || (i.getType() === 'Rollershutter')) &&
+          // Check for UnDefType (NULL or UNDEF)
+          (!(items[i.getName()].class === UnDefType.class))
+        )
+      })
+      .collect(Collectors.summarizingDouble(function (i) {
+        return parseFloat(i.getState())
+      }))
+  }
+
+  /**
+   * Get the sum of direct members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Sum of direct members number states
+   */
+  context.MembersSum = function (group) {
+    return getMembersNumeric(group).getSum()
+  }
+
+  /**
+   * Get the average of direct members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Average of direct members number states
+   */
+  context.MembersAvg = function (group) {
+    return getMembersNumeric(group).getAverage()
+  }
+
+  /**
+   * Get the minimum of direct members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Minimum of direct members number states
+   */
+  context.MembersMin = function (group) {
+    return getMembersNumeric(group).getMin()
+  }
+
+  /**
+   * Get the maximum of direct members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Maximum of direct members number states
+   */
+  context.MembersMax = function (group) {
+    return getMembersNumeric(group).getMax()
+  }
+
+  /**
+   * Private function to get numeric states of all (also child) members of a group.
+   * This function only uses Items of type: Number, Dimmer, Rollershutter.
+   * Units of measurement are ignored.
+   *
+   * @param {string} group  Name of the openHAB group
+   * @returns {*} Statistics for Java Collectors.summarizingDouble()
+   */
+  function getAllMembersNumeric (group) {
+    return context.itemRegistry.getItem(group)
+      .getAllMembers()
+      .stream()
+      .filter(function (i) {
+        // Log: Check for Item of type: Number, Dimmer or Rollershutter
+        if (!((i.getType() === 'Number') || (i.getType() === 'Dimmer') || (i.getType() === 'Rollershutter'))) {
+          logger.debug(i.getName() + ' ignored, no supported type: ' + i.getType())
+        }
+        // Log: Check for UnDefType (NULL or UNDEF)
+        if (items[i.getName()].class === UnDefType.class) {
+          logger.debug(i.getName() + ' ignored, state is UNDEF or NULL.')
+        }
+        return (
+          // Check for Item of type: Number, Dimmer or Rollershutter
+          ((i.getType() === 'Number') || (i.getType() === 'Dimmer') || (i.getType() === 'Rollershutter')) &&
+          // Check for UnDefType (NULL or UNDEF)
+          (!(items[i.getName()].class === UnDefType.class))
+        )
+      })
+      .collect(Collectors.summarizingDouble(function (i) {
+        return parseFloat(i.getState())
+      }))
+  }
+
+  /**
+   * Get the sum of all (also child) members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Sum of all (also child) members number states
+   */
+  context.allMembersSum = function (group) {
+    return getAllMembersNumeric(group).getSum()
+  }
+
+  /**
+   * Get the average of all (also child) members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Average of all (also child) members number states
+   */
+  context.allMembersAvg = function (group) {
+    return getAllMembersNumeric(group).getAverage()
+  }
+
+  /**
+   * Get the minimum of all (also child) members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Minimum of all (also child) members number states
+   */
+  context.allMembersMin = function (group) {
+    return getAllMembersNumeric(group).getMin()
+  }
+
+  /**
+   * Get the maximum of all (also child) members' number states.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {number} Maximum of all (also child) members number states
+   */
+  context.allMembersMax = function (group) {
+    return getAllMembersNumeric(group).getMax()
   }
 
   /**
