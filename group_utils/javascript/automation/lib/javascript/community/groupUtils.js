@@ -69,6 +69,23 @@
   }
 
   /**
+   * Get the direct members' labels of a group as a concatenated string.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {String} Concatenated labels of direct members
+   */
+  context.getMembersLabelsString = function (group) {
+    logger.debug('Getting direct members of group ' + group)
+    return context.itemRegistry.getItem(group)
+      .getMembers()
+      .stream()
+      .map(function (i) {
+        return i.getLabel()
+      })
+      .collect(Collectors.joining(', '))
+  }
+
+  /**
    * Private function to get all (also childs) members of a group.
    *
    * @param {string} group Name of the openHAB group
@@ -121,6 +138,23 @@
    */
   context.getAllMembersLabels = function (group) {
     return getAllMembers(group, 'label')
+  }
+
+  /**
+   * Get all (also childs) members' labels of a group as a concatenated string.
+   *
+   * @param {string} group Name of the openHAB group
+   * @returns {String} Concatenated labels of direct members
+   */
+  context.getAllMembersLabelsString = function (group) {
+    logger.debug('Getting all members of group ' + group)
+    return context.itemRegistry.getItem(group)
+      .getAllMembers()
+      .stream()
+      .map(function (i) {
+        return i.getLabel()
+      })
+      .collect(Collectors.joining(', '))
   }
 
   /**

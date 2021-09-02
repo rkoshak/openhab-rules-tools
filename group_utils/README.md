@@ -3,7 +3,7 @@ A collection of utility functions to work with group members' names, labels and 
 
 # Purpose
 Get the names, labels or states of the direct or all members of a group. 
-Perform the arithmetic operations known from the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items) on the states or count how many members' states match a given expression.
+Perform the arithmetic operations known from the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items) on the states or count how many members match a given comparison function.
 
 # How it works
 
@@ -41,6 +41,12 @@ This function returns the __labels__ of direct group members as an array.
 var groupLabels = getMembersLabels(group)
 ```
 
+### getMembersLabelsString
+This function returns the __labels__ of direct group members as a concatenated string.
+```javascript
+var groupLabelsString = getMembersLabelsString(group)
+```
+
 ### getAllMembersNames
 This function returns the __names__ of direct and child group members as an array.
 The group items are excluded.
@@ -60,6 +66,13 @@ This function returns the __labels__ of direct and child group members as an arr
 The group items are excluded.
 ```javascript
 var groupAllLabels = getAllMembersLabels(group)
+```
+
+### getAllMembersLabelsStrings
+This function returns the __labels__ of direct and child group members as a concatenated string.
+The group items are excluded.
+```javascript
+var groupAllLabelsString = getAllMembersLabelsString(group)
 ```
 
 ### arithmetic
