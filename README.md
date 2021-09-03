@@ -31,10 +31,10 @@ To make installation of individual capabilities easier, each capability is locat
 Copy the `automation/jsr223/python` folder and or `automation/lib/python` under a given capability's folder to `$OH_CONF`.
 
 ## JavaScript
-For rules, open the YAML file can copy the contents to the `code` tab of a new rule in MainUI in openHAB 3.
+For rules, open the YAML file and copy the contents to the `code` tab of a new rule in MainUI in openHAB 3.
 The README for those capabilities that require this will indicate when this is necessary.
 
-For library capabilities copy the `automation/lib/javascript` colder for a given capability to `$OH_CONF`.
+For library capabilities copy the `automation/lib/javascript` folder for a given capability to `$OH_CONF`.
 
 ## Tests
 Many capabilities also have unit tests located in the `test` folder.
