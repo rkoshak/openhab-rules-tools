@@ -23,6 +23,8 @@ Argument | Purpose | Required
 -|-|-
 `group` | The name of the group. | yes
 
+### __Get something from members__
+
 ### getMembersNames
 This function returns the __names__ of direct group members as an array.
 ```javascript
@@ -75,28 +77,61 @@ The group items are excluded.
 var groupAllLabelsString = getAllMembersLabelsString(group)
 ```
 
-### arithmetic
+### __Arithmetic operations__
 Perform arithmetic operations on the states of Number members. 
-This functionality is the same as in the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items). 
-The function returns the value from the given function.
+This functionality is the same as in the openHAB [group item definition](https://www.openhab.org/docs/configuration/items.html#derive-group-state-from-member-items).
+The following functions only use Items of type: Number, Dimmer or Rollershutter.
+Other Items and NULL or UNDEF states are ignored.
+
+### MembersSum
+Get the __SUM__ of direct members' number states.
 ```javascript
-// get the states
-var group = GroupUtils.getMembers(groupname, 'state')
-
-// perform arithmetic operation
-var arithmetic = GroupUtils.arithmetic(items, func)
-
-// examples
-var power = GroupUtils.getMembers('power', 'state') // the states of direct members of "power"
-var max = GroupUtils.arithmetic(power, 'MAX') // the highest value from "power"
-var min = GroupUtils.arithmetic(power, 'MIN') // the lowest value from "power"
-var avg = GroupUtils.arithmetic(power, 'AVG') // the average value from "power"
-var sum = GroupUtils.arithmetic(power, 'SUM') // the summarized value from "power"
+var sum = MembersSum(group)
 ```
-Argument | Purpose | Required
--|-|-
-`items` | The array of item states. | yes
-`func` | Defines which function to perform, valid: MAX, MIN, AVG, SUM. | yes
+
+### MembersAvg
+Get the __AVERAGE__ of direct members' number states.
+```javascript
+var avg = MembersAvg(group)
+```
+
+### MembersMin
+Get the __MINIMUM__ of direct members' number states.
+```javascript
+var min = MembersMin(group)
+```
+
+### MembersMax
+Get the __MAXIMUM__ of direct members' number states.
+```javascript
+var max = MembersMax(group)
+```
+
+### allMembersSum
+Get the __SUM__ of all (also child) members' number states.
+```javascript
+var sum = allMembersSum(group)
+```
+
+### allMembersAvg
+Get the __AVERAGE__ of all (also child) members' number states.
+```javascript
+var avg = allMembersAvg(group)
+```
+
+### allMembersMin
+Get the __MINIMUM__ of all (also child) members' number states.
+```javascript
+var min = allMembersMin(group)
+```
+
+### allMembersMax
+Get the __MAXIMUM__ of all (also child) members' number states.
+```javascript
+var max = allMembersMax(group)
+```
+
+### __Count operations__
 
 ### countMembers
 Count the direct members matching a given comparison function. 
@@ -129,8 +164,8 @@ var counter = countAllMembers(group, function (i) { return i.getState() /* compa
 The arguments are exactly the same as for [countMembers](#countmembers).
 The examples work in the same way as for [countMembers](#countmembers).
 
-### Tests
-There are no tests, as the library has no dependencies it should always work.
+### __Testing__
+Copy the contents of [groupUtils_tests.js](javascript/test/groupUtils_tests.js) to a new Script created in MainUI on openHAB 3 and press the Play button.
 
 ## Jython
 Currently, there is no Jython version of this library.

@@ -38,6 +38,10 @@
     return Java.from(groupMembers) // convert to JavaScript Array
   }
 
+  /*
+  Get something from members
+  */
+
   /**
    * Get the direct members' names of a group.
    *
@@ -156,6 +160,10 @@
       })
       .collect(Collectors.joining(', '))
   }
+
+  /*
+  Math/arithmetic operations
+  */
 
   /**
    * Private function to get numeric states of direct members of a group.
@@ -302,6 +310,10 @@
   context.allMembersMax = function (group) {
     return getAllMembersNumeric(group).getMax()
   }
+
+  /*
+  Count operations
+  */
 
   /**
    * Count the number of direct members' states matching the given comparison function.
