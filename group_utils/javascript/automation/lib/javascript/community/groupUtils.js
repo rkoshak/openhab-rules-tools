@@ -1,17 +1,30 @@
 /**
  * Utilities for working with openHAB groups in JavaScript.
  * This code is not compatible with the GraalVM JavaScript add-on.
- *
- * Copyright (c) 2021 Florian Hotze under MIT License
- * @florian-h05(https://github.com/florian-h05)
  */
+
+/**
+Copyright September 8, 2021 Florian Hotze
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 (function (context) {
   /**
    * Imports.
    */
-  var logger = Java.type('org.slf4j.LoggerFactory').getLogger('org.openhab.model.script.Rules.GroupUtils')
-  var Collectors = Java.type('java.util.stream.Collectors')
+  var logger = Java.type('org.slf4j.LoggerFactory').getLogger('org.openhab.model.script.Rules.GroupUtils');
+  var Collectors = Java.type('java.util.stream.Collectors');
 
   /**
    * Private function to get the direct members of a group.
@@ -20,22 +33,22 @@
    * @param {string} characteristic Which characteristic of the members you get, valid: name (default), label, state
    * @returns {Array} Given characteristic of direct members
    */
-  function getMembers (group, characteristic) {
-    logger.debug('Getting direct members of group ' + group)
+  function _getMembers (group, characteristic) {
+    logger.debug('Getting direct members of group ' + group);
     var groupMembers = context.itemRegistry.getItem(group) // an Java ArrayList
       .getMembers()
       .stream()
       .map(function (i) {
         if (characteristic === 'label') {
-          return i.getLabel()
+          return i.getLabel();
         } else if (characteristic === 'state') {
-          return i.getState()
+          return i.getState();
         } else {
-          return i.getName()
+          return i.getName();
         }
       })
-      .collect(Collectors.toList())
-    return Java.from(groupMembers) // convert to JavaScript Array
+      .collect(Collectors.toList());
+    return Java.from(groupMembers); // convert to JavaScript Array
   }
 
   /*
@@ -49,7 +62,7 @@
    * @returns {Array} Names of direct members
    */
   context.getMembersNames = function (group) {
-    return getMembers(group, 'name')
+    return _getMembers(group, 'name');
   }
 
   /**
@@ -59,7 +72,7 @@
    * @returns {Array} States of direct members
    */
   context.getMembersStates = function (group) {
-    return getMembers(group, 'state')
+    return _getMembers(group, 'state');
   }
 
   /**
@@ -69,7 +82,7 @@
    * @returns {Array} Labels of direct members
    */
   context.getMembersLabels = function (group) {
-    return getMembers(group, 'label')
+    return _getMembers(group, 'label');
   }
 
   /**
@@ -79,14 +92,14 @@
    * @returns {string} Concatenated labels of direct members
    */
   context.getMembersLabelsString = function (group) {
-    logger.debug('Getting direct members of group ' + group)
+    logger.debug('Getting direct members of group ' + group);
     return context.itemRegistry.getItem(group)
       .getMembers()
       .stream()
       .map(function (i) {
-        return i.getLabel()
+        return i.getLabel();
       })
-      .collect(Collectors.joining(', '))
+      .collect(Collectors.joining(', '));
   }
 
   /**
@@ -96,22 +109,22 @@
    * @param {string} characteristic Which characteristic of the members you get, valid: name (default), label, state
    * @returns {Array} Given characteristic of all members
    */
-  function getAllMembers (group, characteristic) {
-    logger.debug('Getting all members of group ' + group)
+  function _getAllMembers (group, characteristic) {
+    logger.debug('Getting all members of group ' + group);
     var groupAllMembers = context.itemRegistry.getItem(group) // an Java ArrayList
       .getAllMembers()
       .stream()
       .map(function (i) {
         if (characteristic === 'label') {
-          return i.getLabel()
+          return i.getLabel();
         } else if (characteristic === 'state') {
-          return i.getState()
+          return i.getState();
         } else {
-          return i.getName()
+          return i.getName();
         }
       })
-      .collect(Collectors.toList())
-    return Java.from(groupAllMembers) // convert to JavaScript Array
+      .collect(Collectors.toList());
+    return Java.from(groupAllMembers); // convert to JavaScript Array
   }
 
   /**
@@ -121,7 +134,7 @@
    * @returns {Array} Names of all members
    */
   context.getAllMembersNames = function (group) {
-    return getAllMembers(group, 'name')
+    return _getAllMembers(group, 'name');
   }
 
   /**
@@ -131,7 +144,7 @@
    * @returns {Array} States of all members
    */
   context.getAllMembersStates = function (group) {
-    return getAllMembers(group, 'state')
+    return _getAllMembers(group, 'state');
   }
 
   /**
@@ -141,7 +154,7 @@
    * @returns {Array} Labels of all members
    */
   context.getAllMembersLabels = function (group) {
-    return getAllMembers(group, 'label')
+    return _getAllMembers(group, 'label');
   }
 
   /**
@@ -151,14 +164,14 @@
    * @returns {string} Concatenated labels of direct members
    */
   context.getAllMembersLabelsString = function (group) {
-    logger.debug('Getting all members of group ' + group)
+    logger.debug('Getting all members of group ' + group);
     return context.itemRegistry.getItem(group)
       .getAllMembers()
       .stream()
       .map(function (i) {
-        return i.getLabel()
+        return i.getLabel();
       })
-      .collect(Collectors.joining(', '))
+      .collect(Collectors.joining(', '));
   }
 
   /*
@@ -173,18 +186,18 @@
    * @param {string} group  Name of the openHAB group
    * @returns {*} Statistics for Java Collectors.summarizingDouble()
    */
-  function getMembersNumeric (group) {
+  function _getMembersNumeric (group) {
     return context.itemRegistry.getItem(group)
       .getMembers()
       .stream()
       .filter(function (i) {
         // Log: Check for Item of type: Number, Dimmer or Rollershutter
         if (!((i.getType() === 'Number') || (i.getType() === 'Dimmer') || (i.getType() === 'Rollershutter'))) {
-          logger.debug(i.getName() + ' ignored, no supported type: ' + i.getType())
+          logger.debug(i.getName() + ' ignored, no supported type: ' + i.getType());
         }
         // Log: Check for UnDefType (NULL or UNDEF)
         if (items[i.getName()].class === UnDefType.class) {
-          logger.debug(i.getName() + ' ignored, state is UNDEF or NULL.')
+          logger.debug(i.getName() + ' ignored, state is UNDEF or NULL.');
         }
         return (
           // Check for Item of type: Number, Dimmer or Rollershutter
@@ -194,8 +207,8 @@
         )
       })
       .collect(Collectors.summarizingDouble(function (i) {
-        return parseFloat(i.getState())
-      }))
+        return parseFloat(i.getState());
+      }));
   }
 
   /**
@@ -204,8 +217,8 @@
    * @param {string} group Name of the openHAB group
    * @returns {number} Sum of direct members number states
    */
-  context.MembersSum = function (group) {
-    return getMembersNumeric(group).getSum()
+  context.membersSum = function (group) {
+    return _getMembersNumeric(group).getSum();
   }
 
   /**
@@ -214,8 +227,8 @@
    * @param {string} group Name of the openHAB group
    * @returns {number} Average of direct members number states
    */
-  context.MembersAvg = function (group) {
-    return getMembersNumeric(group).getAverage()
+  context.membersAvg = function (group) {
+    return _getMembersNumeric(group).getAverage();
   }
 
   /**
@@ -224,8 +237,8 @@
    * @param {string} group Name of the openHAB group
    * @returns {number} Minimum of direct members number states
    */
-  context.MembersMin = function (group) {
-    return getMembersNumeric(group).getMin()
+  context.membersMin = function (group) {
+    return _getMembersNumeric(group).getMin();
   }
 
   /**
@@ -234,8 +247,8 @@
    * @param {string} group Name of the openHAB group
    * @returns {number} Maximum of direct members number states
    */
-  context.MembersMax = function (group) {
-    return getMembersNumeric(group).getMax()
+  context.membersMax = function (group) {
+    return _getMembersNumeric(group).getMax();
   }
 
   /**
@@ -246,18 +259,18 @@
    * @param {string} group  Name of the openHAB group
    * @returns {*} Statistics for Java Collectors.summarizingDouble()
    */
-  function getAllMembersNumeric (group) {
+  function _getAllMembersNumeric (group) {
     return context.itemRegistry.getItem(group)
       .getAllMembers()
       .stream()
       .filter(function (i) {
         // Log: Check for Item of type: Number, Dimmer or Rollershutter
         if (!((i.getType() === 'Number') || (i.getType() === 'Dimmer') || (i.getType() === 'Rollershutter'))) {
-          logger.debug(i.getName() + ' ignored, no supported type: ' + i.getType())
+          logger.debug(i.getName() + ' ignored, no supported type: ' + i.getType());
         }
         // Log: Check for UnDefType (NULL or UNDEF)
         if (items[i.getName()].class === UnDefType.class) {
-          logger.debug(i.getName() + ' ignored, state is UNDEF or NULL.')
+          logger.debug(i.getName() + ' ignored, state is UNDEF or NULL.');
         }
         return (
           // Check for Item of type: Number, Dimmer or Rollershutter
@@ -267,8 +280,8 @@
         )
       })
       .collect(Collectors.summarizingDouble(function (i) {
-        return parseFloat(i.getState())
-      }))
+        return parseFloat(i.getState());
+      }));
   }
 
   /**
@@ -278,7 +291,7 @@
    * @returns {number} Sum of all (also child) members number states
    */
   context.allMembersSum = function (group) {
-    return getAllMembersNumeric(group).getSum()
+    return _getAllMembersNumeric(group).getSum();
   }
 
   /**
@@ -288,7 +301,7 @@
    * @returns {number} Average of all (also child) members number states
    */
   context.allMembersAvg = function (group) {
-    return getAllMembersNumeric(group).getAverage()
+    return _getAllMembersNumeric(group).getAverage();
   }
 
   /**
@@ -298,7 +311,7 @@
    * @returns {number} Minimum of all (also child) members number states
    */
   context.allMembersMin = function (group) {
-    return getAllMembersNumeric(group).getMin()
+    return _getAllMembersNumeric(group).getMin();
   }
 
   /**
@@ -308,7 +321,7 @@
    * @returns {number} Maximum of all (also child) members number states
    */
   context.allMembersMax = function (group) {
-    return getAllMembersNumeric(group).getMax()
+    return _getAllMembersNumeric(group).getMax();
   }
 
   /*
@@ -327,7 +340,7 @@
       .getMembers()
       .stream()
       .filter(compareFunc)
-      .collect(Collectors.counting())
+      .collect(Collectors.counting());
   }
 
   /**
@@ -342,6 +355,6 @@
       .getAllMembers()
       .stream()
       .filter(compareFunc)
-      .collect(Collectors.counting())
+      .collect(Collectors.counting());
   }
 })(this)
