@@ -1,6 +1,6 @@
 /**
  * Utilities for working with openHAB groups in JavaScript.
- * This code is not compatible with the GraalVM JavaScript add-on.
+ * This code has no official support for the GraalVM JavaScript add-on.
  */
 
 /**
