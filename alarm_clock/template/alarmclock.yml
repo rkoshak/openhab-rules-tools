@@ -5,9 +5,6 @@ configDescriptions:
   - name: alarmTime
     type: TEXT
     context: item
-    filterCriteria:
-      - name: type
-        value: DateTime
     label: Alarm Time Item
     required: true
     description: Item that holds the date and time to run the script.
