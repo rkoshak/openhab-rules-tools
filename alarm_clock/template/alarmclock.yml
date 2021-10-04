@@ -8,12 +8,6 @@ configDescriptions:
     label: Alarm Time Item
     required: true
     description: Item that holds the date and time to run the script.
-  - name: script
-    type: TEXT
-    context: rule
-    label: Script to Call
-    required: true
-    description: The Script or Rule to call at the alarm time.
 triggers:
   - id: "1"
     configuration:
