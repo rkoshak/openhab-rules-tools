@@ -1,4 +1,4 @@
-uid: rules_tools:android_alarm_clock
+uid: rules_tools:alarm_clock
 label: Schedules a timer to run a script
 description: This will trigger on an update to a DateTime Item and schedule a timer to call another script at the DateTime's state.
 configDescriptions:
