@@ -14,7 +14,7 @@ configDescriptions:
   - name: script
     type: TEXT
     context: rule
-    label: Script to call
+    label: Script to Call
     required: true
     description: The Script or Rule to call at the alarm time.
 triggers:
