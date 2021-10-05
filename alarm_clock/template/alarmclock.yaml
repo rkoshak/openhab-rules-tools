@@ -82,7 +82,7 @@ actions:
             this.timer.reschedule(time.getZonedDateTime());
           }
           else {
-            logger.info("Setting a new alarm for " + time);
+            logger.debug("Setting a new alarm for " + time);
             this.timer = ScriptExecution.createTimer(time.getZonedDateTime(), callScript);
           }
         }
