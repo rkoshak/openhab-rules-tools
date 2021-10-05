@@ -34,14 +34,16 @@
     ],
     "conditions": [],
     "actions": [
-      "inputs": {},
-      "id": "2",
-      "label":"Publish ONLINE to the LWT topic as retained",
-      "configuration": {
-        "type":"application/javascript",
-        "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar topic = '${topicRoot}/status';\nLog.logInfo('MQTT_EB', 'Publishing online message');\nvar mqtt = actions.get('mqtt', '${broker}');\nmqtt.publishMQTT(topic,'ONLINE', true);"
-      },
-      "type":"script.ScriptAction"
+      {
+        "inputs": {},
+        "id": "2",
+        "label":"Publish ONLINE to the LWT topic as retained",
+        "configuration": {
+          "type":"application/javascript",
+          "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar topic = '${topicRoot}/status';\nLog.logInfo('MQTT_EB', 'Publishing online message');\nvar mqtt = actions.get('mqtt', '${broker}');\nmqtt.publishMQTT(topic,'ONLINE', true);"
+        },
+        "type":"script.ScriptAction"
+      }
     ]
   },
   {
@@ -168,15 +170,17 @@
     ],
     "conditions": [],
     "actions": [
-      "inputs": {},
-      "id": "2",
-      "label":"Process incoming MQTT Event Bus Message",
-      "description":"Parses the incoming message using the topic to identify the Item to command or update.",
-      "configuration": {
-        "type":"application/javascript",
-        "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar parts = event.event.split('#');\nvar topic = parts[0];\nvar state = parts[1];\nparts = topic.split('/');\nvar item_name = parts[2];\nvar event_type = parts[3];\nLog.logDebug('MQTT EB','Received EB message: type = ' + event_type + ' item = ' + item_name + ' state/cmd = ' + state);\nif(items[item_name] === undefined) {\n  Log.logWarn('MQTT EB','Received an MQTT EB message for an Item that doesn't exist locally: ' + item_name);\n}\nelse {\n  (event_type == 'command') ? events.sendCommand(item_name, state) : events.postUpdate(item_name, state);\n}"
-      },
-      "type": "script.ScriptAction"
+      {
+        "inputs": {},
+        "id": "2",
+        "label":"Process incoming MQTT Event Bus Message",
+        "description":"Parses the incoming message using the topic to identify the Item to command or update.",
+        "configuration": {
+          "type":"application/javascript",
+          "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar parts = event.event.split('#');\nvar topic = parts[0];\nvar state = parts[1];\nparts = topic.split('/');\nvar item_name = parts[2];\nvar event_type = parts[3];\nLog.logDebug('MQTT EB','Received EB message: type = ' + event_type + ' item = ' + item_name + ' state/cmd = ' + state);\nif(items[item_name] === undefined) {\n  Log.logWarn('MQTT EB','Received an MQTT EB message for an Item that doesn't exist locally: ' + item_name);\n}\nelse {\n  (event_type == 'command') ? events.sendCommand(item_name, state) : events.postUpdate(item_name, state);\n}"
+        },
+        "type": "script.ScriptAction"
+      }
     ]
   }
 ]
