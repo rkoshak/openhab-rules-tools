@@ -60,10 +60,11 @@ actions:
         }
 
 
-        // No alarm scheduled
-        
         var time = items['${alarmTime}'];
-        
+
+
+        // No alarm scheduled
+
         if(time.class != DateTimeType.class || time.getZonedDateTime().isBefore(ZDT.now())) {
           logger.info("No alarm scheduled");
           if(this.timer !== null) {
