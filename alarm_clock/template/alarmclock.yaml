@@ -32,7 +32,7 @@ actions:
         // Change to ID of the Script Rule
 
 
-        var FrameworkUtil = (FrameworkUtil === undefuned) ? Java.type("org.osgi.framework.FrameworkUtil") : FrameworkUtil;
+        var FrameworkUtil = (FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : FrameworkUtil;
 
         var ScriptExecution = (ScriptExecution === undefined) ? Java.type("org.openhab.core.model.script.actions.ScriptExecution") : ScriptExecution;
 
