@@ -25,13 +25,16 @@ configDescriptions:
     label: Num Days
     required: false
     description: The number of days to look back for playback (recommend multiples of 7).
-    default: 7
+    defaultValue: 7
+    min: 0
   - name: minutes
     type: INTEGER
     label: Minutes
     required: false
     description: How frequently to run the simulation rule in minutes.
-    default: 5triggers:
+    defaultValue: 5
+    min: 0
+triggers:
   - id: "1"
     configuration:
       cronExpression: 0 0/${minutes} * * * ? *
