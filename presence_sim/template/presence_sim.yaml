@@ -62,7 +62,7 @@ actions:
                            if(hState === null) 
                                logWarn(logName, i.name + " does not have a historic state for " + ${days} + "days ago.")
                            else {
-                             logInfo(logName, "Commanding " + i.name + " to " + hState.state)
+                             logDebug(logName, "Commanding " + i.name + " to " + hState.state)
                              if(i.state != hState.state)
                                  i.sendCommand(hState.state.toString)
                              else
