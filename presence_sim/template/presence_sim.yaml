@@ -11,7 +11,27 @@ configDescriptions:
     label: Enable Simulation
     required: true
     description: When not ON, the simulation rule will run (e.g. when Presence is OFF presence simulation will run).
-triggers:
+  - name: simItems
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Simulation Items Group
+    required: true
+    description: The Group whose members are to have their behaviors simulated.
+  - name: days
+    type: INTEGER
+    label: Num Days
+    required: false
+    description: The number of days to look back for playback (recommend multiples of 7).
+    default: 7
+  - name: minutes
+    type: INTEGER
+    label: Minutes
+    required: false
+    description: How frequently to run the simulation rule in minutes.
+    default: 5triggers:
   - id: "1"
     configuration:
       cronExpression: 0 0/${minutes} * * * ? *
