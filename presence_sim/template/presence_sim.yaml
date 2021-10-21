@@ -50,7 +50,7 @@ conditions:
 actions:
   - inputs: {}
     id: "3"
-    label: Playback ${simItems}'s states from ${days} days ago
+    label: Playback members of Simuation Item Group's states from Num Days days ago
     configuration:
       type: application/vnd.openhab.dsl.rule
       script: >-
