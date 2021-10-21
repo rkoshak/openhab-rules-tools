@@ -1,0 +1,71 @@
+uid: rules_tools:presence_sim
+label: Simulates presence by commanding Items based on historic states
+description: Triggers periodically when a given Item is ON and plays back the states of Items stored in persistence.
+configDescriptions:
+  - name: enableSim
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Switch
+    label: Enable Simulation
+    required: true
+    description: When not ON, the simulation rule will run (e.g. when Presence is OFF presence simulation will run).
+  - name: simItems
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Simulation Items Group
+    required: true
+    description: The Group whose members are to have their behaviors simulated.
+  - name: days
+    type: integer
+    label: Num Days
+    required: false
+    description: The number of days to look back for playback (recommend multiples of 7).
+    default: 7
+  - name: minutes
+    type: integer
+    label: Minutes
+    required: false
+    description: How frequently to run the simulation rule in minutes.
+    default: 5
+triggers:
+  - id: "1"
+    configuration:
+      cronExpression: 0 0/${minutes} * * * ? *
+    type: timer.GenericCronTrigger
+conditions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      itemName: ${enableSim}
+      state: ON
+      operator: "!="
+    type: core.ItemStateCondition
+actions:
+  - inputs: {}
+    id: "3"
+    label: Playback ${simItems}'s states from ${days} days ago
+    configuration:
+      type: application/vnd.openhab.dsl.rule
+      script: >-
+        val logName = "Presence Sim"
+
+        ${simItems}.members
+                   .forEach[i | 
+                           val hState = i.historicState(now.minusDays(${days}))
+                           if(hState === null) 
+                               logWarn(logName, i.name + " does not have a historic state for " + ${days} + "days ago.")
+                           else {
+                             logInfo(logDebug, "Commanding " + i.name + " to " + hState.state)
+                             if(i.state != hState.state)
+                                 i.sendCommand(hState.state.toString)
+                             else
+                                 logDebug(logName, light.name + " " + " is already " + hState.state)
+                           }
+                       ]
+    type: script.ScriptAction
+
