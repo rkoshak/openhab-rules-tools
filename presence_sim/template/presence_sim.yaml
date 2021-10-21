@@ -60,7 +60,7 @@ actions:
                    .forEach[i | 
                            val hState = i.historicState(now.minusDays(${days}))
                            if(hState === null) 
-                               logWarn(logName, i.name + " does not have a historic state for " + ${days} + "days ago.")
+                               logWarn(logName, i.name + " does not have a historic state for " + ${days} + " days ago.")
                            else {
                              logDebug(logName, "Commanding " + i.name + " to " + hState.state)
                              if(i.state != hState.state)
