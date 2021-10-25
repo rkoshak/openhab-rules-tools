@@ -2,7 +2,7 @@ uid: rules_tools:to_today
 label: Move tagged DateTime Items to today's date
 description: Moves DateTime Items' states with a defined tag that are in the past to today's date at midnight.
 configDescriptions:
-  - name: tag
+  - name: itemTag
     type: TEXT
     label: Tag identifying the Items
     required: true
@@ -58,7 +58,7 @@ actions:
 
         // Pull all Items with this tag.
 
-        var tag = "${tag}";
+        var tag = "${itemTag}";
 
         var taggedItems = ir.getItemsByTagAndType(CIF.DATETIME, tag);
 
