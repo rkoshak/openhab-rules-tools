@@ -23,8 +23,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        var ZDT = (ZDT === undefined) ? Java.type("java.time.ZonedDateTime") :
-        ZDT;
+        var ZDT = (ZDT === undefined) ? Java.type("java.time.ZonedDateTime") : ZDT;
 
         var CIF = (CIF === undefined) ? Java.type("org.openhab.core.library.CoreItemFactory") : CIF;
 
@@ -59,7 +58,7 @@ actions:
 
         // Pull all Items with this tag.
 
-        var tag = "${itemTag}";
+        var tag = '${itemTag}';
 
         var taggedItems = ir.getItemsByTagAndType(CIF.DATETIME, tag);
 
