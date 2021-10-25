@@ -29,6 +29,8 @@ actions:
 
         var logger = (logger === undefined) ? Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.To Today") : logger;
 
+        var tag = '${itemTag}';
+
 
         /**
          * Move the DateTimeType to today. Adjust for DST.
@@ -57,8 +59,6 @@ actions:
 
 
         // Pull all Items with this tag.
-
-        var tag = '${itemTag}';
 
         var taggedItems = ir.getItemsByTagAndType(CIF.DATETIME, tag);
 
