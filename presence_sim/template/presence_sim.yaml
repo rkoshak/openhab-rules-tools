@@ -21,17 +21,19 @@ configDescriptions:
     required: true
     description: The Group whose members are to have their behaviors simulated.
   - name: days
-    type: integer
+    type: INTEGER
     label: Num Days
     required: false
     description: The number of days to look back for playback (recommend multiples of 7).
-    default: 7
+    defaultValue: 7
+    min: 0
   - name: minutes
-    type: integer
+    type: INTEGER
     label: Minutes
     required: false
     description: How frequently to run the simulation rule in minutes.
-    default: 5
+    defaultValue: 5
+    min: 0
 triggers:
   - id: "1"
     configuration:
@@ -48,7 +50,7 @@ conditions:
 actions:
   - inputs: {}
     id: "3"
-    label: Playback ${simItems}'s states from ${days} days ago
+    label: Playback members of Simuation Item Group's states from Num Days days ago
     configuration:
       type: application/vnd.openhab.dsl.rule
       script: >-
@@ -58,13 +60,13 @@ actions:
                    .forEach[i | 
                            val hState = i.historicState(now.minusDays(${days}))
                            if(hState === null) 
-                               logWarn(logName, i.name + " does not have a historic state for " + ${days} + "days ago.")
+                               logWarn(logName, i.name + " does not have a historic state for " + ${days} + " days ago.")
                            else {
-                             logInfo(logDebug, "Commanding " + i.name + " to " + hState.state)
+                             logDebug(logName, "Commanding " + i.name + " to " + hState.state)
                              if(i.state != hState.state)
                                  i.sendCommand(hState.state.toString)
                              else
-                                 logDebug(logName, light.name + " " + " is already " + hState.state)
+                                 logDebug(logName, i.name + " " + " is already " + hState.state)
                            }
                        ]
     type: script.ScriptAction
