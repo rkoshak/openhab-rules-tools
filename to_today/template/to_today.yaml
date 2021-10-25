@@ -4,6 +4,7 @@ description: Moves DateTime Items' states with a defined tag that are in the pas
 configDescriptions:
   - name: itemTag
     type: TEXT
+    context: tag
     label: Tag identifying the Items
     required: true
     description: Tag on Items that should be processed by this rule.
