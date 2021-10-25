@@ -1,0 +1,89 @@
+uid: rules_tools:to_today
+label: Move tagged DateTime Items to today's date
+description: Moves DateTime Items' states with a defined tag that are in the past to today's date at midnight.
+configDescriptions:
+  - name: tag
+    type: TEXT
+    label: Tag identifying the Items
+    required: true
+    description: Tag on Items that should be processed by this rule.
+triggers:
+  - id: "1"
+    configuration:
+      time: 00:00
+    type: timer.TimeOfDayTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    label: Moves tagged Items to today's date
+    description: Searches for Items with a given tag and are DateTime Items with a
+      DateTimeType state and moves those that are in the past to today's date.
+    configuration:
+      type: application/javascript
+      script: >-
+        var ZDT = (ZDT === undefined) ? Java.type("java.time.ZonedDateTime") :
+        ZDT;
+
+        var CIF = (CIF === undefined) ? Java.type("org.openhab.core.library.CoreItemFactory") : CIF;
+
+        var logger = (logger === undefined) ? Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.To Today") : logger;
+
+
+        /**
+         * Move the DateTimeType to today. Adjust for DST.
+         * @param {DateTimeType} dt state from a DateTime Item
+         * @return {ZonedDateTime} the date time represented by dt moved to today's date
+         */
+        var toToday = function(dt) {
+          
+          var now = ZDT.now();
+          return dt.getZonedDateTime()
+                   .withYear(now.getYear())
+                   .withMonth(now.getMonthValue())
+                   .withDayOfMonth(now.getDayOfMonth())
+                   .withZoneSameLocal(now.getOffset())
+        }
+
+
+        /**
+         * Checks to see if the passed in Item is usable.
+         * @param {Item} item An openHAB Item
+         * @return {boolean} true if item is a DateTimeItem and has a DateTimeType state
+         */
+        var isDT = function(item) {
+          return item.class == DateTimeItem.class && item.getState().class != UnDefType.class;
+        }
+
+
+        // Pull all Items with this tag.
+
+        var tag = "${tag}";
+
+        var taggedItems = ir.getItemsByTagAndType(CIF.DATETIME, tag);
+
+        logger.debug("Pulled " + taggedItems.size() + " items");
+
+
+        // Didn't find any Items.
+
+        if(taggedItems.size() == 0) {
+          logger.warn("There are no Items tagged with " + tag);
+        }
+
+
+        // Loop through the Items and move their date times to today's date.
+
+        else {
+          for each (var item in taggedItems) {
+            if(item.getState().class != UnDefType.class && item.getState().getZonedDateTime().isBefore(ZDT.now())){
+              logger.debug("Moving " + item.name + " to today");
+              events.postUpdate(item.name, toToday(item.getState()));
+            }
+            else {
+              logger.debug("Ignoring " + item.name + " which is " + item.getState());
+            }
+          }
+        }
+    type: script.ScriptAction
+
