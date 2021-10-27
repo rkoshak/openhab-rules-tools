@@ -31,7 +31,7 @@ actions:
         var logger =
         Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.MQTT_Online");
 
-        logger.info("Publishing ONLINE to LWT topic " + ${topic});
+        logger.info("Publishing ONLINE to LWT topic ${topic}");
 
         actions.get("mqtt", "${broker}").publishMQTT("${topic}", "ONLINE", true);
     type: script.ScriptAction
