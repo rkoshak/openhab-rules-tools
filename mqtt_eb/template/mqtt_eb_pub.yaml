@@ -19,6 +19,7 @@ configDescriptions:
     filterCriteria:
       - name: type
         value: Group
+    label: Command Group
     description: Group Item whose member's commands are to be published.
     required: true
   - name: upd
@@ -27,6 +28,7 @@ configDescriptions:
     filterCriteria:
       - name: type
         value: Group
+    label: Update Group
     description: Group Item whose member's updates are to be published.
     required: true
 triggers:
