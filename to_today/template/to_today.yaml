@@ -2,8 +2,9 @@ uid: rules_tools:to_today
 label: Move tagged DateTime Items to today's date
 description: Moves DateTime Items' states with a defined tag that are in the past to today's date at midnight.
 configDescriptions:
-  - name: tag
+  - name: itemTag
     type: TEXT
+    context: tag
     label: Tag identifying the Items
     required: true
     description: Tag on Items that should be processed by this rule.
@@ -22,12 +23,13 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        var ZDT = (ZDT === undefined) ? Java.type("java.time.ZonedDateTime") :
-        ZDT;
+        var ZDT = (ZDT === undefined) ? Java.type("java.time.ZonedDateTime") : ZDT;
 
         var CIF = (CIF === undefined) ? Java.type("org.openhab.core.library.CoreItemFactory") : CIF;
 
         var logger = (logger === undefined) ? Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.To Today") : logger;
+
+        var tag = '${itemTag}';
 
 
         /**
@@ -57,8 +59,6 @@ actions:
 
 
         // Pull all Items with this tag.
-
-        var tag = "${tag}";
 
         var taggedItems = ir.getItemsByTagAndType(CIF.DATETIME, tag);
 

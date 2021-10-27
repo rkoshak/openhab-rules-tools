@@ -48,29 +48,32 @@ actions:
 
         this.timer = (this.timer === undefined) ? null : this.timer;
 
-
-        var callScript = function() {
-
-          logger.debug("About to call script action");
-          
-          // Get the RuleManager
-          var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
-          var bundle_context = _bundle.getBundleContext()
-          var classname = "org.openhab.core.automation.RuleManager"
-          var RuleManager_Ref = bundle_context.getServiceReference(classname);
-          var RuleManager = bundle_context.getService(RuleManager_Ref);
-
-          RuleManager.runNow('${script}');
-        }
-
-
         var time = items['${alarmTime}'];
+        
+        var item = '${alarmTime}';
+        
+        var script = '${script}';
+
+        var callScriptGenerator = function(data, script) {
+
+          return function() {
+            logger.debug("About to call script action");
+            
+            // Get the RuleManager
+            var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
+            var bundle_context = _bundle.getBundleContext()
+            var classname = "org.openhab.core.automation.RuleManager"
+            var RuleManager_Ref = bundle_context.getServiceReference(classname);
+            var RuleManager = bundle_context.getService(RuleManager_Ref);
+            RuleManager.runNow(script, true, data);
+          }
+        }
 
 
         // No alarm scheduled
 
         if(time.class != DateTimeType.class || time.getZonedDateTime().isBefore(ZDT.now())) {
-          logger.info("No alarm scheduled");
+          logger.info("No alarm scheduled for " + item);
           if(this.timer !== null) {
             this.timer.cancel();
           }
@@ -79,15 +82,17 @@ actions:
         // create or schedule a timer to run at the configured time
 
         else {
-          logger.info("Scheduling alarm for " + time);
-
+          logger.info("Scheduling alarm at " + time + " for " + item);
+          
           if(this.timer !== null) {
             logger.debug("Rescheduling alarm for " + time);
             this.timer.reschedule(time.getZonedDateTime());
           }
           else {
             logger.debug("Setting a new alarm for " + time);
-            this.timer = ScriptExecution.createTimer(time.getZonedDateTime(), callScript);
+            var map = new java.util.HashMap();
+            map.put("triggeringItem", item)
+            this.timer = ScriptExecution.createTimer(time.getZonedDateTime(), callScriptGenerator(map, script));
           }
         }
     type: script.ScriptAction
