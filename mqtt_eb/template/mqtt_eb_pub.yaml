@@ -57,7 +57,7 @@ actions:
         var msg = ((isState) ? event.itemState : event.itemCommand).toString();
 
 
-        Log.logInfo("rules_tools.MQTT_EB", "Topic: " + topic + " Message: " + msg + " Retained: " + isState);
+        Log.logDebug("rules_tools.MQTT_EB", "Topic: " + topic + " Message: " + msg + " Retained: " + isState);
 
         var mqtt = actions.get("mqtt", "${broker}");
 
