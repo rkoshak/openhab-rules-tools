@@ -1,7 +1,7 @@
 uid: rules_tools:mqtt_eb_sub
 label: MQTT Event Bus Subscribe
 description: Processes messages from an MQTT Event Bus
-configDescrption:
+configDescrptions:
   - name: broker
     type: TEXT
     context: thing
