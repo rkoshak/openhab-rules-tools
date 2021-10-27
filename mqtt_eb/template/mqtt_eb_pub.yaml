@@ -1,0 +1,64 @@
+uid: rules_tools:mqtt_eb_pub
+label: MQTT EventBus Publisher
+description: Publishes all update and command events for members of the configure Group to the event bus.
+configDescriptions:
+  - name: broker
+    type: TEXT
+    context: thing
+    label: MQTT Broker Thing
+    description: Select the MQTT Broker Thing used for the MQTT Event Bus
+    required: true
+  - name: topicRoot
+    type: TEXT
+    label: "openHAB Instance Name"
+    description: Name of this openHAB instance, used as the root fo the topic structure.
+    required: true
+  - name: cmd
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    description: Group Item whose member's commands are to be published.
+    required: true
+  - name: upd
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    description: Group Item whose member's updates are to be published.
+    required: true
+triggers:
+  - id: "1"
+    configuration:
+      groupName: ${cmd}
+    type: core.GroupCommandTrigger
+  - id: "2"
+    configuration:
+      groupName: ${upd}
+    type: core.GroupStateUpdateTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >
+        var Log = Java.type("org.openhab.core.model.script.actions.Log");
+
+
+        var isState = (event.itemState !== undefined);
+
+        var topic = "${topicRoot}/out/" + event.itemName + ((isState) ? "/state" : "/command");
+
+        var msg = ((isState) ? event.itemState : event.itemCommand).toString();
+
+
+        Log.logInfo("rules_tools.MQTT_EB", "Topic: " + topic + " Message: " + msg + " Retained: " + isState);
+
+        var mqtt = actions.get("mqtt", "${broker}");
+
+        mqtt.publishMQTT(topic, msg, isState); // retained true for updates
+    type: script.ScriptAction
+

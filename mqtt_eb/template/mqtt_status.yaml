@@ -1,0 +1,38 @@
+uid: rules_tools:mqtt_status
+label: Publishes ONLINE to LWT topic
+description: Publishes a retained ONLINE message to the openHAB client's LWT topic to make it easier for other clients to know when OH is connected.
+configDescriptions:
+  - name: broker
+    type: TEXT
+    context: thing
+    label: MQTT Broker Thing
+    description: Select the MQTT Broker Thing with a LWT configured
+    required: true
+  - name: topic
+    type: TEXT
+    label: LWT Topic 
+    description: Use the same LWT Topic configured on the MQTT Broker Thing
+    required: true
+triggers:
+  - id: "1"
+    label: Mosquitto Broker Thing changes to ONLINE
+    configuration:
+      thingUID: ${broker}
+      status: ONLINE
+    type: core.ThingStatusChangeTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    label: Publish ONLINE to the LWT topic
+    configuration:
+      type: application/javascript
+      script: >-
+        var logger =
+        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.MQTT_Online");
+
+        logger.info("Publishing ONLINE to LWT topic " + ${topic});
+
+        actions.get("mqtt", "${broker}").publishMQTT("${topic}", "ONLINE", true);
+    type: script.ScriptAction
+

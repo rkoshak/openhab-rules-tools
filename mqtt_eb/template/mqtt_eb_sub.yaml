@@ -1,0 +1,61 @@
+uid: rules_tools:mqtt_eb_sub
+label: MQTT Event Bus Subscribe
+description: Processes messages from an MQTT Event Bus
+configDescrption:
+  - name: broker
+    type: TEXT
+    context: thing
+    label: MQTT Broker Thing
+    description: Select the MQTT Broker Thing used for the MQTT Event Bus
+    required: true
+  - name: channel
+    type: TEXT
+    context: channel
+    filterCriteria:
+      - name: kind
+        value: TRIGGER
+    label: MQTT Event Channel
+    description: The MQTT trigger channel that subscribes to the MQTT Event Bus.
+    required: true
+triggers:
+  - id: "1"
+    configuration:
+      thingUID: ${broker}
+      channelUID: ${channel}
+    type: core.ChannelEventTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: >-
+        var logger =
+        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.MQTT_EB");
+
+
+        var parts = event.event.split("#");
+
+        var topic = parts[0];
+
+        var state = parts[1];
+
+        parts = topic.split("/");
+
+        var item_name = parts[2];
+
+        var event_type = parts[3];
+
+
+        logger.debug("Received EB message: type = " + event_type + " item = " + item_name + " state/cmd = " + state);
+
+
+        if(items[item_name] === undefined) {
+          logger.warn(item_name + " does not exist!");
+        }
+
+        else {
+          (event_type == "command") ? events.sendCommand(item_name, state) : events.postUpdate(item_name, state);
+        }
+    type: script.ScriptAction
+
