@@ -1,7 +1,7 @@
 uid: rules_tools:mqtt_eb_sub
 label: MQTT Event Bus Subscribe
 description: Processes messages from an MQTT Event Bus
-configDescrptions:
+configDescriptions:
   - name: broker
     type: TEXT
     context: thing
@@ -30,9 +30,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        var logger =
-        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.MQTT_EB");
-
+        var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.MQTT_EB");
 
         var parts = event.event.split("#");
 
@@ -46,16 +44,12 @@ actions:
 
         var event_type = parts[3];
 
-
         logger.debug("Received EB message: type = " + event_type + " item = " + item_name + " state/cmd = " + state);
-
 
         if(items[item_name] === undefined) {
           logger.warn(item_name + " does not exist!");
         }
-
         else {
           (event_type == "command") ? events.sendCommand(item_name, state) : events.postUpdate(item_name, state);
         }
     type: script.ScriptAction
-
