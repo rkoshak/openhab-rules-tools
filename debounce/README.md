@@ -4,7 +4,10 @@ The Items are designated and time is defined by Item metadata.
 
 # Dependencies
 
-## Python
+## Rule Template
+- openHAB 3.2 M2+ (installable from the Marketplace)
+
+## [Deprecated] Python
 - openHAB 2.x
 - Next-Gen Rules Engine installed and configured
 - Jython Helper Libraries installed and configured
@@ -12,7 +15,7 @@ The Items are designated and time is defined by Item metadata.
 - `timer_mgr` to manage the timers
 - `rules_utils` to dynamically create the rule on command to refresh rule triggers when metadata changes; only required for the Jython version
 
-## JavaScript
+## [Deprecated] JavaScript
 - openHAB 3.x
 - `time_utils` to parse the debounce duration strings
 - `timer_mgr` to manage the timers
@@ -55,8 +58,10 @@ In all cases, if the new state is not a debounce state, the Proxy Item is immedi
 
 It should work with non-binary type Items but it's only been tested with binary ones.
 
-## JavaScript
-All Items that need to be debounce need to be added a to a Group named `Debounce`.
+## Rule Tempalte and JavaScript
+All Items that need to be debounce need to be added a to a Group. 
+For the rule tempalte the Group is specified as a configuration parameter.
+For JavaScript the Group should be named `Debounce`.
 When any member of that Group's state changes the rule will trigger to debounce the Item based on the metadata.
 
 ## Jython
