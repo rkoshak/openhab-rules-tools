@@ -1,0 +1,446 @@
+uid: rules_tools:tod_sm
+label: Time of Day State Machine
+description: Creates timers to transition a state Item to a new state at defined times of day.
+configDescriptions:
+  - name: timeOfDay
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: String
+    label: Time of Day State
+    required: true
+    description: String Item that holds the current time of day's state.
+  - name: timesOfDayGrp
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Times of Day
+    required: true
+    description: Has as members all the DateTime Items that define time of day states.
+  - name: namespace
+    type: TEXT
+    label: Time of Day Namespace
+    required: true
+    description: The Item metadata namespace (e.g. "tod_sm").
+triggers:
+  - id: "1"
+    configuration:
+      groupName: ${timesOfDayGrp}
+    type: core.GroupStateChangeTrigger
+  - id: "2"
+    configuration:
+      startlevel: 20
+    type: core.SystemStartlevelTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "3"
+    label: Determine current time of day
+    configuration:
+      type: application/javascript
+      script: >
+        // Imports 
+
+        var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_toold.Time_SM"); 
+
+        scriptExtension.importPreset("default"); 
+
+        this.Ephemeris = (this.Ephemeris === undefined) ? Java.type("org.openhab.core.model.script.actions.Ephemeris") : this.Ephemeris; 
+
+        this.ZonedDateTime = (this.ZonedDateTime === undefined) ? Java.type("java.time.ZonedDateTime") : this.ZonedDateTime; 
+
+
+        //   Get Metadata query stuff 
+
+        this.FrameworkUtil = (this.FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : this.FrameworkUtil; 
+
+        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(scriptExtension.class) : this._bundle; 
+
+        this.bundle_context = (this.bundle_context === undefined) ? this._bundle.getBundleContext() : this.bundle_context; 
+
+        this.MetadataRegistry_Ref = (this.MetadataRegistry_Ref === undefined) ? bundle_context.getServiceReference("org.openhab.core.items.MetadataRegistry") : this.MetadataRegistry_Ref; 
+
+        this.MetadataRegistry = (this.MetadataRegistry === undefined) ? bundle_context.getService(MetadataRegistry_Ref) : this.MetadataRegistry; 
+
+        this.Metadata = (this.Metadata === undefined) ? Java.type("org.openhab.core.items.Metadata") : this.Metadata; 
+
+        this.MetadataKey = (this.MetadataKey === undefined) ? Java.type("org.openhab.core.items.MetadataKey") : this.MetadataKey; 
+
+
+        // Constants 
+
+        var ETOD_ITEM = "${timeOfDay}"; 
+
+        var ETOD_GROUP = "${timesOfDayGrp}"; 
+
+        var DAY_TYPES = ["default", "weekday", "weekend", "dayset", "holiday", "custom"]; 
+
+        var EXPECTED = "Invalid metadata for Item! "
+                     + "Expected metadata in the form of ${namespace}=\"STATE\"[type=\"daytype\", set=\"dayset\", file=\"uri\"] "
+                     + "where set is required if type is dayset and file is required if type is custom.";
+        var ETOD_NAMESPACE = "${namespace}"; 
+
+
+        // TODO Load timer manager from a library
+
+        // Load TimerMgr 
+
+        //this.OPENHAB_CONF = (this.OPENHAB_CONF === undefined) ? java.lang.System.getenv("OPENHAB_CONF") : this.OPENHAB_CONF; 
+
+        //load(OPENHAB_CONF+'/automation/lib/javascript/community/timerMgr.js'); 
+
+        //load(OPENHAB_CONF+'/automation/lib/javascript/community/timeUtils.js'); 
+
+        var TimerMgr = function() {
+          var OPENHAB_CONF = java.lang.System.getenv("OPENHAB_CONF");
+          this.log = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.rules_tools.TimerMgr");
+          this.log.debug("Building timerMgr instance.");
+          this.timers = {};
+        //  this.log.debug("Loading timeUtils");
+
+        //  load(OPENHAB_CONF+'/automation/lib/javascript/community/timeUtils.js');
+          this.ScriptExecution = Java.type("org.openhab.core.model.script.actions.ScriptExecution");
+          this.log.debug("Timer Mgr is ready to operate");
+        }
+
+
+        TimerMgr.prototype._notFlapping = function(key) {
+          this.log.debug("Timer expired for " + key);
+          if (key in this.timers && "notFlapping" in this.timers[key]) {
+            this.log.debug("Calling expired function " + this.timers[key]["notFlapping"]);
+            this.timers[key]["notFlapping"]();
+          }
+          if (key in this.timers){
+            this.log.debug("Deleting the expired timer");
+            delete this.timers[key];
+          }
+        },
+
+
+        TimerMgr.prototype._noop = function() { },
+
+
+        TimerMgr.prototype.check = function(key, when, func, reschedule, flappingFunc) {
+          this.log.debug("Timer manager check called");
+          if (reschedule === undefined) reschedule = false;
+
+          // var timeout = this.toDateTime(when); We will assume it's already a ZonedDateTime
+          var timeout = when;
+          this.log.debug("Timer to be set for " + timeout.toString());
+
+          // Timer exists
+          if (key in this.timers){
+            if (reschedule){
+              this.log.debug("Rescheduling timer " + key + " for  " + timeout.toString());
+              this.timers[key]["timer"].reschedule(timeout);
+            }
+            else {
+              this.log.debug("Cancelling timer " + key);
+              this.cancel(key);
+            }
+            if (flappingFunc !== undefined){
+              this.log.debug("Running flapping function for " + key);
+              flappingFunc();
+            }
+          }
+          
+          // Timer doesn't already exist, create one
+          else {
+            this.log.debug("Creating timer for " + key);
+            var timer = this.ScriptExecution.createTimerWithArgument(timeout, this, function(context) { context._notFlapping(key); });
+            this.timers[key] = { "timer": timer,
+                                 "flapping": flappingFunc,
+                                 "notFlapping": (func !== undefined) ? func : this._noop }
+            this.log.debug("Timer created for " + key);
+          }
+        },
+
+
+        TimerMgr.prototype.hasTimer = function(key) {
+          return key in this.timers;
+        },
+
+
+        TimerMgr.prototype.cancel = function(key) {
+          if (key in this.timers) {
+            this.timers[key]["timer"].cancel();
+            delete this.timers[key];
+          }
+        },
+
+
+        TimerMgr.prototype.cancelAll = function() {
+          for (var key in this.timers) {
+            if (!this.timers[key]["timer"].hasTerminated()) {
+              this.log.debug("Timer has not terminated, cancelling timer " + key);
+              this.cancel(key);
+            }
+            delete this.timers[key];
+            this.log.debug("Timer entry has been deleted for " + key);
+          }
+        }
+
+        // END TODO
+
+
+        /**
+         * Return the value or a key value from the Item's metadata
+         * @param {string} item name of the item
+         * @param {string} namespace metadata namespace to pull
+         * @param {string} key index into the configuration dict for the value
+         * @return {string} value assocaited with key or null if it doesn't exist.
+         */
+        var getValue = function(item, namespace, key) {
+          var md = MetadataRegistry.get(new MetadataKey(namespace, item));
+          if(md === null || md === undefined) {
+            return null;
+          }
+          else if(key === undefined) {
+            return md.value;
+          }
+          else {
+            return md.configuration[key];
+          }
+        } 
+
+
+        /**
+         * Verify Item and Item metadata
+         * @param {string} item name of the Item
+         * return {string} error string or null if the metadata checks out
+         */
+        var verifyMetadata = function(item) {
+
+        //  if(items[item].class == UnDefType.class) {
+
+        //    return item +"'s state is " + items[items];
+
+        //  }
+          if(getValue(item, ETOD_NAMESPACE) === null) {
+            return item + " lacks metadata or metadata value.";
+          }
+          var type = getValue(item, ETOD_NAMESPACE, "type");
+          if(type === null) {
+            return item + " lacks a type key."
+          }
+          
+          if(DAY_TYPES.indexOf(type) < 0) {
+            return item + " has " + type + " which is not a valid day type, expected one of " + DAY_TYPES + ".";
+          }
+          
+          if(type == "dayset" && getValue(item, ETOD_NAMESPACE, "set") === null) {
+            return item + " has type " + type + " which requires a 'set' value to be defined.";
+          }
+          
+          if(type == "custom" && getValue(item, ETOD_NAMESPACE, "file") === null ) {
+            return item + " has type " + type + " which requires a 'file' value to be defined.";
+          }
+          
+          return null;
+        } 
+
+
+        /**
+         * Get a list of all the Items that have ephem metadata with type
+         * @param {java.util.List} etodItems collection of all the ETOD Items
+         * @param {string} type the type of day 
+         * @return {java.util.List} those Items with a type metadata matching type
+         */
+        var getType = function(etodItems, type){
+          return etodItems.stream()
+                          .filter(function(item){ 
+                              return getValue(item.name, ETOD_NAMESPACE, "type") == type;
+                           })
+                          .toArray();
+        } 
+
+
+        /**
+         * Pull the set of Items for today based on Ephemeris
+         * @param {java.util.List} etodItems collection of all ETOD Items
+         * @return {java.util.List} only those Items defined for today's daytype
+         */
+        var getTodayItems = function(etodItems) {
+          /** 
+          Get the Items for today. Hierarchy is:
+            - custom
+            - holiday
+            - dayset
+            - weekend
+            - weekday
+            - default
+          */
+          var startTimes = {"default": getType(etodItems, "default"),
+                            "weekday": (!Ephemeris.isWeekend()) ? getType(etodItems, "weekday") : [],
+                            "weekend": (Ephemeris.isWeekend()) ? getType(etodItems, "weekend") : [],
+                            "dayset": etodItems.stream()
+                                               .filter(function(item) {
+                                                  return getValue(item.name, ETOD_NAMESPACE, "type") == "dayset"
+                                                         && Ephemeris.isInDayset(getValue(item.name, ETOD_NAMESPACE, "set"));
+                                               })
+                                               .toArray(),
+                            "holiday": (Ephemeris.isBankHoliday()) ? getType(etodItems, "holiday") : [],
+                            "custom": etodItems.stream()
+                                               .filter(function(item) {
+                                                  return getValue(item.name, ETOD_NAMESPACE, "type") == "custom"
+                                                         && Ephemeris.isBankHoliday(0, getValue(item.name, ETOD_NAMESPACE, "file"));
+                                               })
+                                               .toArray()
+                           };
+          var dayType = null;
+          if(startTimes["custom"].length > 0) {
+            dayType = "custom";
+          }
+          else if(startTimes["holiday"].length > 0) {
+            dayType = "holiday";
+          }
+          else if(startTimes["dayset"].length > 0) {
+            dayType = "dayset";
+          }
+          else if(startTimes["weekend"].length > 0) {
+            dayType = "weekend";
+          }
+          else if(startTimes["weekday"].length > 0) {
+            dayType = "weekday";
+          }
+          else if(startTimes["default"].length > 0) {
+            dayType = "default";
+          }
+          logger.info("Today is a " + dayType + " day.");
+          return (dayType === null) ? null : startTimes[dayType];
+
+        } 
+
+
+        /**
+         * Update Items to today
+         * @param {java.util.List} times list of all the ETOD Items for today
+         */
+        /** Use To Today rule template
+
+        var moveTimes = function(times) {
+          var now = ZonedDateTime.now();
+          for each(var time in times) {
+            if(time.state.zonedDateTime.isBefore(now.withHour(0).withMinute(0).withSecond(0))) {
+              events.postUpdate(time.name, toToday(items[time.name]).toString());
+              logger.info("Moved " + time.name + " to today.");
+            }
+          }
+        } */
+
+
+        /**
+         * Create timers for all Items with a time in the future
+         * @param {java.util.List} times list of all the ETOD Items for todayu
+         */
+        var createTimersGenerator = function(times, timers) {
+          return function() {
+            var now = ZonedDateTime.now();
+            var mostRecentTime = now.minusDays(1);
+            var mostRecentState = items[ETOD_ITEM];
+            logger.debug("Cancelling any existing timers");
+            timers.cancelAll();
+            logger.debug("Existing timers have been cancelled");
+            for each (var time in times) {
+              var name = time.name;
+              if(time.state.class === UnDefType.class) {
+                logger.warn("Time State Machine Item " + name + " is NULL or UNDEF, ignoring");
+              }
+              else {
+                var dt = time.state.zonedDateTime
+                var state = getValue(name, ETOD_NAMESPACE);
+                if(dt.isBefore(now) && dt.isAfter(mostRecentTime)) {
+                  logger.debug("NOW:    " + state + " start time " + dt + " is in the past " 
+                               + " after " + mostRecentTime);
+                  mostRecentTime = dt;
+                  mostRecentState = state;
+                }
+                else if(dt.isAfter(now)) {
+                  logger.debug("FUTURE: " + state + " scheduleing timer for " + dt);
+                  timers.check(state, dt, etodTransitionGenerator(state));
+                }
+                else {
+                  logger.debug("PAST  : " + state + " start time of " + dt + " is before " 
+                               + now + " and before " + mostRecentState + " " + mostRecentTime);
+                }
+              }
+            }
+            logger.debug("Created " + (Object.keys(timers.timers).length - 1) + " time of day timers");
+            logger.info("The current time of day is " + mostRecentState);
+            if(items[ETOD_ITEM] != mostRecentState) {
+              events.sendCommand(ETOD_ITEM, mostRecentState);
+            }
+          }
+        } 
+
+
+        /**
+         * Transition to a new Time of Day
+         * @TODO look into moving this to another rule we can call so it shows up in schedule
+         * @param {string} state the new time of day state
+         */
+        var etodTransitionGenerator = function(state) {
+          return function() {
+            logger.info("Transitioning Time of Day from " + items[ETOD_ITEM] + " to " + state);
+            events.sendCommand(ETOD_ITEM, state);
+          }
+        } 
+
+
+        //-------------------------------------------- 
+
+        // Main body of rule 
+
+        if(this.timers === undefined){
+          logger.debug("Creating timer manager");
+        } 
+
+        this.timers = (this.timers === undefined) ? new TimerMgr() : this.timers; 
+
+
+        // Skip if we have a flapping timer set 
+
+        if(!this.timers.hasTimer("ephem_tod_rule")) {
+
+          // Check that all the required Items and Groups exist
+          if(items[ETOD_ITEM] === undefined) {
+            throw "The " + ETOD_ITEM + " Item is not defined!";
+          }
+          if(items[ETOD_GROUP] === undefined) {
+            throw "The " + ETOD_GROUP + " Group is not defined!";
+          }
+          var etodItems = ir.getItem("TimesOfDay").getMembers();
+          
+          if(etodItems.size() == 0) {
+            throw ETOD_GROUP + " has no members!";
+          }
+
+          // Check the metadata for all the relevant Items
+          for each (var item in etodItems) {
+            var verify = verifyMetadata(item.name);
+            if(verify !== null) {
+              throw verify + "\n" + EXPECTED;
+            }
+          }
+
+          // Get the time Items for today
+          var times = getTodayItems(etodItems);
+          if(times === null){
+            throw "No set of date times were found for today! Do you have a default set of date times?";
+          }
+          
+          // Update the Items to today
+          //moveTimes(times);
+
+          // The times will often be updated all at once, schedule a timer to wait for all the Items to update before creating the Timers.
+          this.timers.check("ephem_tod_rule", 
+                            ZonedDateTime.now().plusSeconds(60), 
+                            createTimersGenerator(times, this.timers), 
+                            true, 
+                            function() { logger.info("Flapping timer, waiting before creating timers for time of day"); });
+        }
+    type: script.ScriptAction
+
