@@ -1,0 +1,229 @@
+uid: rules_tools:threshold_alert
+label: Threshold Alert
+description: Calls a user supplied script when one or more Items fail a user defined configuration.
+configDescriptions:
+  - name: group
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Group of Number Items
+    required: true
+    description: Group that has as members those Items that need to be alerted when they fail the comparison.
+  - name: comparison
+    type: TEXT
+    required: true
+    label: Comparison
+    description: The comparison to perform (==, !=, <, <=, >, >=)
+    options:
+      - label: "== equals" 
+        value: "=="
+      - label: "!= not equals" 
+        value: "!="
+      - label:  "< less than" 
+        value: "<"
+      - label: "<= less than equal" 
+        value: "<="
+      - label: "> greater than" 
+        value: ">"
+      - label: ">= greater than equal" 
+        value: ">="
+    limitToOptions: true
+  - name: threshold
+    type: DECIMAL
+    required: true
+    label: Threshold
+    description: The value to compare to.
+  - name: limit
+    type: TEXT
+    label: Limit
+    required: true
+    description: How long to wait after the last alert before sending a new one. Use "VdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "2d5s" = two days, five seconds).
+  - name: script
+    type: TEXT
+    context: rule
+    label: Script to Call
+    required: true
+    description: The Script or Rule to call when one or more Items fails the comparison.
+triggers:
+  - id: "1"
+    configuration:
+      itemName: ${group}
+    type: core.ItemStateChangeTrigger
+conditions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      itemName: ${group}
+      state: ${threshold}
+      operator: ${comparison}
+    type: core.ItemStateCondition
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >
+        var logger =
+        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Battery
+        Alert");
+
+
+        var group = "${group}";
+
+        var limit = "${limit}";
+
+        var alertScript = "${script}";
+
+        var filterFunc = function(i) { return i.state.floatValue() ${comparison} ${threshold}; };
+
+        // TODO Move to library when able
+
+        /**
+
+        var OPENHAB_CONF = java.lang.System.getenv("OPENHAB_CONF");
+
+        load(OPENHAB_CONF+'/automation/lib/javascript/community/rateLimit.js');
+
+        load(OPENHAB_CONF+'/automation/lib/javascript/personal/alerting.js');
+
+        load(OPENHAB_CONF+'/automation/lib/javascript/personal/metadata.js');
+
+        */
+
+        /**
+         * A class that will limit how often an event can occur. One calls run and pass
+         * a time_utils when to indicate how long before the call to run will run again.
+         * If run is called before that amount of time then the call is ignored.
+         */
+        var RateLimit = function() {
+          'use strict';
+
+          
+        //    var OPENHAB_CONF = java.lang.System.getenv("OPENHAB_CONF");
+          this.ZonedDateTime = Java.type("java.time.ZonedDateTime");
+          this.log = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.RateLimit");
+          this.log.debug("Building the RateLimit object.");
+        //    load(OPENHAB_CONF+'/automation/lib/javascript/community/timeUtils.js');
+          this.until = this.ZonedDateTime.now().minusSeconds(1);
+          this.log.debug("RateLimit is ready to operate");
+        }
+          
+        // reproduced from timeUtils, truncated to only parse duration strings
+
+        RateLimit.prototype.toDateTime = function(when) {
+          var Duration = Java.type("java.time.Duration");
+          var ZonedDateTime = Java.type("java.time.ZonedDateTime");
+          var dur = null;
+          var dt = null;
+
+          var regex = new RegExp(/[\d]+[d|h|m|s|z]/gi);
+          var numMatches = 0;
+          var part = null;
+
+          var params = { "d": 0, "h": 0, "m":0, "s":0, "z":0 };
+          while(null != (part=regex.exec(when))) {
+            this.log.debug("Match = " + part[0]);
+            numMatches++;
+
+            var scale = part[0].slice(-1).toLowerCase();
+            var value = Number(part[0].slice(0, part[0].length-1));
+            params[scale] = value;
+          }
+
+          if(numMatches === 0){
+            this.log.warn("Could not parse any time information from '" + timeStr +"'. Examples of valid string: '8h', '2d8h5s200z', '3d 7m'.");
+          }
+          else {
+            this.log.debug("Days = " + params["d"] + " hours = " + params["h"] + " minutes = " + params["m"] + " seconds = " + params["s"] + " msec = " + params["z"]);
+            dur = Duration.ofDays(params["d"]).plusHours(params["h"]).plusMinutes(params["m"]).plusSeconds(params["s"]).plusMillis(params["z"]);
+          }
+                  
+          if(dur !== null) {
+            dt = ZonedDateTime.now().plus(dur);
+          }
+          return dt;
+        },
+
+
+        /**
+         * Function called to attempt to run the passed in function. If enough time has
+         * passed since the last time run was called func is called. If not the call is
+         * ignored.
+         * 
+         * @param {function} func called if it's been long enough since the last call to run
+         * @param {*} when any of the durations supported by time_utils.
+         */
+        RateLimit.prototype.run = function(func, when){
+         
+          ZonedDateTime = Java.type("java.time.ZonedDateTime");
+          var now = ZonedDateTime.now();
+          if(now.isAfter(this.until)) {
+            this.log.debug("It has been long enough, running the function");
+            this.until = this.toDateTime(when);
+            func();
+          }
+          else {
+            this.log.debug("It is still too soon, not running the function");
+          }
+        }
+
+        // END TODO
+
+
+        var alertGenerator = function(nullItems, nullItemLabels, threshItems, threshItemLabels){
+          return function(){
+            // Get the RuleManager
+            var FrameworkUtil = Java.type("org.osgi.framework.FrameworkUtil");    
+            var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
+            var bundle_context = _bundle.getBundleContext()
+            var classname = "org.openhab.core.automation.RuleManager"
+            var RuleManager_Ref = bundle_context.getServiceReference(classname);
+            var RuleManager = bundle_context.getService(RuleManager_Ref);
+
+            var map = new java.util.HashMap();
+            map.put("nullItems", nullItems);
+            map.put("nullItemLabels", nullItemLabels);
+            map.put("threshItems", threshItems);
+            map.put("threshItemLabels", threshItemLabels);
+            RuleManager.runNow(alertScript, true, map);
+          }
+        }
+
+
+        var getLabels = function(list) {
+          var Collectors = Java.type("java.util.stream.Collectors");
+          return list.stream()
+                     .map(function(i) { return i.label; })
+                     .collect(Collectors.joining(", "));
+        }
+
+
+        var getItems = function(group, filterFunc) {
+          var Collectors = Java.type("java.util.stream.Collectors");
+          return ir.getItem(group)
+                   .members
+                   .stream()
+                   .filter(filterFunc)
+                   .collect(Collectors.toList());
+        }
+
+
+        this.rl = (this.rl === undefined) ? new RateLimit(): this.rl;
+
+
+        // TODO Expand to handle non-numeric states
+
+        var nullItems = getItems(group,function(i) { return i.state.class == UnDefType.class; });
+
+        var nullItemLabels = getLabels(nullItems);
+
+        var threshItems = getItems(group, filterFunc);
+
+        var threshItemLabels = getLabels(threshItems);
+
+
+        this.rl.run(alertGenerator(nullItems, nullItemLabels, threshItems, threshItemLabels), limit);
+    type: script.ScriptAction
+
