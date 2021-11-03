@@ -46,6 +46,20 @@ configDescriptions:
     label: Script to Call
     required: true
     description: The Script or Rule to call when one or more Items fails the comparison.
+  - name: dnd_start
+    label: Do Not Disturb Start Time
+    description: The start of the do not disturb time period
+    type: TEXT
+    required: false
+    context: time
+    defaultValue: 00:00
+  - name: dnd_end
+    label: Do Not Disturb End Time
+    description: The end of the do not disturb time period
+    type: TEXT
+    required: false
+    context: time
+    defaultValue: 00:00
 triggers:
   - id: "1"
     configuration:
@@ -69,14 +83,39 @@ actions:
         Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Battery
         Alert");
 
+        var ZonedDateTime = Java.type("java.time.ZonedDateTime");
 
-        var group = "${group}";
 
-        var limit = "${limit}";
+        this.logger.debug("Processing initialization data");
 
-        var alertScript = "${script}";
+        var group = "MinIndoorHumidity";
 
-        var filterFunc = function(i) { return i.state.floatValue() ${comparison} ${threshold}; };
+        var limit = "5s";
+
+        var alertScript = "humi_reminder";
+
+        var filterFunc = function(i) { return i.state.class !== UnDefType.class && i.state.floatValue() < 35.0; };
+
+        var dndStartStr = "07:00";
+
+        var dndStartStrs = dndStartStr.split(":");
+
+        var dndStart = ZonedDateTime.now()
+                                    .withHour(parseInt(dndStartStrs[0]))
+                                    .withMinute(parseInt(dndStartStrs[1]))
+                                    .withSecond(0)
+                                    .withNano(0);
+        var dndEndStr = "22:00";
+
+        var dndEndStrs = dndEndStr.split(":");
+
+        var dndEnd = ZonedDateTime.now()
+                                  .withHour(parseInt(dndEndStrs[0]))
+                                  .withMinute(parseInt(dndEndStrs[1]))
+                                  .withSecond(0)
+                                  .withNano(0);
+        this.logger.debug("Done, determining if it's time to call the script");
+
 
         // TODO Move to library when able
 
@@ -193,6 +232,7 @@ actions:
 
 
         var getLabels = function(list) {
+          this.logger.debug("Getting the labels");
           var Collectors = Java.type("java.util.stream.Collectors");
           return list.stream()
                      .map(function(i) { return i.label; })
@@ -201,6 +241,7 @@ actions:
 
 
         var getItems = function(group, filterFunc) {
+          this.logger.debug("Getting the Items");
           var Collectors = Java.type("java.util.stream.Collectors");
           return ir.getItem(group)
                    .members
@@ -210,20 +251,56 @@ actions:
         }
 
 
+        var callGenerator = function(group, filterFunc) {
+          this.logger.debug("Generating the script calling function");
+          return function() {
+            this.logger.debug("Calling the script");
+            // TODO Expand to handle non-numeric states
+            var nullItems = getItems(group,function(i) { return i.state.class == UnDefType.class; });
+            var nullItemLabels = getLabels(nullItems);
+            var threshItems = getItems(group, filterFunc);
+            var threshItemLabels = getLabels(threshItems);
+
+            this.rl.run(alertGenerator(nullItems, nullItemLabels, threshItems, threshItemLabels), limit);
+            this.timer = undefined;
+          }
+        }
+
+
         this.rl = (this.rl === undefined) ? new RateLimit(): this.rl;
 
 
-        // TODO Expand to handle non-numeric states
+        // DND spans midnight, move end time to tomorrow
 
-        var nullItems = getItems(group,function(i) { return i.state.class == UnDefType.class; });
+        if(dndEnd.isBefore(dndStart)) {
+          // Move dndEnd to tomorrow
+          this.logger.debug("Moving end time to tomorrow");
+          var tomorrow = ZonedDateTime.now().plusDays(1);
+          dndEnd = dndEnd.withYear(tomorrow.getYear())
+                         .withMonth(tomorrow.getMonthValue())
+                         .withDayOfMonth(tomorrow.getDayOfMonth())
+                         .withZoneSameLocal(tomorrow.getOffset());
+        }
 
-        var nullItemLabels = getLabels(nullItems);
-
-        var threshItems = getItems(group, filterFunc);
-
-        var threshItemLabels = getLabels(threshItems);
+        this.logger.debug("Start DND Time: " + dndStart + " End DND Time: " + dndEnd);
 
 
-        this.rl.run(alertGenerator(nullItems, nullItemLabels, threshItems, threshItemLabels), limit);
+        // Immediately call when no delay is required
+
+        if(dndStartStr == dndEndStr || !(ZonedDateTime.now().isAfter(dndStart) && ZonedDateTime.now().isBefore(dndEnd))) {
+          this.logger.debug("Not during a DND time, calling script immediately");
+          callGenerator(group, filterFunc)();  
+        }
+
+        // Schedule a timer to run at the end of the dnd time
+
+        else if(this.timer === undefined){
+          var ScriptExecution = Java.type("org.openhab.core.model.script.actions.ScriptExecution");
+          this.logger.debug("Creating a timer to call the script after the DND time.");
+          this.timer = ScriptExecution.createTimer(dndEnd, callGenerator(group, filterFunc));
+        }
+
+        else {
+          this.logger.debug("Timer already exists to call the script.");
+        }
     type: script.ScriptAction
-
