@@ -44,7 +44,7 @@ actions:
       script: >
         // Imports 
 
-        var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_toold.Time_SM"); 
+        var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.Time_SM"); 
 
         scriptExtension.importPreset("default"); 
 
