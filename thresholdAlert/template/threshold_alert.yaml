@@ -80,8 +80,7 @@ actions:
       type: application/javascript
       script: >
         var logger =
-        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Battery
-        Alert");
+        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Threshold ${group}");
 
         var ZonedDateTime = Java.type("java.time.ZonedDateTime");
 
