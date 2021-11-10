@@ -88,15 +88,15 @@ actions:
 
         this.logger.debug("Processing initialization data");
 
-        var group = "MinIndoorHumidity";
+        var group = "${group}";
 
-        var limit = "5s";
+        var limit = "${limit}";
 
-        var alertScript = "humi_reminder";
+        var alertScript = "${script}";
 
-        var filterFunc = function(i) { return i.state.class !== UnDefType.class && i.state.floatValue() < 35.0; };
+        var filterFunc = function(i) { return i.state.class !== UnDefType.class && i.state.floatValue() ${comparison} ${threshold}; };
 
-        var dndStartStr = "07:00";
+        var dndStartStr = "${dnd_start}";
 
         var dndStartStrs = dndStartStr.split(":");
 
@@ -105,7 +105,7 @@ actions:
                                     .withMinute(parseInt(dndStartStrs[1]))
                                     .withSecond(0)
                                     .withNano(0);
-        var dndEndStr = "22:00";
+        var dndEndStr = "${dnd_end}";
 
         var dndEndStrs = dndEndStr.split(":");
 
