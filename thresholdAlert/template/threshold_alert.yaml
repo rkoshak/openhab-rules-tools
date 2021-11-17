@@ -268,25 +268,44 @@ actions:
 
         this.rl = (this.rl === undefined) ? new RateLimit(): this.rl;
 
+        var now = ZonedDateTime.now();
 
-        // DND spans midnight, move end time to tomorrow
 
-        if(dndEnd.isBefore(dndStart)) {
+        // DND spans midnight, move end time to tomorrow if we are before midnight
+
+        if(dndEnd.isBefore(dndStart) && now.isAfter(dndStart)) {
           // Move dndEnd to tomorrow
           this.logger.debug("Moving end time to tomorrow");
-          var tomorrow = ZonedDateTime.now().plusDays(1);
+          var tomorrow = now.plusDays(1);
           dndEnd = dndEnd.withYear(tomorrow.getYear())
                          .withMonth(tomorrow.getMonthValue())
                          .withDayOfMonth(tomorrow.getDayOfMonth())
                          .withZoneSameLocal(tomorrow.getOffset());
         }
 
-        this.logger.debug("Start DND Time: " + dndStart + " End DND Time: " + dndEnd);
+        // if DND spans midnight, move the start time to yesterday if we are after midnight
+
+        else if(dndEnd.isBefore(dndStart) && now.isBefore(dndStart)) {
+          // Move dndStart to yesterday
+          this.logger.debug("Moving start time to yesterday");
+          var yesterday = now.minusDays(1);
+          dndStart = dndStart.withYear(yesterday.getYear())
+                             .withMonth(yesterday.getMonthValue())
+                             .withDayOfMonth(yesterday.getDayOfMonth())
+                             .withZoneSameLocal(yesterday.getOffset());
+        }
+
+
+        this.logger.debug("Now: " + now + " Start DND Time: " + dndStart + " End DND Time: " + dndEnd);
+
+        var isDnd = now.isAfter(dndStart) && now.isBefore(dndEnd);
+
+        this.logger.debug("Is DND = " + isDnd);
 
 
         // Immediately call when no delay is required
 
-        if(dndStartStr == dndEndStr || !(ZonedDateTime.now().isAfter(dndStart) && ZonedDateTime.now().isBefore(dndEnd))) {
+        if(dndStartStr == dndEndStr || !isDnd) {
           this.logger.debug("Not during a DND time, calling script immediately");
           callGenerator(group, filterFunc)();  
         }
