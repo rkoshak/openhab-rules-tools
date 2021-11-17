@@ -1,0 +1,137 @@
+uid: rules_tools:thing_status
+label: Thing Status Reporter
+description: Calls a user supplied script when one or more Things status matches a user defined criteria.
+configDescriptions:
+  - name: script
+    label: Rule to call
+    description: Rule to call when one or more Things match the comparison.
+    type: TEXT
+    context: rule
+    required: true
+  - name: trigger
+    label: Check Frequency
+    description: Cron trigger to define how often the rule will run, it might be easier to modify after creating the rule if you don't know cron syntax.
+    type: TEXT
+    context: 
+    required: false
+    defaultValue: 0/30 * * * * ? *
+  - name: comparison
+    label: Comparison
+    description: The comparison to perform (==, !=, <, <=, >, >=)
+    type: TEXT
+    options:
+      - label: "== equals" 
+        value: "=="
+      - label: "!= not equals" 
+        value: "!="
+      - label:  "< less than" 
+        value: "<"
+      - label: "<= less than equal" 
+        value: "<="
+      - label: "> greater than" 
+        value: ">"
+      - label: ">= greater than equal" 
+        value: ">="
+    limitToOptions: true
+    required: false
+    defaultValue: ==
+  - name: status
+    label: Thing Status
+    description: The Thing Status to compare to.
+    type: TEXT
+    options:
+      - label: INITIALIZING
+        value: INITIALIZING
+      - label: OFFLINE
+        value: OFFLINE
+      - label: ONLINE
+        value: ONLINE
+      - label: REMOVED
+        value: REMOVED
+      - label: REMOVING
+        value: REMOVING
+      - label: UNINITIALIZED
+        value: UNINITIALIZED
+      - label: UNKNOWN
+        value: UNKNOWN
+    required: false
+    defaultValue: OFFLINE
+triggers:
+  - id: "1"
+    configuration:
+      cronExpression: ${trigger}
+    type: timer.GenericCronTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: >-
+        var logger =
+        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.Thing
+        Status Change");
+
+
+        var ThingStatus = Java.type("org.openhab.core.thing.ThingStatus");
+
+        var Collectors = Java.type("java.util.stream.Collectors");
+
+
+        var FrameworkUtil = Java.type("org.osgi.framework.FrameworkUtil");
+
+        var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
+
+        var bundle_context = _bundle.getBundleContext();
+
+
+        // Get the Thing Regsitry
+
+        var classname = "org.openhab.core.thing.ThingRegistry";
+
+        var ThingRegistry_Ref = bundle_context.getServiceReference(classname);
+
+        var ThingRegistry = bundle_context.getService(ThingRegistry_Ref);
+
+
+        // Get the RuleManager
+
+        var classname = "org.openhab.core.automation.RuleManager"
+
+        var RuleManager_Ref = bundle_context.getServiceReference(classname);
+
+        var RuleManager = bundle_context.getService(RuleManager_Ref);
+
+
+        // Get all the Things
+
+        var things = ThingRegistry.getAll();
+
+        logger.debug("There are " + things.size() + " things!");
+
+
+        // Get those that match the criteria
+
+        var matched = ThingRegistry.stream()
+                                   .filter(function(t) {
+                                     return t.getStatusInfo().getStatus() ${comparison} ThingStatus.${status};
+                                   })
+                                   .collect(Collectors.toList());
+
+        logger.debug("There are " + matched.size() + " things that are not online");
+
+
+        // Call the handler rule with the list of Things
+
+        if(matched.size() > 0) {
+          logger.debug("Calling handler rule with " + matched.size() + " things!");
+          var data = new java.util.HashMap();
+          data.put("things", matched);
+          RuleManager.runNow("${script}", true, data);
+        }
+
+        else {
+          logger.debug("No items match the criteria");
+        }
+    type: script.ScriptAction
+
