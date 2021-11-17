@@ -58,7 +58,7 @@ Variable | Purpose
 After changing any of the three variables in `configuration.py` or changing the tags on any Items, the rule needs to be reloaded.
 Either send an `ON` command to `Reload_MQTT_PUB` (it will be created automatically if it doesn't already exist) or trigger the "Reload MQTT event bus Publisher" rule manually from PaperUI which will recreate the rule with the new configuration.
 
-### JavaSCript Configuration
+### JavaScript Configuration
 The publisher rule depends on the creation of two Groups: `PubItems_CMD` and `PubItems_UPD`.
 Add as members those Items that should have their commands published to `PubItems_CMD` and add as members those Items that should have their state updates published to `PubItems_UPD`.
 
