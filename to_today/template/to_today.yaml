@@ -1,5 +1,5 @@
 uid: rules_tools:to_today
-label: Move tagged DateTime Items to today's date
+label: To Today
 description: Moves DateTime Items' states with a defined tag that are in the past to today's date at midnight.
 configDescriptions:
   - name: itemTag
