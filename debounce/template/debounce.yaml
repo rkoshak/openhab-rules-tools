@@ -26,7 +26,7 @@ conditions:
         if(typeof(require) === "function") Object.assign(this,
         require('@runtime'));
 
-        var type = (tuypeof(require) === "function") ? UnDefType : UnDefType.class;
+        var type = (typeof(require) === "function") ? UnDefType : UnDefType.class;
 
         event.itemState.class != type;
     type: script.ScriptCondition
