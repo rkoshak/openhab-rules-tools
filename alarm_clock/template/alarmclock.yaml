@@ -33,8 +33,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Change to ID of the Script Rule
-
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
 
         var FrameworkUtil = (FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : FrameworkUtil;
 
@@ -60,7 +59,8 @@ actions:
             logger.debug("About to call script action");
             
             // Get the RuleManager
-            var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
+            this.ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
+            var _bundle = FrameworkUtil.getBundle(ScriptHandler.class);
             var bundle_context = _bundle.getBundleContext()
             var classname = "org.openhab.core.automation.RuleManager"
             var RuleManager_Ref = bundle_context.getServiceReference(classname);
