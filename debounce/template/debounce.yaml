@@ -30,7 +30,7 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        'use strict';
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
 
 
         var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.Debounce");
@@ -40,7 +40,9 @@ actions:
 
         this.FrameworkUtil = (this.FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : this.FrameworkUtil;
 
-        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(scriptExtension.class) : this._bundle;
+        this.ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
+    
+        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(ScriptHandler.class) : this._bundle;
 
         this.bundle_context = (this.bundle_context === undefined) ? this._bundle.getBundleContext() : this.bundle_context;
 
