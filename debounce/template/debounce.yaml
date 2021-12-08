@@ -250,11 +250,11 @@ actions:
                 logger.debug("End debounce for " + proxy + ", new state = " + state + ", curr state = " + items[proxy] + ", command = " + isCommand);
                 if(isCommand && items[proxy] != state) {
                   logger.debug("Sending command " + state + " to " + proxy);
-                  events.sendCommand(proxy, state);
+                  events.sendCommand(proxy, state.toString());
                 }
                 else if (items[proxy] != state) {
                   logger.debug("Posting update " + state + " to " + proxy);
-                  events.postUpdate(proxy, state);
+                  events.postUpdate(proxy, state.toString());
                 }
               }
         }
