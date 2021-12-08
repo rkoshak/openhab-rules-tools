@@ -1,5 +1,5 @@
 uid: rules_tools:alarm_clock
-label: Schedules a timer to run a script
+label: Alarm Clock
 description: This will trigger on an update to a DateTime Item and schedule a timer to call another script at the DateTime's state.
 configDescriptions:
   - name: alarmTime
