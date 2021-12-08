@@ -22,8 +22,8 @@ However, such full capabilities will only be developed as rule templates so they
 Notes: 
 
 - all the full JavaScript rules are UI rules
-- all the full JavaScript rules have a rule template posted to the marketplace also
-- this code is not compatible with the GraalVM JavaScript add-on and will not work when that add-on is installed
+- all the full JavaScript rules have a rule template posted to the marketplace also but there might be slight differences in how the templates work
+- the libraries may not be compatible with the JSSCripting add-on, rule templates work with both
 
 # Installation
 
