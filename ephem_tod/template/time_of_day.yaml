@@ -59,7 +59,7 @@ actions:
 
         this.FrameworkUtil = (this.FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : this.FrameworkUtil; 
 
-        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(scriptExtension.class) : this._bundle; 
+        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(ScriptHandler.class) : this._bundle;
 
         this.bundle_context = (this.bundle_context === undefined) ? this._bundle.getBundleContext() : this.bundle_context; 
 
