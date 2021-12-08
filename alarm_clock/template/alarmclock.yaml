@@ -71,8 +71,10 @@ actions:
 
 
         // No alarm scheduled
+        
+        var type = (typeof(require) === "function") ? DateTimeType : DateTimeType.class;
 
-        if(time.class != DateTimeType.class || time.getZonedDateTime().isBefore(ZDT.now())) {
+        if(time.class != type || time.getZonedDateTime().isBefore(ZDT.now())) {
           logger.info("No alarm scheduled for " + item);
           if(this.timer !== null) {
             this.timer.cancel();
