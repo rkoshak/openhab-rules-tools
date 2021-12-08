@@ -68,6 +68,8 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
+        
         var logger =
         Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.Thing
         Status Change");
@@ -77,10 +79,11 @@ actions:
 
         var Collectors = Java.type("java.util.stream.Collectors");
 
-
         var FrameworkUtil = Java.type("org.osgi.framework.FrameworkUtil");
 
-        var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
+        var ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
+
+        var _bundle = FrameworkUtil.getBundle(ScriptHandler.class);
 
         var bundle_context = _bundle.getBundleContext();
 
