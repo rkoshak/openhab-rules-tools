@@ -34,6 +34,14 @@ actions:
         var tag = '${itemTag}';
 
 
+
+        var DateTimeItem = Java.type("org.openhab.core.library.items.DateTimeItem");
+
+        var dtType = (typeof(require) === "function") ? DateTimeItem : DateTimeItem.class;
+
+        var udType = (typeof(require) === "function") ? UnDefType : UnDefType.class;
+
+
         /**
          * Move the DateTimeType to today. Adjust for DST.
          * @param {DateTimeType} dt state from a DateTime Item
@@ -47,6 +55,8 @@ actions:
                    .withMonth(now.getMonthValue())
                    .withDayOfMonth(now.getDayOfMonth())
                    .withZoneSameLocal(now.getOffset())
+                   .toLocalDateTime()
+                   .toString();
         }
 
 
@@ -56,7 +66,7 @@ actions:
          * @return {boolean} true if item is a DateTimeItem and has a DateTimeType state
          */
         var isDT = function(item) {
-          return item.class == DateTimeItem.class && item.getState().class != UnDefType.class;
+          return item.class == dtType && item.getState().class != udType;
         }
 
 
@@ -78,7 +88,7 @@ actions:
 
         else {
           for each (var item in taggedItems) {
-            if(item.getState().class != UnDefType.class && item.getState().getZonedDateTime().isBefore(ZDT.now())){
+            if(item.getState().class != udType && item.getState().getZonedDateTime().isBefore(ZDT.now())){
               logger.debug("Moving " + item.name + " to today");
               events.postUpdate(item.name, toToday(item.getState()));
             }
@@ -88,4 +98,3 @@ actions:
           }
         }
     type: script.ScriptAction
-
