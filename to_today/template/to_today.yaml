@@ -23,6 +23,8 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
+        
         var ZDT = (ZDT === undefined) ? Java.type("java.time.ZonedDateTime") : ZDT;
 
         var CIF = (CIF === undefined) ? Java.type("org.openhab.core.library.CoreItemFactory") : CIF;
