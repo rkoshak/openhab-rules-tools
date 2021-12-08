@@ -48,8 +48,6 @@ actions:
 
         var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.Time_SM"); 
 
-        scriptExtension.importPreset("default"); 
-
         this.Ephemeris = (this.Ephemeris === undefined) ? Java.type("org.openhab.core.model.script.actions.Ephemeris") : this.Ephemeris; 
 
         this.ZonedDateTime = (this.ZonedDateTime === undefined) ? Java.type("java.time.ZonedDateTime") : this.ZonedDateTime; 
@@ -58,6 +56,8 @@ actions:
         //   Get Metadata query stuff 
 
         this.FrameworkUtil = (this.FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : this.FrameworkUtil; 
+
+        this.ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
 
         this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(ScriptHandler.class) : this._bundle;
 
