@@ -30,6 +30,8 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
+        
         var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.MQTT_EB");
 
         var parts = event.event.split("#");
