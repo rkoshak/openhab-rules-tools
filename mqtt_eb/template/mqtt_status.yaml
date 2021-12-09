@@ -1,5 +1,5 @@
 uid: rules_tools:mqtt_status
-label: Publishes ONLINE to LWT topic
+label: MQTT Online Status Publisher
 description: Publishes a retained ONLINE message to the openHAB client's LWT topic to make it easier for other clients to know when OH is connected.
 configDescriptions:
   - name: broker
