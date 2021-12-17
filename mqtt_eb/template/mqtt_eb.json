@@ -40,7 +40,7 @@
         "label":"Publish ONLINE to the LWT topic as retained",
         "configuration": {
           "type":"application/javascript",
-          "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar topic = '${topicRoot}/status';\nLog.logInfo('MQTT_EB', 'Publishing online message');\nvar mqtt = actions.get('mqtt', '${broker}');\nmqtt.publishMQTT(topic,'ONLINE', true);"
+          "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar topic = '{{topicRoot}}/status';\nLog.logInfo('MQTT_EB', 'Publishing online message');\nvar mqtt = actions.get('mqtt', '{{broker}}');\nmqtt.publishMQTT(topic,'ONLINE', true);"
         },
         "type":"script.ScriptAction"
       }
@@ -97,18 +97,18 @@
       {
         "id":"1",
         "label":"Publish Commands",
-        "description":"Triggers the rules when members of ${cmd} receive a command.",
+        "description":"Triggers the rules when members of {{cmd}} receive a command.",
         "configuration": {
-          "groupName":"${cmd}"
+          "groupName":"{{cmd}}"
         },
         "type":"core.GroupStateCommandTrigger"
       },
       {
         "id":"1",
         "label":"Publish Updates",
-        "description":"Triggers the rules when members of ${upd} receive an update.",
+        "description":"Triggers the rules when members of {{upd}} receive an update.",
         "configuration": {
-          "groupName":"${upd}"
+          "groupName":"{{upd}}"
         },
         "type":"core.GroupStateUpdateTrigger"
       }
@@ -122,7 +122,7 @@
         "description":"",
         "configuration": {
           "type":"application/javascript",
-          "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar isState = (event.itemState !== undefined);\nvar topic = ${topicRoot} + '/out/' + event.itemName + ((isState) ? '/state' : '/command');\nvar msg = ((isState) ? event.itemState : event.itemCommand).toString();\nLog.logDebug('MQTT_EB', 'Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + isState);\nvar mqtt = actions.get('mqtt', '${broker}');\nmqtt.publishMQTT(topic, msg, isState); // retained true for updates"
+          "script":"var Log = Java.type('org.openhab.core.model.script.actions.Log');\nvar isState = (event.itemState !== undefined);\nvar topic = {{topicRoot}} + '/out/' + event.itemName + ((isState) ? '/state' : '/command');\nvar msg = ((isState) ? event.itemState : event.itemCommand).toString();\nLog.logDebug('MQTT_EB', 'Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + isState);\nvar mqtt = actions.get('mqtt', '{{broker}}');\nmqtt.publishMQTT(topic, msg, isState); // retained true for updates"
         },
         "type":"script.ScriptAction"
       }
@@ -162,8 +162,8 @@
         "label":"Received MQTT Event Bus Message",
         "description":"Triggers when a message is received on the wild card subscription event channel.",
         "configuration": {
-          "thingUID":"${broker}",
-          "channelUID":"${channel}"
+          "thingUID":"{{broker}}",
+          "channelUID":"{{channel}}"
         },
         "type":"core.ChannelEventTrigger"
       }

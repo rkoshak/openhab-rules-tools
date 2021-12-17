@@ -20,7 +20,7 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      itemName: ${alarmTime}
+      itemName: {{alarmTime}}
     type: core.ItemStateChangeTrigger
   - id: "3"
     configuration:
@@ -47,11 +47,11 @@ actions:
 
         this.timer = (this.timer === undefined) ? null : this.timer;
 
-        var time = items['${alarmTime}'];
+        var time = items['{{alarmTime}}'];
         
-        var item = '${alarmTime}';
+        var item = '{{alarmTime}}';
         
-        var script = '${script}';
+        var script = '{{script}}';
 
         var callScriptGenerator = function(data, script) {
 

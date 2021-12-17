@@ -17,7 +17,7 @@ triggers:
   - id: "1"
     label: Mosquitto Broker Thing changes to ONLINE
     configuration:
-      thingUID: ${broker}
+      thingUID: {{broker}}
       status: ONLINE
     type: core.ThingStatusChangeTrigger
 conditions: []
@@ -33,8 +33,8 @@ actions:
         var logger =
         Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.MQTT_Online");
 
-        logger.info("Publishing ONLINE to LWT topic ${topic}");
+        logger.info("Publishing ONLINE to LWT topic {{topic}}");
 
-        actions.get("mqtt", "${broker}").publishMQTT("${topic}", "ONLINE", true);
+        actions.get("mqtt", "{{broker}}").publishMQTT("{{topic}}", "ONLINE", true);
     type: script.ScriptAction
 

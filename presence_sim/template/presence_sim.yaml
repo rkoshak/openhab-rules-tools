@@ -1,5 +1,5 @@
 uid: rules_tools:presence_sim
-label: Simulates presence by commanding Items based on historic states
+label: Persistence Presence Simulation
 description: Triggers periodically when a given Item is ON and plays back the states of Items stored in persistence.
 configDescriptions:
   - name: enableSim
@@ -37,13 +37,13 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      cronExpression: 0 0/${minutes} * * * ? *
+      cronExpression: 0 0/{{minutes}} * * * ? *
     type: timer.GenericCronTrigger
 conditions:
   - inputs: {}
     id: "2"
     configuration:
-      itemName: ${enableSim}
+      itemName: {{enableSim}}
       state: ON
       operator: "!="
     type: core.ItemStateCondition
@@ -56,11 +56,11 @@ actions:
       script: >-
         val logName = "Presence Sim"
 
-        ${simItems}.members
+        {{simItems}}.members
                    .forEach[i | 
-                           val hState = i.historicState(now.minusDays(${days}))
+                           val hState = i.historicState(now.minusDays({{days}}))
                            if(hState === null) 
-                               logWarn(logName, i.name + " does not have a historic state for " + ${days} + " days ago.")
+                               logWarn(logName, i.name + " does not have a historic state for " + {{days}} + " days ago.")
                            else {
                              logDebug(logName, "Commanding " + i.name + " to " + hState.state)
                              if(i.state != hState.state)

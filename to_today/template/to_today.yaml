@@ -31,7 +31,7 @@ actions:
 
         var logger = (logger === undefined) ? Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.To Today") : logger;
 
-        var tag = '${itemTag}';
+        var tag = '{{itemTag}}';
 
 
 

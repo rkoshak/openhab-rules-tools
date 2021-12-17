@@ -34,11 +34,11 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      groupName: ${cmd}
+      groupName: {{cmd}}
     type: core.GroupCommandTrigger
   - id: "2"
     configuration:
-      groupName: ${upd}
+      groupName: {{upd}}
     type: core.GroupStateUpdateTrigger
 conditions: []
 actions:
@@ -54,14 +54,14 @@ actions:
 
         var isState = (event.itemState !== undefined);
 
-        var topic = "${topicRoot}/out/" + event.itemName + ((isState) ? "/state" : "/command");
+        var topic = "{{topicRoot}}/out/" + event.itemName + ((isState) ? "/state" : "/command");
 
         var msg = ((isState) ? event.itemState : event.itemCommand).toString();
 
 
         logger.debug("Topic: " + topic + " Message: " + msg + " Retained: " + isState);
 
-        var mqtt = actions.get("mqtt", "${broker}");
+        var mqtt = actions.get("mqtt", "{{broker}}");
 
         mqtt.publishMQTT(topic, msg, isState); // retained true for updates
     type: script.ScriptAction

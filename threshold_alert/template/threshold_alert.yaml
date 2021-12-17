@@ -63,15 +63,15 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      itemName: ${group}
+      itemName: {{group}}
     type: core.ItemStateChangeTrigger
 conditions:
   - inputs: {}
     id: "2"
     configuration:
-      itemName: ${group}
-      state: ${threshold}
-      operator: ${comparison}
+      itemName: {{group}}
+      state: {{threshold}}
+      operator: {{comparison}}
     type: core.ItemStateCondition
 actions:
   - inputs: {}
@@ -82,22 +82,22 @@ actions:
         if(typeof(require) === "function") Object.assign(this, require('@runtime'));
         
         var logger =
-        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Threshold ${group}");
+        Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Threshold {{group}}");
 
         var ZonedDateTime = Java.type("java.time.ZonedDateTime");
 
 
         this.logger.debug("Processing initialization data");
 
-        var group = "${group}";
+        var group = "{{group}}";
 
-        var limit = "${limit}";
+        var limit = "{{limit}}";
 
-        var alertScript = "${script}";
+        var alertScript = "{{script}}";
 
-        var filterFunc = function(i) { return i.state.class !== UnDefType.class && i.state.floatValue() ${comparison} ${threshold}; };
+        var filterFunc = function(i) { return i.state.class !== UnDefType.class && i.state.floatValue() {{comparison}} {{threshold}}; };
 
-        var dndStartStr = "${dnd_start}";
+        var dndStartStr = "{{dnd_start}}";
 
         var dndStartStrs = dndStartStr.split(":");
 
@@ -106,7 +106,7 @@ actions:
                                     .withMinute(parseInt(dndStartStrs[1]))
                                     .withSecond(0)
                                     .withNano(0);
-        var dndEndStr = "${dnd_end}";
+        var dndEndStr = "{{dnd_end}}";
 
         var dndEndStrs = dndEndStr.split(":");
 
