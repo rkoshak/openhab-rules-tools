@@ -22,7 +22,13 @@ conditions:
     label: Only debounce non NULL and UNDEF states
     configuration:
       type: application/javascript
-      script: event.itemState.class != UnDefType.class
+      script: >-
+        if(typeof(require) === "function") Object.assign(this,
+        require('@runtime'));
+
+        var type = (typeof(require) === "function") ? UnDefType : UnDefType.class;
+
+        event.itemState.class != type;
     type: script.ScriptCondition
 actions:
   - inputs: {}
@@ -30,7 +36,7 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        'use strict';
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
 
 
         var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.Debounce");
@@ -40,7 +46,9 @@ actions:
 
         this.FrameworkUtil = (this.FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : this.FrameworkUtil;
 
-        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(scriptExtension.class) : this._bundle;
+        this.ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
+    
+        this._bundle = (this._bundle === undefined) ? FrameworkUtil.getBundle(ScriptHandler.class) : this._bundle;
 
         this.bundle_context = (this.bundle_context === undefined) ? this._bundle.getBundleContext() : this.bundle_context;
 
@@ -242,11 +250,11 @@ actions:
                 logger.debug("End debounce for " + proxy + ", new state = " + state + ", curr state = " + items[proxy] + ", command = " + isCommand);
                 if(isCommand && items[proxy] != state) {
                   logger.debug("Sending command " + state + " to " + proxy);
-                  events.sendCommand(proxy, state);
+                  events.sendCommand(proxy, state.toString());
                 }
                 else if (items[proxy] != state) {
                   logger.debug("Posting update " + state + " to " + proxy);
-                  events.postUpdate(proxy, state);
+                  events.postUpdate(proxy, state.toString());
                 }
               }
         }

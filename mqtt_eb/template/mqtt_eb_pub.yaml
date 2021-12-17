@@ -1,5 +1,5 @@
 uid: rules_tools:mqtt_eb_pub
-label: MQTT EventBus Publisher
+label: MQTT Event Bus Publish
 description: Publishes all update and command events for members of the configure Group to the event bus.
 configDescriptions:
   - name: broker
@@ -47,7 +47,9 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        var Log = Java.type("org.openhab.core.model.script.actions.Log");
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
+        
+        var logger = Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.MQTT_EB");
 
 
         var isState = (event.itemState !== undefined);
@@ -57,7 +59,7 @@ actions:
         var msg = ((isState) ? event.itemState : event.itemCommand).toString();
 
 
-        Log.logDebug("rules_tools.MQTT_EB", "Topic: " + topic + " Message: " + msg + " Retained: " + isState);
+        logger.debug("Topic: " + topic + " Message: " + msg + " Retained: " + isState);
 
         var mqtt = actions.get("mqtt", "${broker}");
 

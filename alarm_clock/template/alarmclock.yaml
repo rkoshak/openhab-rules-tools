@@ -1,5 +1,5 @@
 uid: rules_tools:alarm_clock
-label: Schedules a timer to run a script
+label: Alarm Clock
 description: This will trigger on an update to a DateTime Item and schedule a timer to call another script at the DateTime's state.
 configDescriptions:
   - name: alarmTime
@@ -33,8 +33,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Change to ID of the Script Rule
-
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
 
         var FrameworkUtil = (FrameworkUtil === undefined) ? Java.type("org.osgi.framework.FrameworkUtil") : FrameworkUtil;
 
@@ -60,7 +59,8 @@ actions:
             logger.debug("About to call script action");
             
             // Get the RuleManager
-            var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
+            this.ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
+            var _bundle = FrameworkUtil.getBundle(ScriptHandler.class);
             var bundle_context = _bundle.getBundleContext()
             var classname = "org.openhab.core.automation.RuleManager"
             var RuleManager_Ref = bundle_context.getServiceReference(classname);
@@ -71,8 +71,10 @@ actions:
 
 
         // No alarm scheduled
+        
+        var type = (typeof(require) === "function") ? DateTimeType : DateTimeType.class;
 
-        if(time.class != DateTimeType.class || time.getZonedDateTime().isBefore(ZDT.now())) {
+        if(time.class != type || time.getZonedDateTime().isBefore(ZDT.now())) {
           logger.info("No alarm scheduled for " + item);
           if(this.timer !== null) {
             this.timer.cancel();

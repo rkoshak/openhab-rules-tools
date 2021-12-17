@@ -1,5 +1,5 @@
 uid: rules_tools:to_today
-label: Move tagged DateTime Items to today's date
+label: To Today
 description: Moves DateTime Items' states with a defined tag that are in the past to today's date at midnight.
 configDescriptions:
   - name: itemTag
@@ -23,6 +23,8 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
+        
         var ZDT = (ZDT === undefined) ? Java.type("java.time.ZonedDateTime") : ZDT;
 
         var CIF = (CIF === undefined) ? Java.type("org.openhab.core.library.CoreItemFactory") : CIF;
@@ -30,6 +32,14 @@ actions:
         var logger = (logger === undefined) ? Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.To Today") : logger;
 
         var tag = '${itemTag}';
+
+
+
+        var DateTimeItem = Java.type("org.openhab.core.library.items.DateTimeItem");
+
+        var dtType = (typeof(require) === "function") ? DateTimeItem : DateTimeItem.class;
+
+        var udType = (typeof(require) === "function") ? UnDefType : UnDefType.class;
 
 
         /**
@@ -45,6 +55,8 @@ actions:
                    .withMonth(now.getMonthValue())
                    .withDayOfMonth(now.getDayOfMonth())
                    .withZoneSameLocal(now.getOffset())
+                   .toLocalDateTime()
+                   .toString();
         }
 
 
@@ -54,7 +66,7 @@ actions:
          * @return {boolean} true if item is a DateTimeItem and has a DateTimeType state
          */
         var isDT = function(item) {
-          return item.class == DateTimeItem.class && item.getState().class != UnDefType.class;
+          return item.class == dtType && item.getState().class != udType;
         }
 
 
@@ -76,7 +88,7 @@ actions:
 
         else {
           for each (var item in taggedItems) {
-            if(item.getState().class != UnDefType.class && item.getState().getZonedDateTime().isBefore(ZDT.now())){
+            if(item.getState().class != udType && item.getState().getZonedDateTime().isBefore(ZDT.now())){
               logger.debug("Moving " + item.name + " to today");
               events.postUpdate(item.name, toToday(item.getState()));
             }
@@ -86,4 +98,3 @@ actions:
           }
         }
     type: script.ScriptAction
-

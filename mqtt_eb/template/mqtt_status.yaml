@@ -1,5 +1,5 @@
 uid: rules_tools:mqtt_status
-label: Publishes ONLINE to LWT topic
+label: MQTT Online Status Publisher
 description: Publishes a retained ONLINE message to the openHAB client's LWT topic to make it easier for other clients to know when OH is connected.
 configDescriptions:
   - name: broker
@@ -28,6 +28,8 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
+        
         var logger =
         Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Rules.rules_tools.MQTT_Online");
 

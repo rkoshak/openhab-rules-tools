@@ -79,6 +79,8 @@ actions:
     configuration:
       type: application/javascript
       script: >
+        if(typeof(require) === "function") Object.assign(this, require('@runtime'));
+        
         var logger =
         Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.Threshold ${group}");
 
@@ -210,22 +212,30 @@ actions:
         // END TODO
 
 
-        var alertGenerator = function(nullItems, nullItemLabels, threshItems, threshItemLabels){
+        var alertGenerator = function(nullItems, nullItemLabels, threshItems, threshItemLabels, filterFunc){
           return function(){
-            // Get the RuleManager
-            var FrameworkUtil = Java.type("org.osgi.framework.FrameworkUtil");    
-            var _bundle = FrameworkUtil.getBundle(scriptExtension.class);
-            var bundle_context = _bundle.getBundleContext()
-            var classname = "org.openhab.core.automation.RuleManager"
-            var RuleManager_Ref = bundle_context.getServiceReference(classname);
-            var RuleManager = bundle_context.getService(RuleManager_Ref);
+            // Only call the rule if the Group still doens't meet the criteria.
+            // It's possible that the function is delayed some hours before it runs and the threshold may no longer be a problem.
+            if(filterFunc(ir.getItem(group))) {
+              // Get the RuleManager
+              var FrameworkUtil = Java.type("org.osgi.framework.FrameworkUtil");
+              var ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
+              var _bundle = FrameworkUtil.getBundle(ScriptHandler.class);
+              var bundle_context = _bundle.getBundleContext();
+              var classname = "org.openhab.core.automation.RuleManager";
+              var RuleManager_Ref = bundle_context.getServiceReference(classname);
+              var RuleManager = bundle_context.getService(RuleManager_Ref);
 
-            var map = new java.util.HashMap();
-            map.put("nullItems", nullItems);
-            map.put("nullItemLabels", nullItemLabels);
-            map.put("threshItems", threshItems);
-            map.put("threshItemLabels", threshItemLabels);
-            RuleManager.runNow(alertScript, true, map);
+              var map = new java.util.HashMap();
+              map.put("nullItems", nullItems);
+              map.put("nullItemLabels", nullItemLabels);
+              map.put("threshItems", threshItems);
+              map.put("threshItemLabels", threshItemLabels);
+              RuleManager.runNow(alertScript, true, map);
+            }
+            else {
+              this.logger.info("No longer violating threshold");
+            }
           }
         }
 
@@ -260,10 +270,11 @@ actions:
             var threshItems = getItems(group, filterFunc);
             var threshItemLabels = getLabels(threshItems);
 
-            this.rl.run(alertGenerator(nullItems, nullItemLabels, threshItems, threshItemLabels), limit);
+            this.rl.run(alertGenerator(nullItems, nullItemLabels, threshItems, threshItemLabels, filterFunc), limit);
             this.timer = undefined;
           }
         }
+
 
 
         this.rl = (this.rl === undefined) ? new RateLimit(): this.rl;
