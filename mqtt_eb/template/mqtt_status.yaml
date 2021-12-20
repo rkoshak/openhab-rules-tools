@@ -17,7 +17,7 @@ triggers:
   - id: "1"
     label: Mosquitto Broker Thing changes to ONLINE
     configuration:
-      thingUID: {{broker}}
+      thingUID: "{{broker}}"
       status: ONLINE
     type: core.ThingStatusChangeTrigger
 conditions: []
