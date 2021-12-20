@@ -63,15 +63,15 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      itemName: {{group}}
+      itemName: "{{group}}"
     type: core.ItemStateChangeTrigger
 conditions:
   - inputs: {}
     id: "2"
     configuration:
-      itemName: {{group}}
-      state: {{threshold}}
-      operator: {{comparison}}
+      itemName: "{{group}}"
+      state: "{{threshold}}"
+      operator: "{{comparison}}"
     type: core.ItemStateCondition
 actions:
   - inputs: {}
