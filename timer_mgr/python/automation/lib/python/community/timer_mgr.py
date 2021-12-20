@@ -77,7 +77,7 @@ class TimerMgr(object):
             if key in self.timers and 'not_flapping' in self.timers[key]:
                 self.timers[key]['not_flapping']()
         finally:
-            if key in self.timers:
+            if key in self.timers and self.timers[key]['self_cleanup']:
                 del self.timers[key]
 
     def __noop(self):
@@ -86,7 +86,7 @@ class TimerMgr(object):
         """
 
     def check(self, key, when, function=None, flapping_function=None,
-              reschedule=False):
+              reschedule=False, self_cleanup=True):
         """Call to check whether a key has a Timer. If no Timer exists, creates
         a new timer to run the passed in function. If a Timer exists, reschedule
         it if reschedule is True and if a flapping_function was passed, run it.
@@ -110,6 +110,9 @@ class TimerMgr(object):
             has a Timer running. Defaults to None.
             - reschedule: Optional flag that causes the Timer to be rescheduled
             when the key already has a Timer. Defaults to False.
+            - self_cleanup: when set, the timer gets called and finally removes
+            itself from the list of timers (i.e. it cannot reschedule itself to
+            a new date/time)
         """
 
         timeout = to_datetime(when)
@@ -135,7 +138,8 @@ class TimerMgr(object):
                         lambda: self.__not_flapping(key))
             self.timers[key] = { 'timer':        timer,
                                  'flapping':     flapping_function,
-                                 'not_flapping': function if function else self.__noop}
+                                 'not_flapping': function if function else self.__noop,
+                                 'self_cleanup': self_cleanup}
             TimerMgr_logger.debug("Timer created: " + str(self.timers[key]))
 
     def has_timer(self, key):
