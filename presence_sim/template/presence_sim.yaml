@@ -43,7 +43,7 @@ conditions:
   - inputs: {}
     id: "2"
     configuration:
-      itemName: {{enableSim}}
+      itemName: "{{enableSim}}"
       state: ON
       operator: "!="
     type: core.ItemStateCondition
