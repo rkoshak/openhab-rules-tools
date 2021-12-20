@@ -37,7 +37,7 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      cronExpression: 0 0/{{minutes}} * * * ? *
+      cronExpression: "0 0/{{minutes}} * * * ? *"
     type: timer.GenericCronTrigger
 conditions:
   - inputs: {}
