@@ -20,7 +20,7 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      itemName: {{alarmTime}}
+      itemName: "{{alarmTime}}"
     type: core.ItemStateChangeTrigger
   - id: "3"
     configuration:
