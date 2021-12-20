@@ -59,7 +59,7 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      cronExpression: {{trigger}}
+      cronExpression: "{{trigger}}"
     type: timer.GenericCronTrigger
 conditions: []
 actions:
