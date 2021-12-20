@@ -28,7 +28,7 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      groupName: {{timesOfDayGrp}}
+      groupName: "{{timesOfDayGrp}}"
     type: core.GroupStateChangeTrigger
   - id: "2"
     configuration:
