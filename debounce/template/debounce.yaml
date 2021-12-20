@@ -14,7 +14,7 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      groupName: {{debounceGroup}}
+      groupName: "{{debounceGroup}}"
     type: core.GroupStateChangeTrigger
 conditions:
   - inputs: {}
