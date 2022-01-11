@@ -416,7 +416,7 @@ actions:
           if(items[ETOD_GROUP] === undefined) {
             throw "The " + ETOD_GROUP + " Group is not defined!";
           }
-          var etodItems = ir.getItem("TimesOfDay").getMembers();
+          var etodItems = ir.getItem(ETOD_GROUP).getMembers();
           
           if(etodItems.size() == 0) {
             throw ETOD_GROUP + " has no members!";
