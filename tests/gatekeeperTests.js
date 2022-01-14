@@ -1,0 +1,141 @@
+var {gatekeeper, testUtils} = require('openhab_rules_tools');
+var logger = log('rules_tools.Gatekeeper Tests');
+
+var testFunGen = (test, num) => {
+  logger.debug('generating function for {} run{}', test, num);
+  return () => {
+    logger.debug('{}: Test {} ran', test, num);
+    cache.put(test+'_run'+num, time.ZonedDateTime.now());
+  };
+}
+
+logger.info('Starting Gatekeeper tests');
+
+var reset = (test) => {
+  logger.debug('resetting {}');
+  cache.put(test, null);
+  logger.debug('resetting {}', test+'_start');
+  cache.put(test+'_start', null);
+  for(var i = 1; i <= 4; i++ ) {
+    logger.debug('resetting {}', test+'_run'+1)
+    cache.put(test+'_run'+i, null);
+  }
+}
+
+// Test 1: Scheduling
+var gk1 = new gatekeeper.Gatekeeper();
+var TEST1 = ruleUID+'_test1';
+reset(TEST1);
+cache.put(TEST1+'_start', time.ZonedDateTime.now());
+gk1.addCommand('1s', testFunGen(TEST1, 1));
+gk1.addCommand('2s', testFunGen(TEST1, 2));
+gk1.addCommand('3s', testFunGen(TEST1, 3));
+gk1.addCommand(500, testFunGen(TEST1, 4));
+
+actions.ScriptExecution.createTimer(time.ZonedDateTime.now().plus(6500, time.ChronoUnit.MILLIS), () => {
+  var success = true;
+  const start = cache.get(TEST1+'_start');
+  const run1 = cache.get(TEST1+'_run1');
+  const run2 = cache.get(TEST1+'_run2');
+  const run3 = cache.get(TEST1+'_run3');
+  const run4 = cache.get(TEST1+'_run4');
+  if(start === null) {
+    logger.error('{} Failed to get starting timestamp', TEST1);
+    success = false;
+  }
+  if(success && run1 === null) {
+    logger.error('{} run1 failed to run!', TEST1);
+    success = false;
+  }
+  if(success && run2 === null) {
+    logger.error('{} run2 failed to run!', TEST1);
+    success = false;
+  }
+  if(success && run3 === null) {
+    logger.error('{} run3 failed to run!', TEST1);
+    success = false;
+  }
+  if(success && run4 === null) {
+    logger.error('{} run4 failed to run!', TEST1);
+    success = false;
+  }
+  
+  if(success) {
+    logger.info('\n{}\n{}\n{}\n{}\n{}', start.toString(), run1.toString(), run2.toString(), run3.toString(), run4.toString());
+    const dur1 = time.Duration.between(run1, run2).seconds();
+    const dur2 = time.Duration.between(run2, run3).seconds();
+    const dur3 = time.Duration.between(run3, run4).seconds();
+  
+    if(start.isAfter(run1)) {
+      logger.error('{} failed, run1 ran before start!', TEST1);
+      success = false;
+    }
+    if(success && dur1 != 1) {
+      logger.error('{} failed, time between run1 and run2 is {} seconds.', dur1);
+      success = false;
+    }
+    if(success && dur2 != 2) {
+      logger.error('{} failed, time between run2 and run3 is {} seconds', dur2);
+      success = false;
+    }
+    if(success && dur3 != 3) {
+      logger.error('{} failed, time between run3 and run4 is {} seconds', dur3);
+    }
+    if(success) {
+      logger.info('Gatekeeper test 1 success!');
+    }
+  }
+});
+
+// Test 2: cancelAll
+var gk2 = new gatekeeper.Gatekeeper();
+var TEST2 = ruleUID+'_test2'
+reset(TEST2);
+gk2.addCommand('1s 500z', testFunGen(TEST2, 1));
+gk2.addCommand('2s', testFunGen(TEST2, 2));
+gk2.addCommand('3s', testFunGen(TEST2, 3));
+gk2.addCommand(500, testFunGen(TEST2, 4));
+
+actions.ScriptExecution.createTimer(time.ZonedDateTime.now().plus(2750, time.ChronoUnit.MILLIS), () => {
+  var success = true;
+  const run1 = cache.get(TEST2+'_run1');
+  const run2 = cache.get(TEST2+'_run2');
+  const run3 = cache.get(TEST2+'_run3');
+  const run4 = cache.get(TEST2+'_run4');
+  
+  if(!run1) {
+    logger.error('{} failed, run1 did not run', TEST2);
+    success = false;
+  }
+  if(success && !run2) {
+    logger.error('{} failed, run2 did not run', TEST2);
+    success = false;
+  }
+  if(success && run3) {
+    logger.error('{} failed, run3 ran too soon', TEST2);
+    success = false;
+  }
+  if(success && run4) {
+    logger.error('{} failed, run4 ran too soon', TEST2);
+    success = false;
+  }
+  if(success) {
+    gk2.cancelAll();
+    actions.ScriptExecution.createTimer(time.ZonedDateTime.now().plus(4000, time.ChronoUnit.MILLIS), () => {
+      var success = true;
+      const run3 = cache.get(TEST2+'_run3');
+      const run4 = cache.get(TEST2+'_run4');
+      
+      if(run3) {
+        logger.error('{} failed, run3 ran after being cancelled');
+        success = false;
+      }
+      if(success && run4) {
+        logger.error('{} failed, run4 ran after being cancelled');
+      }
+      if(success){
+        logger.info('Gatekeeper test 2 success!')
+      }
+    });
+  }
+});
