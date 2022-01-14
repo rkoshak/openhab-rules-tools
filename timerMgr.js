@@ -1,0 +1,123 @@
+const {timeUtils} = require('openhab_rules_tools');
+
+/**
+ * Implements a manager for Timers with a simple interface. Once built, call
+ * check to create a timer or to reschedule the timer if it exists. Options 
+ * exist to call a function when the timer expires, when the timer already 
+ * exists, and a boolean to determine if the timer is rescheduled or not.
+ */
+class TimerMgr {
+
+  /**
+   * Constructor
+   */
+  constructor() {
+    // Stores the timer and the functions:
+    // - timer: timer Object
+    // - notFlapping: function to call when timer expires
+    // - flapping: function to call when check is called and timer already exists
+    this.timers = {};
+  }
+
+  /**
+   * Called when the timer expires. Cleans up the timer from the manager
+   * and calls the passed in timer function when check was called.
+   */
+  _notFlapping(key) { 
+    return function(context) {
+      if(key in context.timers && 'notFlapping' in context.timers[key]){
+        context.timers[key]['notFlapping']();
+      }
+      if(key in context.timers) {
+        delete context.timers[key];
+      }
+    }
+  }
+
+  /**
+   * Function to call when null was passed for the func or flappingFunc.
+   */
+  _noop() {
+    // do nothing
+  }
+
+  /**
+   * If there is no timer associated with key, create one to expire at when and
+   * call func (or _noop if func is null).
+   * If there is a timer already associted with key, if reschedule is not 
+   * supplied or it's false cancel the timer. If reschedule is true, reschedule
+   * the timer using when. 
+   * If there is a timer already associated with key, if a flappingFunc is 
+   * provided, call it.
+   * @param {*} key usually a String, the "name" of the timer
+   * @param {*} when any representation of time of duration, see timeUtils.toDateTime
+   * @param {function} func optional function to call when the timer expires
+   * @param {boolean} reschedule optional flag, when present and true rescheudle the timer if it already exists
+   * @param {function} flappingFunc optional function to call when the timer already exists
+   */
+  check(key, when, func, reschedule, flappingFunc) {
+
+    var timeout = timeUtils.toDateTime(when);
+
+    // timer exists
+    if(key in this.timers){
+      if(reschedule) {
+        this.timers[key]['timer'].reschedule(timeout); 
+      }
+      else  {
+        this.cancel(key);
+      }
+      if(flappingFunc) {
+        flappingFunc();
+      }
+    }
+
+    // timer doesn't already exist, create a new one
+    else {
+      var timer = actions.ScriptExecution.createTimerWithArgument(timeout, 
+                                                                  this,
+                                                                  this._notFlapping(key));
+      this.timers[key] = { 'timer': timer,
+                           'flapping': flappingFunc,
+                           'notFlapping': (func) ? func : this._noop };
+    }
+  }
+
+  /**
+   * @param {*} key name of the timer
+   * @returns {boolean} true if there is a timer assocaited with key
+   */
+  hasTimer(key) {
+    return key in this.timers;
+  }
+
+  /**
+   * If there is a timer assocaited with key, cancel it.
+   * @param {*} key name of the timer
+   */
+  cancel(key) {
+    if(key in this.timers) {
+      this.timers[key]['timer'].cancel();
+      delete this.timers[key];
+    }
+  }
+
+  /**
+   * Cancels all existing timers. Any timer that is actively running or 
+   * has just terminated will be skipped and cleaned up in the _notFlapping
+   * method.
+   */
+  cancelAll() {
+    for(var key in this.timers) {
+      var t = this.timers[key]['timer'];
+      if(!t.hasTerminated() && !t.isRunning()) {
+        this.cancel(key);
+      }
+      delete this.timers[key];
+    }
+  }
+}
+
+module.exports = {
+  TimerMgr
+}
