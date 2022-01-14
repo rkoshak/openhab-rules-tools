@@ -1,0 +1,66 @@
+const {timeUtils} = require('openhab_rules_tools');
+
+/**
+ * Implements a looping Timer which is passed a function that is expected to return
+ * a when supported by timeUtils.toDateTime. The loop will reschedule the timer based
+ * on that returned when or, if it return null the looping stops.
+ */
+class LoopingTimer {
+
+  /**
+   * Constructor
+   */
+  constructor() {
+    // noop
+  }
+
+  /**
+   * Kicks off the timer loop. Schedules a timer to call func at when
+   * @param {function} func function to call at when, must return a when to continue the loop or null to stop
+   * @param {*} when any of the types supported by timeUtils.toDateTime
+   */
+  loop(func, when) {
+
+    this.func = func;
+    if(!when) this.expired();
+    else {
+      this.timer = actions.ScriptExecution.createTimer(
+                                             timeUtils.toDateTime(when), 
+                                             () => this.expired());
+    }
+  }
+
+  /**
+   * Called when the timer expires. Calls the passed in function and
+   * reschedules it based on the returned when value, or ends if null was
+   * returned.
+   */
+  expired() {
+    var when = this.func();
+    if(when) {
+      this.timer = actions.ScriptExecution.createTimer(
+                                             timeUtils.toDateTime(when),
+                                             () => this.expired());
+    }
+  }
+
+  /**
+   * Cancels the timer if it exists and hasn't already terminated.
+   */
+  cancel() {
+    if(this.timer && !this.hasTerminated()) {
+      this.timer.cancel();
+    }
+  }
+
+  /**
+   * Returns true of the timer doesn't exist or has terminated.
+   */
+  hasTerminated() {
+    return !this.timer || this.timer.hasTerminated();
+  }
+}
+
+module.exports = {
+  LoopingTimer
+}

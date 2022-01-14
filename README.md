@@ -58,3 +58,8 @@ Name | Purpose
 `CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a seconds with the amount of time remaining on that timer.
 `Deferred` | Allows one to easily schedule an update or command to be send to an Item in the future. It can be cancelled.
 `Gatekeeper` | Schedules a sequence of actions with a time between one to the next. It can be used to limit how quickly commands are sent to a device or create a schedule of tasks (e.g. irrigation).
+`LoopingTimer` | Creates a timer that loops until a condition is met. Pass in a function that returns how much time to schedule the next loop iteration or `null` when the timer should exit.
+
+# TODOs
+
+- generate docs from comments
