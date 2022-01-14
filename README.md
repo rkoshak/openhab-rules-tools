@@ -55,10 +55,12 @@ Be sure to look at the comments and the code as well for further details.
 
 Name | Purpose 
 - | -
-`CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a seconds with the amount of time remaining on that timer.
-`Deferred` | Allows one to easily schedule an update or command to be send to an Item in the future. It can be cancelled.
+`CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a seconds with the amount of time remaining on that timer. This works great to see in the UI how much time is left on a timer.
+`Deferred` | Allows one to easily schedule an update or command to be send to an Item in the future. It can be cancelled. This makes creating a timer for simple actions easier.
 `Gatekeeper` | Schedules a sequence of actions with a time between one to the next. It can be used to limit how quickly commands are sent to a device or create a schedule of tasks (e.g. irrigation).
 `LoopingTimer` | Creates a timer that loops until a condition is met. Pass in a function that returns how much time to schedule the next loop iteration or `null` when the timer should exit.
+`RateLimit` | Implements a check that ignores an action if it occurs too soon after the previous action. This is good to limit how often one receives alerts or how often to process events like from a motion snesor. 
+
 
 # TODOs
 
