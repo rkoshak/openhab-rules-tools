@@ -13,3 +13,7 @@ class RateLimit {
     }
   }
 }
+
+module.exports = {
+  RateLimit
+}
