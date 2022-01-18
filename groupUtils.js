@@ -1,3 +1,11 @@
+/**Credit goes to Florian Hotze for the initial idea previously submitted 
+ * to openhab_rules_tools. However, with the changes to JSScripting and
+ * ECMAScript 11, a complete rewrite was warranted including some 
+ * simplification and generalization.
+ * 
+ * The original is still available in the before-npm branch for reference.
+ */
+
 /**
  * Utility that will return the passed in Group's members mapped with the
  * passed in mapping function. An example mapping funciton would be:
