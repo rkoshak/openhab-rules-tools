@@ -62,10 +62,11 @@ Name | Purpose
 `RateLimit` | Implements a check that ignores an action if it occurs too soon after the previous action. This is good to limit how often one receives alerts or how often to process events like from a motion snesor. 
 `timeUtils` | A collection of functions that convert and manipulate times and durations. Almost all the other library capabilities depend on this. `toDateTime` will convert almost any duration or date time to a `time.ZonedDateTime`.
 `TimerMgr` | A class that provides book keeping and management of multiple timers (e.g. one timer per Item for a rule that handled multiple Items). It supports rescheduling, flapping detection, etc.
+`testUtils` | A collection of functions useful for testing.
+`groupUtils` | A collection of functions to simplify mapping and reducing members or descendents of a Group.
 
 # TODOs
 
 - generate docs from comments
-- migrate group_utils to JS Scripting
 - migrate multi_press to JS SCripting
 - migrate rule_utils to JS Scripting

@@ -6,5 +6,6 @@ module.exports = {
     get testUtils() { return require('./testUtils.js') },
     get gatekeeper() { return require('./gatekeeper.js') },
     get deferred() { return require('./deferred.js')},
-    get countdownTimer() { return require('./countdownTimer.js')}
+    get countdownTimer() { return require('./countdownTimer.js')},
+    get groupUtils() { return require('./groupUtils.js')}
   }
