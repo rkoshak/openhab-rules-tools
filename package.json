@@ -1,6 +1,6 @@
 {
     "name": "openhab_rules_tools",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "description": "Functions and classes to make writing openHAB rules in JS Scripting easier.",
     "private": false,
     "license": "EPL-2.0",

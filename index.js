@@ -3,7 +3,7 @@ module.exports = {
     get timerMgr() { return require('./timerMgr.js') },
     get loopingTimer() { return require('./loopingTimer.js') },
     get rateLimit() { return require('./rateLimit.js') },
-    get testUtils() { return require('./test.js') },
+    get testUtils() { return require('./testUtils.js') },
     get gatekeeper() { return require('./gatekeeper.js') },
     get deferred() { return require('./deferred.js')},
     get countdownTimer() { return require('./countdownTimer.js')}
