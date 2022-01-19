@@ -22,8 +22,8 @@
  * @param {function(i)} filterFunc optional filtering function
  * @returns {Array} the filtered Items with the mapping function applies
  */
-const membersToMappedList = (groupName, mapFunc, filterFunc) => {
-  if(!filterFunc) filterFunc = (i) => i;
+ const membersToMappedList = (groupName, mapFunc, filterFunc) => {
+  if(!filterFunc) filterFunc = i => i;
   return items.getItem(groupName).members.filter(filterFunc).map(mapFunc);
 }
 
@@ -35,7 +35,8 @@ const membersToMappedList = (groupName, mapFunc, filterFunc) => {
  * @returns {Array} 
  */
 const descendentsToMappedList = (groupName, mapFunc, filterFunc) => {
-  return items.getItem(groupName).descendents(groupName).map(mapFunc);
+  if(!filterFunc) filterFunc = i => i;
+  return items.getItem(groupName).descendents.filter(filterFunc).map(mapFunc);
 }
 
 /**
@@ -77,7 +78,7 @@ const descendentsToString = (groupName, separator, mapFunc, filterFunc) => {
  */
 const reduceMemberStates = (groupName, reduceFunc, filterFunc) => {
   return membersToMappedList(groupName, (m) => m.rawState, filterFunc)
-           .reduce(reduceFunc);
+           .reduce(reduceFunc, null);
 }
 
 /**
@@ -87,9 +88,9 @@ const reduceMemberStates = (groupName, reduceFunc, filterFunc) => {
  * @param {function(i)} filterFunc
  * @returns A single reduced value calculated from all members of the group
  */
-const reduceDecendentStates = (groupName, reduceFunc) => {
-  return descendentsToMappedList(groupName, (m) => m.rawState)
-           .reduce(reduceFunc);
+const reduceDecendentStates = (groupName, reduceFunc, filterFunc) => {
+  return descendentsToMappedList(groupName, (m) => m.rawState, filterFunc)
+           .reduce(reduceFunc, null);
 }
 
 /**
@@ -151,4 +152,18 @@ const maxList = (list) => {
  */
 const countList = (list, filterFunc) => {
   return list.filter(filterFunc).length;
+}
+
+module.exports = {
+  membersToMappedList,
+  descendentsToMappedList,
+  membersToString,
+  descendentsToString,
+  reduceMemberStates,
+  reduceDecendentStates,
+  sumList,
+  avgList,
+  minList,
+  maxList,
+  countList
 }
