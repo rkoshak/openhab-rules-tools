@@ -64,9 +64,8 @@ Name | Purpose
 `TimerMgr` | A class that provides book keeping and management of multiple timers (e.g. one timer per Item for a rule that handled multiple Items). It supports rescheduling, flapping detection, etc.
 `testUtils` | A collection of functions useful for testing.
 `groupUtils` | A collection of functions to simplify mapping and reducing members or descendents of a Group.
-
+`rulesUtils` | A collection of function to simplify the creation of a rule triggered by Items with a given tag or given Item metadata.
 # TODOs
 
 - generate docs from comments
 - migrate multi_press to JS SCripting
-- migrate rule_utils to JS Scripting

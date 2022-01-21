@@ -7,5 +7,6 @@ module.exports = {
     get gatekeeper() { return require('./gatekeeper.js') },
     get deferred() { return require('./deferred.js')},
     get countdownTimer() { return require('./countdownTimer.js')},
-    get groupUtils() { return require('./groupUtils.js')}
+    get groupUtils() { return require('./groupUtils.js')},
+    get rulesUtils() { return require('./rulesUtils.js')}
   }
