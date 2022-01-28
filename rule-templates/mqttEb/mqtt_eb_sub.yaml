@@ -20,8 +20,8 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      thingUID: {{broker}}
-      channelUID: {{channel}}
+      thingUID: "{{broker}}"
+      channelUID: "{{channel}}"
     type: core.ChannelEventTrigger
 conditions: []
 actions:

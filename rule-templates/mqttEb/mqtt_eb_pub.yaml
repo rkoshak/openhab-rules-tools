@@ -34,11 +34,11 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      groupName: {{cmd}}
+      groupName: "{{cmd}}"
     type: core.GroupCommandTrigger
   - id: "2"
     configuration:
-      groupName: {{upd}}
+      groupName: "{{upd}}"
     type: core.GroupStateUpdateTrigger
 conditions: []
 actions:
