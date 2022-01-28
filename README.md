@@ -10,8 +10,9 @@ Those are still available in the `before-npm` branch but have been removed and a
 Similarly, ECMAScript 5.1 versions of these libraries exist in the `before-npm` branch.
 These too are removed from the main branch and are no longer maintained.
 
-The libraries that will continue to be developed going forward will be JS Scripting and Blockly.
+The libraries that will continue to be developed going forward will be JS Scripting, Blockly, and rule templates.
 The JS Scripting libraries can be installed using npm.
+Blockly libraries and rule templates can be installed from the openHAB marketplace.
 
 ## Rule Tempaltes
 Rule templates are written in various languages.
@@ -38,6 +39,7 @@ Installation of a template can be done from MainUI under Settings -> Automation.
 
 ## Libraries
 - openHAB 3.2 Release or later
+- JavaScript Scripting add-on installed with the default configuration
 
 # Tests
 Many of the library capabilities also have "unit tests" located in the `test` folder.
@@ -64,8 +66,7 @@ Name | Purpose
 `TimerMgr` | A class that provides book keeping and management of multiple timers (e.g. one timer per Item for a rule that handled multiple Items). It supports rescheduling, flapping detection, etc.
 `testUtils` | A collection of functions useful for testing.
 `groupUtils` | A collection of functions to simplify mapping and reducing members or descendents of a Group.
-`rulesUtils` | A collection of function to simplify the creation of a rule triggered by Items with a given tag or given Item metadata.
+`rulesUtils` | A collection of function to simplify the creation of a rule triggered by Items with a given tag or given Item metadata. These do not work well in UI rules.
 # TODOs
 
 - generate docs from comments
-- migrate multi_press to JS SCripting
