@@ -1,0 +1,56 @@
+uid: rules_tools:meter
+label: Meter Reading
+description: Keeps a sum from a counting meter Item that can randomly be reset back to zero.
+configDescriptions:
+  - name: meter
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Number
+    label: Meter Item
+    required: true
+    description: Item that holds the meter readings.
+  - name: total
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Number
+    label: Total Item
+    required: true
+    description: Item that holds the running total.
+triggers:
+  - id: "1"
+    configuration:
+      itemName: "{{meter}}"
+    type: core.ItemStateChangeTrigger
+conditions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript;version=ECMAScript-2021
+      script: "!items.getItem(event.itemName).isUninitialized;"
+    type: script.ScriptCondition
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript;version=ECMAScript-2021
+      script: >-
+        var totalItem = items.getItem('{{total}}');
+
+        var reading = event.itemState.floatValue();
+
+        var lastReading = (event.oldItemState.toString() == 'NULL' || event.oldItemState.toString() == 'UNDEF') ? 0 : event.oldItemState.floatValue();
+
+        var currTotal = (totalItem.isUninitialized) ? 0 : totalItem.rawState.floatValue();
+
+
+        // If the device counter was reset, use the current reading as the delta
+
+        var delta = (reading < lastReading) ? reading : (reading - lastReading);
+
+
+        totalItem.postUpdate((currTotal + delta).toString());
+    type: script.ScriptAction
