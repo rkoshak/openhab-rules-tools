@@ -84,11 +84,9 @@ const toDateTime = (when) => {
     dt = when;
   }
   else if(when instanceof javaZDT) {
-    const JDateTimeFormatter = Java.type('java.time.format.DateTimeFormatter');
-    const jFormatter = JDateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS[xxxx][xxxxx]");
-    const whenStr = when.format(jFormatter);
-    const rfcFormatter = time.DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS[xxxx][xxxxx]");
-    dt = time.ZonedDateTime.parse(whenStr, rfcFormatter);
+    const epoch = when.toInstant().toEpochMilli();
+    const instant = time.Instant.ofEpochMilli(epoch);
+    dt = time.ZonedDateTime.ofInstant(instant, time.ZoneId.SYSTEM);
   }
   else if(when instanceof Date) {
     const native = time.nativeJs(when);
