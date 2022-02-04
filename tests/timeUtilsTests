@@ -84,4 +84,43 @@ testUtils.assert(!timeUtils.toDateTime(new QuantityType('68 °F')),
 dt = dt.minusDays(1);
 testUtils.assert(timeUtils.toToday(dt).dayOfMonth() == time.ZonedDateTime.now().dayOfMonth());
 
+// Test 14: is24Hr
+testUtils.assert(timeUtils.is24Hr('01:02'), 'Failed to match 01:02');
+testUtils.assert(timeUtils.is24Hr('13:14'), 'Failed to match 13:14');
+testUtils.assert(!timeUtils.is24Hr('1:02 pm'), 'Matched 1:02 pm');
+
+// Test 15: is12Hr
+testUtils.assert(timeUtils.is12Hr('1:02 am'), 'Failed to match 1:02 am');
+testUtils.assert(timeUtils.is12Hr('11:22 pm'), 'Failed to match 11:22 pm');
+testUtils.assert(timeUtils.is12Hr('02:03 A.M.'), 'Failed to match 02:03 A.M.');
+testUtils.assert(timeUtils.is12Hr('03:04 P.M.'), 'Failed to match 03:04 P.M.');
+testUtils.assert(!timeUtils.is12Hr('13:00')), 'Matched 13:00';
+testUtils.assert(!timeUtils.is12Hr('13:00 am'), 'Matched 13:00 am');
+
+// Test 16: Convert HH:MM to ZonedDateTime
+dt = timeUtils.toDateTime('13:12');
+testUtils.assert(dt.hour() == 13 && dt.minute() == 12, 'Failed to convert 24 hour time');
+dt = timeUtils.toDateTime('1:12 pm');
+testUtils.assert(dt.hour() == 13 && dt.minute() == 12, 'Failed to convert 12 hour time');
+
+// Test 17: toTomorrow
+dt = time.ZonedDateTime.now();
+testUtils.assert(timeUtils.toTomorrow(dt).dayOfMonth() == time.ZonedDateTime.now().plusDays(1).dayOfMonth(), 'Failed to move dt to tomorrow');
+
+// Test 18: toYesterday
+testUtils.assert(timeUtils.toYesterday(dt).dayOfMonth() == time.ZonedDateTime.now().minusDays(1).dayOfMonth(), 'Failed to move dt to yesterday');
+
+// Test 19: betweenTimes
+var startTime = time.ZonedDateTime.now().minusHours(1);
+var endTime = time.ZonedDateTime.now().plusHours(1);
+testUtils.assert(timeUtils.betweenTimes(startTime, endTime), 'Failed to detect between times');
+
+startTime = time.ZonedDateTime.now().minusHours(2);
+endTime = time.ZonedDateTime.now().minusHours(1);
+testUtils.assert(!timeUtils.betweenTimes(startTime, endTime), 'Outside the time range but detected inside');
+
+startTime = time.ZonedDateTime.now().minusHours(1);
+endTime = time.ZonedDateTime.now().plusDays(1);
+testUtils.assert(timeUtils.betweenTimes(startTime, endTime), 'Failed to detect between times end past midnight');
+
 logger.info("timeUtils tests are done");
