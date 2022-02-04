@@ -147,7 +147,7 @@ const toDateTime = (when) => {
     dt = time.ZonedDateTime.now().plus(when, time.ChronoUnit.MILLIS);
   }
   else if(when instanceof DateTimeType){
-    dt = when.getZonedDateTime();
+    dt = toDateTime(when.getZonedDateTime());
   }
   else if(when instanceof PercentType) {
     dt = time.ZonedDateTime.now().plusSeconds(when.intValue());
@@ -159,7 +159,7 @@ const toDateTime = (when) => {
     }
     // else incompatible QuantityUnits type
   }
-  else if(when instanceof DecimalType || when instanceof PercentType || when instanceof QuantityType || when instanceof Number){
+  else if(when instanceof DecimalType || when instanceof Number){
     dt = time.ZonedDateTime.now().plus(when.longValue(), time.ChronoUnit.MILLIS);
   }
   // else unsupported type
