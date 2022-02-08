@@ -50,13 +50,13 @@ This should only be required for those modifying the scripts and modules.
 However, they are a good place to look at for examples for using various capabilities.
 
 # Usage
-See the README.md file bundled with each rule template and the entry in the [Marketplace postings](https://community.openhab.org/c/marketplace/rule-templates/74).
+For rule tempaltes, see the README.md file bundled with each rule template and the entry in the [Marketplace postings](https://community.openhab.org/c/marketplace/rule-templates/74).
 
-The following sections describe the purpose and how each library capability works and how to use them.
-Be sure to look at the comments and the code as well for further details.
+The following sections describe the purpose of each library capability.
+Be sure to look at the comments, the code, and the tests for further details on usage and details.
 
 Name | Purpose 
-- | -
+-|-
 `CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a seconds with the amount of time remaining on that timer. This works great to see in the UI how much time is left on a timer.
 `Deferred` | Allows one to easily schedule an update or command to be send to an Item in the future. It can be cancelled. This makes creating a timer for simple actions easier.
 `Gatekeeper` | Schedules a sequence of actions with a time between one to the next. It can be used to limit how quickly commands are sent to a device or create a schedule of tasks (e.g. irrigation).
@@ -67,6 +67,39 @@ Name | Purpose
 `testUtils` | A collection of functions useful for testing.
 `groupUtils` | A collection of functions to simplify mapping and reducing members or descendents of a Group.
 `rulesUtils` | A collection of function to simplify the creation of a rule triggered by Items with a given tag or given Item metadata. These do not work well in UI rules.
+
+## How to Save an Instance Between Runs?
+Most of the library capabilities above are classes that one instantiates and reuses over multiple executions of a given rule. 
+So how does one save that instance so it doesn't get overwritten each time a rule runs?
+There are two options.
+
+### Cache
+The openhab-js library includes a `cache` which is a place one can place variables that are shared across all rules and script actions/conditions.
+This is the preferred way to both share variables between rules and to preserve data across multiple rule runs.
+One can pull, and if the Object doesn't exist instantiate it and save it to the `cache` in one line inside your rule.
+
+```
+var timers = cache.get(ruleUID+'_tm', () => new timerMgr.TimerMgr());
+```
+
+Because the `cache` is shared across all rules, it's important to use unique keys or else one rule might overwrite a cached value from another one.
+
+### Global Variable
+If writing your rules in .js files, you can define a variable outside of your rules and that variable will be "global" to all the rules in that file.
+That variable will also be preserved from one run of the rules to the next.
+
+```
+var tm = new timerMgr.TimerMgr();
+
+...
+    // inside a rule
+    tm.check(key, '5m', runme);
+```
+
+NOTE: This approach is not possible in UI rules.
+
+
+
 # TODOs
 
 - generate docs from comments
