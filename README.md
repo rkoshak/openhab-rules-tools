@@ -14,7 +14,7 @@ The libraries that will continue to be developed going forward will be JS Script
 The JS Scripting libraries can be installed using npm.
 Blockly libraries and rule templates can be installed from the openHAB marketplace.
 
-## Rule Tempaltes
+## Rule Templates
 Rule templates are written in various languages.
 Sometimes they will have dependencies that must be separately installed (other templates, libraries, add-ons).
 See the readme and the docs for each template for more details.
@@ -57,7 +57,7 @@ Be sure to look at the comments, the code, and the tests for further details on 
 
 Name | Purpose 
 -|-
-`CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a seconds with the amount of time remaining on that timer. This works great to see in the UI how much time is left on a timer.
+`CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a second with the amount of time remaining on that timer. This works great to see in the UI how much time is left on a timer.
 `Deferred` | Allows one to easily schedule an update or command to be send to an Item in the future. It can be cancelled. This makes creating a timer for simple actions easier.
 `Gatekeeper` | Schedules a sequence of actions with a time between one to the next. It can be used to limit how quickly commands are sent to a device or create a schedule of tasks (e.g. irrigation).
 `LoopingTimer` | Creates a timer that loops until a condition is met. Pass in a function that returns how much time to schedule the next loop iteration or `null` when the timer should exit.
