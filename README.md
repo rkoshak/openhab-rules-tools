@@ -98,7 +98,54 @@ var tm = new timerMgr.TimerMgr();
 
 NOTE: This approach is not possible in UI rules.
 
+## Function Generators
+Many of these capabilities accept a function as an argument passed to them which get called under certain circumstances (e.g. called at a given time).
+When creating those functions one has a number of options.
 
+One can create an anonymous function inline.
+
+```javascript
+this.timers.check(event.itemName, 1000, function() { 
+  // do some stuff
+}
+```
+
+Another way to define an anonymous funciton.
+
+```javascript
+this.timers.check(event.itemName, 1000, () => {
+  // do stuff
+}
+```
+
+Or one can define a named function.
+
+```javascript
+var runme = function() {
+  // do stuff
+}
+this.timers.check(event.itemName, 1000, runme);
+```
+
+With all of the approaches above, one could run into problems with varibles and their scope, particularly in the UI scripts.
+If the function passed refers to variables not defined in the function itself, when the function is finally called (e.g. from a timer) those variables may have changed because of a subsequent run of the script.
+There needs to be a way to "fix" the values of the variables in the function so no matter what happens to them outside the function, the values remain the same in the funciton.
+
+This can be achieved through a function generator.
+A function generator is mainly just a function that returns a function.
+But we can pass as arguments to the generator those values the returned function needs which will fix their values.
+
+```javascript
+var runmeGenerator = function(foo, bar, baz) {
+  return () => {
+    // do stuff with foo, bar, and baz
+  }
+}
+var foo = 'foo';
+var bar = 123;
+var baz = null;
+this.timers.check(event.itemName, 1000, runmeGenerator(foo, bar, baz));
+```
 
 # TODOs
 
