@@ -44,20 +44,21 @@ actions:
 
         var logger = (logger === undefined) ? Java.type("org.slf4j.LoggerFactory").getLogger("org.openhab.model.script.rules_tools.Alarm Clock") : logger;
 
+        logger.warn('The Alarm Clock rule template has been deprecated. Use the Time is <item> trigger instead.')
 
         this.timer = (this.timer === undefined) ? null : this.timer;
 
         var time = items['{{alarmTime}}'];
-        
+
         var item = '{{alarmTime}}';
-        
+
         var script = '{{script}}';
 
         var callScriptGenerator = function(data, script) {
 
           return function() {
             logger.debug("About to call script action");
-            
+
             // Get the RuleManager
             this.ScriptHandler = Java.type("org.openhab.core.automation.module.script.rulesupport.shared.ScriptedHandler");
             var _bundle = FrameworkUtil.getBundle(ScriptHandler.class);
@@ -71,7 +72,7 @@ actions:
 
 
         // No alarm scheduled
-        
+
         var type = (typeof(require) === "function") ? DateTimeType : DateTimeType.class;
 
         if(time.class != type || time.getZonedDateTime().isBefore(ZDT.now())) {
@@ -85,7 +86,7 @@ actions:
 
         else {
           logger.info("Scheduling alarm at " + time + " for " + item);
-          
+
           if(this.timer !== null) {
             logger.debug("Rescheduling alarm for " + time);
             this.timer.reschedule(time.getZonedDateTime());
