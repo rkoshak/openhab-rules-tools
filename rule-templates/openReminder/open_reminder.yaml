@@ -39,16 +39,16 @@ configDescriptions:
     context: rule
     label: Alert Rule
     description: Rule called after the initial timeout and every repeat period thereafter as long as the Item remains in a "not good" state.
-  - name: repeat_start
-    label: Alerting Start Time
-    description: The start of the time where alerts are allowed. Alerts are only sent between this time and the alerting end time. If both are the same, alerts will be sent any time.
+  - name: dndStart
+    label: Do Not Distrub Start Time
+    description: The start of the time where alerts are not allowed. Alerts are only sent outside of the time between this time and the alerting end time. If both are the same, alerts will be sent any time.
     type: TEXT
     required: false
     context: time
     defaultValue: 00:00
-  - name: repeat_end
-    label: Alerting End Time
-    description: The end of the time where alerts are allowed. Alerts are only aent between the alerting start time and alerting end time. If both are the same, alerts will be send any time.
+  - name: dndEnd
+    label: Do Not Disturb End Time
+    description: The end of the time where alerts are not allowed. Alerts are only sent outside of the alerting start time and alerting end time. If both are the same, alerts will be send any time.
     type: TEXT
     required: false
     context: time
@@ -81,11 +81,11 @@ actions:
 
         var repeatPeriod = "{{repeatPeriod}}";
 
-        var repeatStart = "{{repeat_start}}";
+        var dndStart = "{{dndStart}}";
 
-        var repeatEnd = :"{{repeat_end}}";
+        var dndEnd = :"{{dndEnd}}";
 
-        var noAlertPeriod = (repeatStart == repeatEnd);
+        var noAlertPeriod = (dndStart == dndEnd);
 
 
         // If you edit this rule, run it manually to clear out the cache or else
@@ -111,28 +111,26 @@ actions:
               const currState = items.getItem(alertItem).state;
               logger.debug('Timer expired for ' + alertItem + ', calling alert rule');
 
-              // Alert and reschedule if we are not in a do not disturb period and the states still do not match
-              if((noAlertPeriod || time.toZDT().isBetweenTimes(repeatStart, repeatEnd))
-                 && currState != goodState) {
-                logger.debug('It is between repeating times and Item is still not ' + goodState
-                            + ', alerting and rescheduling for ' + repeatPeriod);
-                rules.runRule(alertRuleUID, { 'alertItem': alertItem, 'currState': currState });
-                return repeatPeriod;
+              var alert = true;
+              if(!noAlertPeriod && time.toZDT().isBetweenTimes(dndStart, dndEnd)) {
+                logger.debug('Currently in the do not disturb period between ' + dndStart
+                             + ' and ' + dndEnd + '. Alerting will end now.');
+                alert = false;
               }
 
-              // Do not alert and reschedule if we are in a do not disturb period or the Item returned
-              // to the good state.
+              if(currState == goodState) {
+                logger.debug('Item is now in the good state.');
+                alert = false;
+              }
+
+              if(alert) {
+                logger.debug('It is not between the do not disturb times and ' + alertItem
+                             + ' is still not ' + goodState);
+                rules.runRule(alertRuleUID, true, { 'alertItem': alertItem, 'currState': currState });
+                return repeatPeriod;
+              }
               else {
-                if(noAlertPeriod || time.toZDT().isBetweenTimes(repeatStart, repeatEnd)) {
-                  logger.debug('No longer between reporting times of ' + repeatStart + ' and ' + repeatEnd
-                               + ', alert will not repeat for ' + alertItem);
-                }
-                // This should only run when something has gone wrong or the timing is just off.
-                // The Timer should have been cancelled before this runs in that case.
-                else if(currState == goodState){
-                  logger.debug(alertItem + ' returned to ' + goodState);
-                }
-                logger.debug('No more alerts scheduled');
+                logger.debug('No more alerts are scheduled.')
                 timers.delete(alertItem);
                 return null;
               }
