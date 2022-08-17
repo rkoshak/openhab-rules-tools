@@ -67,7 +67,7 @@ actions:
       script: >
         var {loopingTimer} = require('openhab_rules_tools');
 
-        var logger = log('.rules_tools.'+ruleUID);
+        var logger = log('rules_tools.'+ruleUID);
 
 
         // Rule Properties
@@ -127,7 +127,7 @@ actions:
               if(alert) {
                 logger.debug('It is not between the do not disturb times and ' + alertItem
                              + ' is still not ' + goodState);
-                rules.runRule(alertRuleUID, true, { 'alertItem': alertItem, 'currState': currState });
+                rules.runRule(alertRuleUID, { 'alertItem': alertItem, 'currState': currState }, true);
                 return repeatPeriod;
               }
               else {
