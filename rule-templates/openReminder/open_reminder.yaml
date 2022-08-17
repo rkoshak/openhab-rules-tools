@@ -57,7 +57,8 @@ triggers:
   - id: "1"
     configuration:
       groupName: "{{groupTriggers}}"
-    type: core.GroupStateChangeTriggerconditions: []
+    type: core.GroupStateChangeTriggerconditions
+conditions: []
 actions:
   - inputs: {}
     id: "2"
