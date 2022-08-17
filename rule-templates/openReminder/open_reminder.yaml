@@ -57,7 +57,7 @@ triggers:
   - id: "1"
     configuration:
       groupName: "{{groupTriggers}}"
-    type: core.GroupStateChangeTriggerconditions
+    type: core.GroupStateChangeTrigger
 conditions: []
 actions:
   - inputs: {}
@@ -84,7 +84,7 @@ actions:
 
         var dndStart = "{{dndStart}}";
 
-        var dndEnd = :"{{dndEnd}}";
+        var dndEnd = "{{dndEnd}}";
 
         var noAlertPeriod = (dndStart == dndEnd);
 
@@ -144,8 +144,8 @@ actions:
                        '  goodState:      ' + goodState + '\n' +
                        '  defaultTimeout: ' + defaultTimeout + '\n' +
                        '  repeatPeriod:   ' + repeatPeriod + '\n' +
-                       '  repeatStart:    ' + repeatStart + '\n' +
-                       '  repeatEnd:      ' + repeatEnd + '\n' +
+                       '  dndStart:       ' + dndStart + '\n' +
+                       '  dndEnd:         ' + dndEnd + '\n' +
                        '  noAlertPeriod:  ' + noAlertPeriod + '\n' +
                        '  alertRuleUID:   ' + alertRuleUID);
 
