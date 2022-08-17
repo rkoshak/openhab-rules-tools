@@ -171,7 +171,7 @@ actions:
             // on repeatPeriod
             else {
               const metadata = items.getItem(item).getMetadataValue(timeoutMetadata);
-              const timeout = (metadata) ? 'PT' + metadata : defaultTimeout;
+              const timeout = (metadata) ? metadata : defaultTimeout;
               timers.set(item, new loopingTimer.LoopingTimer());
               logger.debug('Starting alerting timer for ' + timeout + ' for ' + item);
               timers.get(item).loop(sendAlertGenerator(item), timeout);
