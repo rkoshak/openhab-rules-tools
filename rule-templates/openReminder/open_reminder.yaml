@@ -1,0 +1,182 @@
+uid: rules_tools:open_reminder
+label: Open Reminder
+description: This will trigger on a change to an Item in a Group. If the change is different from a "good state" and it remains that state for a specified amount of time it will call another script and reschedule to repeat until the Item returns or a do not distrurb period is entered.
+configDescriptions:
+  - name: groupTriggers
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Group of Triggering Items
+    description: Group whose members should trigger this rule.
+    required: true
+  - name: goodState
+    type: TEXT
+    label: Good State
+    description: Any state different from this will cause the rule to trigger.
+    required: true
+  - name: defaultTimeout
+    type: TEXT
+    label: Default Initial Timeout
+    description: If a triggering Item doesn't have a timeout metadata, the default initial time to wait before calling the script the first time. Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds).
+    defaultValue: PT15m
+    required: false
+  - name: timeoutMetadata
+    type: TEXT
+    label: Default Item Initial Timeout Metadata
+    description: Item metadata namespace to check for a custom initial timeout for the triggering Item. Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds).
+    defaultValue: rem_time
+    required: false
+  - name: repeatPeriod
+    type: TEXT
+    label: Repeat Period
+    description: How often to repeat calling the alert rule after the initial call while the Item remains in a "not good" state.  Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds).
+    defaultValue: PT5m
+    required: false
+  - name: alertRuleUID
+    type: TEXT
+    context: rule
+    label: Alert Rule
+    description: Rule called after the initial timeout and every repeat period thereafter as long as the Item remains in a "not good" state.
+  - name: repeat_start
+    label: Alerting Start Time
+    description: The start of the time where alerts are allowed. Alerts are only sent between this time and the alerting end time. If both are the same, alerts will be sent any time.
+    type: TEXT
+    required: false
+    context: time
+    defaultValue: 00:00
+  - name: repeat_end
+    label: Alerting End Time
+    description: The end of the time where alerts are allowed. Alerts are only aent between the alerting start time and alerting end time. If both are the same, alerts will be send any time.
+    type: TEXT
+    required: false
+    context: time
+    defaultValue: 00:00
+triggers:
+  - id: "1"
+    configuration:
+      groupName: "{{groupTriggers}}"
+    type: core.GroupStateChangeTriggerconditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript;version=ECMAScript-2021
+      script: >
+        var {loopingTimer} = require('openhab_rules_tools');
+
+        var logger = log('.rules_tools.'+ruleUID);
+
+
+        // Rule Properties
+
+        var goodState = "{{goodState}}";
+
+        var defaultTimeout = "{{defaultTimeout}}";
+
+        var timeoutMetadata = "{{timeoutMetadata}}";
+
+        var alertRuleUID = "{{alertRuleUID}}";
+
+        var repeatPeriod = "{{repeatPeriod}}";
+
+        var repeatStart = "{{repeat_start}}";
+
+        var repeatEnd = :"{{repeat_end}}";
+
+        var noAlertPeriod = (repeatStart == repeatEnd);
+
+
+        // If you edit this rule, run it manually to clear out the cache or else
+
+        // errors will occur complaining about the context being closed.
+
+        if(this.event === undefined) {
+          logger.info('Resetting looping timers');
+          cache.put(ruleUID+'_timers', null);
+        }
+
+        else {
+          var timers = cache.get(ruleUID+'_timers', () => new Map());
+          var item = event.itemName;
+          var state = event.itemState.toString();
+
+          // This returns the function called by the LoopingTimer. LoopingTimer will
+          // reschedule the timer based on what the function passed to it returns. If
+          // a duration is returned it will be reschuled for that time into the future.
+          // If null is returned the looping stops.
+          var sendAlertGenerator = (alertItem) => {
+            return () => {
+              const currState = items.getItem(alertItem).state;
+              logger.debug('Timer expired for ' + alertItem + ', calling alert rule');
+
+              // Alert and reschedule if we are not in a do not disturb period and the states still do not match
+              if((noAlertPeriod || time.toZDT().isBetweenTimes(repeatStart, repeatEnd))
+                 && currState != goodState) {
+                logger.debug('It is between repeating times and Item is still not ' + goodState
+                            + ', alerting and rescheduling for ' + repeatPeriod);
+                rules.runRule(alertRuleUID, { 'alertItem': alertItem, 'currState': currState });
+                return repeatPeriod;
+              }
+
+              // Do not alert and reschedule if we are in a do not disturb period or the Item returned
+              // to the good state.
+              else {
+                if(noAlertPeriod || time.toZDT().isBetweenTimes(repeatStart, repeatEnd)) {
+                  logger.debug('No longer between reporting times of ' + repeatStart + ' and ' + repeatEnd
+                               + ', alert will not repeat for ' + alertItem);
+                }
+                // This should only run when something has gone wrong or the timing is just off.
+                // The Timer should have been cancelled before this runs in that case.
+                else if(currState == goodState){
+                  logger.debug(alertItem + ' returned to ' + goodState);
+                }
+                logger.debug('No more alerts scheduled');
+                timers.delete(alertItem);
+                return null;
+              }
+            }
+          };
+
+          logger.debug('Running door alert rule with: \n' +
+                       '  item:           ' + item + '\n' +
+                       '  state:          ' + state + '\n' +
+                       '  goodState:      ' + goodState + '\n' +
+                       '  defaultTimeout: ' + defaultTimeout + '\n' +
+                       '  repeatPeriod:   ' + repeatPeriod + '\n' +
+                       '  repeatStart:    ' + repeatStart + '\n' +
+                       '  repeatEnd:      ' + repeatEnd + '\n' +
+                       '  noAlertPeriod:  ' + noAlertPeriod + '\n' +
+                       '  alertRuleUID:   ' + alertRuleUID);
+
+          // Returned to goodState and timer exists, cancel the looping timer
+          if(state == goodState && timers.has(item)) {
+
+            logger.debug(item + ' has returned to the normal state of ' + goodState + ', canceling the timer if it exists.');
+            timers.get(item).cancel();
+            timers.delete(item);
+
+          }
+
+          // Item changed to a not goodState, create a looping timer if one doesn't already exist
+          else if(state != goodState) {
+            logger.debug(item + ' is not the good state of ' + goodState);
+
+            // There shouldn't be a Timer if the Item just changed to the goodState, log to show
+            // something went wrong.
+            if(timers.has(item)) {
+              logger.warn(item + ' state is now ' + state + ' but an alert timer already exists! This should not have happened!');
+            }
+            // Schedule a looping timer to start at the initial timeout (from metadata) and repeat
+            // on repeatPeriod
+            else {
+              const metadata = items.getItem(item).getMetadataValue(timeoutMetadata);
+              const timeout = (metadata) ? 'PT' + metadata : defaultTimeout;
+              timers.set(item, new loopingTimer.LoopingTimer());
+              logger.debug('Starting alerting timer for ' + timeout + ' for ' + item);
+              timers.get(item).loop(sendAlertGenerator(item), timeout);
+            }
+          }
+        }
+    type: script.ScriptAction
