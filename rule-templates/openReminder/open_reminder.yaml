@@ -31,7 +31,7 @@ configDescriptions:
   - name: repeatPeriod
     type: TEXT
     label: Repeat Period
-    description: How often to repeat calling the alert rule after the initial call while the Item remains in a "not good" state.  Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds).
+    description: How often to repeat calling the alert rule after the initial call while the Item remains in a "not good" state.  Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds). If left blank no repeat is performed.
     defaultValue: PT5m
     required: false
   - name: alertRuleUID
@@ -128,7 +128,14 @@ actions:
                 logger.debug('It is not between the do not disturb times and ' + alertItem
                              + ' is still not ' + goodState);
                 rules.runRule(alertRuleUID, { 'alertItem': alertItem, 'currState': currState }, true);
-                return repeatPeriod;
+                if(repeatPeriod == '' || repeatPeriod === null) {
+                  logger.debug('No repeat period is defined, will not repeat');
+                  timers.delete(alertItem);
+                  return null;
+                }
+                else {
+                  return repeatPeriod;
+                }
               }
               else {
                 logger.debug('No more alerts are scheduled.')
