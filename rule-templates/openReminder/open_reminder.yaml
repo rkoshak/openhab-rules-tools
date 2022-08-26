@@ -26,7 +26,7 @@ configDescriptions:
     type: TEXT
     label: Default Initial Timeout
     description: If a triggering Item doesn't have a timeout metadata, the default initial time to wait before calling the script the first time. Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds).
-    defaultValue: PT15m
+    defaultValue: ''
     required: false
   - name: timeoutMetadata
     type: TEXT
