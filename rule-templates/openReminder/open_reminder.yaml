@@ -127,14 +127,14 @@ actions:
                 alert = false;
               }
 
-              if(currState == goodState) {
-                logger.debug('Item is now in the good state.');
+              if(!runRule(currState)) {
+                logger.debug('Item is now in a good state.');
                 alert = false;
               }
 
               if(alert) {
                 logger.debug('It is not between the do not disturb times and ' + alertItem
-                             + ' is still not ' + goodState);
+                             + ' is still not in a good state.');
                 rules.runRule(alertRuleUID, { 'alertItem': alertItem, 'currState': currState }, true);
                 if(repeatPeriod == '' || repeatPeriod === null) {
                   logger.debug('No repeat period is defined, will not repeat');
@@ -157,6 +157,7 @@ actions:
                        '  item:           ' + item + '\n' +
                        '  state:          ' + state + '\n' +
                        '  goodState:      ' + goodState + '\n' +
+                       '  invert:         ' + {{invert}} + '\n' +
                        '  defaultTimeout: ' + defaultTimeout + '\n' +
                        '  repeatPeriod:   ' + repeatPeriod + '\n' +
                        '  dndStart:       ' + dndStart + '\n' +
@@ -165,9 +166,9 @@ actions:
                        '  alertRuleUID:   ' + alertRuleUID);
 
           // Returned to goodState and timer exists, cancel the looping timer
-          if(state == goodState && timers.has(item)) {
+          if(!runRule(state) && timers.has(item)) {
 
-            logger.debug(item + ' has returned to the normal state of ' + goodState + ', canceling the timer if it exists.');
+            logger.debug(item + ' has returned to a normal state of ' + state + ', canceling the timer if it exists.');
             timers.get(item).cancel();
             timers.delete(item);
 
