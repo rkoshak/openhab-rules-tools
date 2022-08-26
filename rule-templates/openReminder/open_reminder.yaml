@@ -94,7 +94,7 @@ actions:
 
         var noAlertPeriod = (dndStart == dndEnd);
 
-        var runRule = (curr) => { return ({{ invert }}) ? curr == goodState : curr != goodState; };
+        var runRule = (curr) => { return ({{invert}}) ? (curr == goodState) : (curr != goodState); };
 
 
         // If you edit this rule, run it manually to clear out the cache or else
