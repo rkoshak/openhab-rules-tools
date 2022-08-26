@@ -96,6 +96,13 @@ actions:
 
         var run = (curr) => { return ({{invert}}) ? (curr == goodState) : (curr != goodState); };
 
+        var TIMERS_KEY = ruleUID+'_timers';
+
+        var ADD_KEY = ruleUID+'_addMillis';
+
+        var LAST_TIMER_KEY = ruleUID+'_lastTimer';
+
+
 
         // If you edit this rule, run it manually to clear out the cache or else
 
@@ -103,11 +110,13 @@ actions:
 
         if(this.event === undefined) {
           logger.info('Resetting looping timers');
-          cache.put(ruleUID+'_timers', null);
+          cache.put(TIMERS_KEY, null);
+          cache.put(ADD_KEY, null);
+          cache.put(LAST_TIMER_KEY, null);
         }
 
         else {
-          var timers = cache.get(ruleUID+'_timers', () => new Map());
+          var timers = cache.get(TIMERS_KEY, () => new Map());
           var item = event.itemName;
           var state = event.itemState.toString();
 
@@ -176,7 +185,7 @@ actions:
 
           // Item changed to a not goodState, create a looping timer if one doesn't already exist
           else if(run(state)) {
-            logger.debug(item + ' is not the good state of ' + goodState);
+            logger.debug(item + ' is not the good state of ' + state);
 
             // There shouldn't be a Timer if the Item just changed to the goodState, log to show
             // something went wrong.
@@ -187,10 +196,24 @@ actions:
             // on repeatPeriod
             else {
               const metadata = items.getItem(item).getMetadataValue(timeoutMetadata);
-              const timeout = (metadata) ? metadata : defaultTimeout;
+              var timeout = (metadata) ? metadata : defaultTimeout;
               timers.set(item, new loopingTimer.LoopingTimer());
+              const lastSched = cache.get(LAST_TIMER_KEY, () => time.toZDT().minusMinutes(1));
+              var addMillis = cache.get(ADD_KEY, () => 0);
+              logger.debug('Last timer was created at ' + lastSched + ' and last added millis is ' + addMillis);
+              if(time.Duration.between(lastSched, time.toZDT()).abs().toMillis() < 500) {
+                logger.debug('Last timer was scheduled too soon, adding to the subsequent timer');
+                addMillis += 500;
+                timeout = time.Duration.parse(timeout).plusMillis(addMillis);
+                cache.put(ADD_KEY, addMillis);
+              }
+              else {
+                logger.debug('Resetting additional millis');
+                cache.put(ADD_KEY, 0);
+              }
               logger.debug('Starting alerting timer for ' + timeout + ' for ' + item);
               timers.get(item).loop(sendAlertGenerator(item), timeout);
+              cache.put(LAST_TIMER_KEY, time.toZDT());
             }
           }
         }
