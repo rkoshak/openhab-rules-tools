@@ -1,6 +1,6 @@
 uid: rules_tools:open_reminder
 label: Open Reminder
-description: This will trigger on a change to an Item in a Group. If the change is different from a "good state" and it remains that state for a specified amount of time it will call another script and reschedule to repeat until the Item returns or a do not distrurb period is entered.
+description: This will trigger on a change to an Item in a Group. If the change is different from a "good state" (or the same as the "good state" if the match is inverted) and it remains that state for a specified amount of time it will call another script and reschedule to repeat until the Item returns or a do not distrurb period is entered.
 configDescriptions:
   - name: groupTriggers
     type: TEXT
@@ -14,8 +14,14 @@ configDescriptions:
   - name: goodState
     type: TEXT
     label: Good State
-    description: Any state different from this will cause the rule to trigger.
+    description: Any state different from this will cause the rule to run.
     required: true
+  - name: invert
+    type: BOOLEAN
+    label: Invert
+    description: Inverts the match so an state that is the same as Good State will cause the rule to run.
+    defaultValue: false
+    required: false
   - name: defaultTimeout
     type: TEXT
     label: Default Initial Timeout
@@ -87,6 +93,8 @@ actions:
         var dndEnd = "{{dndEnd}}";
 
         var noAlertPeriod = (dndStart == dndEnd);
+
+        var runRule = (curr) => { return ({{ invert }}) ? curr == goodState : curr != goodState; };
 
 
         // If you edit this rule, run it manually to clear out the cache or else
@@ -166,7 +174,7 @@ actions:
           }
 
           // Item changed to a not goodState, create a looping timer if one doesn't already exist
-          else if(state != goodState) {
+          else if(runRule(state)) {
             logger.debug(item + ' is not the good state of ' + goodState);
 
             // There shouldn't be a Timer if the Item just changed to the goodState, log to show
