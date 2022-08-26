@@ -26,8 +26,8 @@ configDescriptions:
     type: TEXT
     label: Default Initial Timeout
     description: If a triggering Item doesn't have a timeout metadata, the default initial time to wait before calling the script the first time. Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds).
-    defaultValue: ''
-    required: false
+    defaultValue: PT15
+    required: true
   - name: timeoutMetadata
     type: TEXT
     label: Default Item Initial Timeout Metadata
@@ -38,7 +38,7 @@ configDescriptions:
     type: TEXT
     label: Repeat Period
     description: How often to repeat calling the alert rule after the initial call while the Item remains in a "not good" state.  Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds). If left blank no repeat is performed.
-    defaultValue: PT5m
+    defaultValue: ''
     required: false
   - name: alertRuleUID
     type: TEXT
