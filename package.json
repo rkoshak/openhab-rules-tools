@@ -1,24 +1,23 @@
 {
-    "name": "openhab_rules_tools",
-    "version": "1.1.0",
-    "description": "Functions and classes to make writing openHAB rules in JS Scripting easier.",
-    "private": false,
-    "license": "EPL-2.0",
-    "main": "index.js",
-    "repository": {
-      "type": "git",
-      "url": "git+https://github.com/rkoshak/openhab-rules-tools.git#main"
-    },
-    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "keywords": [
-      "openHAB",
-      "JSScripting"
-    ],
-    "author": "Richard Koshak",
-    "bugs": {
-      "url": "https://github.com/rkoshak/openhab-rules-tools/issues"
-    }
+  "name": "openhab_rules_tools",
+  "version": "1.1.2",
+  "description": "Functions and classes to make writing openHAB rules in JS Scripting easier.",
+  "private": false,
+  "license": "EPL-2.0",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rkoshak/openhab-rules-tools.git#main"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "openHAB",
+    "JSScripting"
+  ],
+  "author": "Richard Koshak",
+  "bugs": {
+    "url": "https://github.com/rkoshak/openhab-rules-tools/issues"
   }
-  
+}
