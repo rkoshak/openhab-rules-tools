@@ -1,8 +1,6 @@
-const {timeUtils} = require('openhab_rules_tools');
-
 /**
  * Implements a looping Timer which is passed a function that is expected to return
- * a when supported by timeUtils.toDateTime. The loop will reschedule the timer based
+ * a when supported by time.toZDT. The loop will reschedule the timer based
  * on that returned when or, if it return null the looping stops.
  */
 class LoopingTimer {
@@ -17,16 +15,16 @@ class LoopingTimer {
   /**
    * Kicks off the timer loop. Schedules a timer to call func at when
    * @param {function} func function to call at when, must return a when to continue the loop or null to stop
-   * @param {*} when any of the types supported by timeUtils.toDateTime
+   * @param {*} when any of the types supported by time.toZDT
    */
   loop(func, when) {
 
     this.func = func;
-    if(!when) this.expired();
+    if (!when) this.expired();
     else {
       this.timer = actions.ScriptExecution.createTimer(
-                                             timeUtils.toDateTime(when), 
-                                             () => this.expired());
+        time.toZDT(when),
+        () => this.expired());
     }
   }
 
@@ -37,10 +35,10 @@ class LoopingTimer {
    */
   expired() {
     var when = this.func();
-    if(when) {
+    if (when) {
       this.timer = actions.ScriptExecution.createTimer(
-                                             timeUtils.toDateTime(when),
-                                             () => this.expired());
+        time.toZDT(when),
+        () => this.expired());
     }
   }
 
@@ -48,7 +46,7 @@ class LoopingTimer {
    * Cancels the timer if it exists and hasn't already terminated.
    */
   cancel() {
-    if(this.timer && !this.hasTerminated()) {
+    if (this.timer && !this.hasTerminated()) {
       this.timer.cancel();
     }
   }

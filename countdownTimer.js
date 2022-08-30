@@ -1,25 +1,25 @@
-const {timeUtils, loopingTimer} = require('openhab_rules_tools');
-const {time, items} = require('openhab');
+const { loopingTimer } = require('openhab_rules_tools');
+const { time, items } = require('openhab');
 
 /**
- * Timer that updates a passed in Item with the number of seconds reamining on the 
- * Timer once a second. 
+ * Timer that updates a passed in Item with the number of seconds reamining on the
+ * Timer once a second.
  */
 class CountdownTimer {
-  
-    /**
-     * Creates a timer to run func at when and a looping timer to update
-     * countItem with the seconds remaining every second. Both timers start
-     * immediately.
-     * @param {*} when timeUtils.toDateTime compatible time or duration
-     * @param {function} func function to call at when
-     * @param {string} countItem name of the Item to update with the seconds remaining
-     */
+
+  /**
+   * Creates a timer to run func at when and a looping timer to update
+   * countItem with the seconds remaining every second. Both timers start
+   * immediately.
+   * @param {*} when time.toZDT compatible time or duration
+   * @param {function} func function to call at when
+   * @param {string} countItem name of the Item to update with the seconds remaining
+   */
   constructor(when, func, countItem) {
     this.start = time.ZonedDateTime.now();
-    this.end = timeUtils.toDateTime(when);
+    this.end = time.toZDT(when);
     this.ONE_SEC = time.Duration.ofSeconds(1);
-    
+
     // Create a separate timer to run the func
     this.timer = actions.ScriptExecution.createTimer(this.start, func);
     this.timeLeft = time.Duration.between(this.start, this.end);
@@ -31,14 +31,14 @@ class CountdownTimer {
   }
 
   /**
-   * Determines the number of seconds left and updates the count Item. If the 
+   * Determines the number of seconds left and updates the count Item. If the
    * time left is less than a second, 0 is the value posted.
    * @param {CountdownTimer} ctx Context to access the timer information from inside the countdown Timer's lambda
    */
   _updateItem(ctx) {
     let left = (ctx.timeLeft.compareTo(ctx.ONE_SEC) < 0) ? 0 : ctx.timeLeft.seconds();
     items.getItem(ctx.countItem).postUpdate(left);
-  } 
+  }
 
   /**
    * Drives the looping timer that updates the countItem. Runs once a second until
@@ -48,7 +48,7 @@ class CountdownTimer {
   _iterateGenerator(ctx) {
     return () => {
       ctx._updateItem(ctx);
-      if(!ctx.timeLeft.isZero()) {
+      if (!ctx.timeLeft.isZero()) {
         let sleepTime = (ctx.timeLeft.compareTo(ctx.ONE_SEC) < 0) ? ctx.timeLeft : ctx.ONE_SEC;
         ctx.timeLeft = ctx.timeLeft.minusDuration(sleepTime);
         return '1s';
