@@ -1,4 +1,5 @@
-var {timerMgr, testUtils} = require('./openhab_rules_tools');
+var { time } = require('openhab');
+var { timerMgr } = require('./openhab_rules_tools');
 
 var logger = log('rules_tools.TimerMgr Tests');
 
@@ -9,46 +10,46 @@ var FLAPPING = '_flapping';
 
 var test = (test, key, exists, expired, flapping) => {
   var ht = tm.hasTimer(key);
-  var expiredCalled = cache.get(key+EXPIRED) || false;
-  var flappingCalled = cache.get(key+FLAPPING) || false;
+  var expiredCalled = cache.get(key + EXPIRED) || false;
+  var flappingCalled = cache.get(key + FLAPPING) || false;
   var rval = false;
   logger.debug('{} Expected/Actual - Exists: {}/{}, Expired: {}/{} Flapping: {}/{}', test, exists, ht, expired, expiredCalled, flapping, flappingCalled);
-  if(ht != exists) logger.error('{} Timer exists {}: expected {}', test, key, ht, expired);
-  else if(expiredCalled != expired) logger.error('{}: Expired called on {} expected {}', test, key, expiredCalled, expired);
-  else if(flappingCalled != flapping) logger.error('{}: Flapping called on {} expected {}', test, key, flappingCalled, flapping);
+  if (ht != exists) logger.error('{} Timer exists {}: expected {}', test, key, ht, expired);
+  else if (expiredCalled != expired) logger.error('{}: Expired called on {} expected {}', test, key, expiredCalled, expired);
+  else if (flappingCalled != flapping) logger.error('{}: Flapping called on {} expected {}', test, key, flappingCalled, flapping);
   else rval = true;
-  
+
   return rval;
 }
 
 
 var initKeys = (root) => {
   cache.put(root, null);
-  cache.put(root+EXPIRED, null);
-  cache.put(root+FLAPPING, null);
+  cache.put(root + EXPIRED, null);
+  cache.put(root + FLAPPING, null);
 }
 
 var expiredCalled = (key) => {
   return () => {
     logger.debug('Called expired function for {}', key);
-    cache.put(key+EXPIRED, true);
+    cache.put(key + EXPIRED, true);
   }
 }
 
 var flappingCalled = (key) => {
   return () => {
     logger.debug('Called flapping function for {}', key);
-    cache.put(key+FLAPPING, true);
+    cache.put(key + FLAPPING, true);
   }
 }
 
 logger.info('Starting TimerMgr Tests');
 
-var now = time.ZonedDateTime.now();
+var now = time.toZDT();
 
 var keys = [];
-for(i=1; i <= 11; i++) {
-  const key = ruleUID+'_test'+i;
+for (i = 1; i <= 11; i++) {
+  const key = ruleUID + '_test' + i;
   keys.push(key);
   initKeys(key);
 }
@@ -72,8 +73,8 @@ actions.ScriptExecution.createTimer(now.plus(2110, time.ChronoUnit.MILLIS), () =
 });
 
 // Test 4: No function timer runnning
-tm.check(keys[3], '1s', undefined, undefined, () => {
-  cache.put(keys[3]+FLAPPING, true);
+tm.check(keys[3], 'PT1s', undefined, undefined, () => {
+  cache.put(keys[3] + FLAPPING, true);
 });
 
 actions.ScriptExecution.createTimer(now.plus(500, time.ChronoUnit.MILLIS), () => {
@@ -86,10 +87,10 @@ actions.ScriptExecution.createTimer(now.plus(1050, time.ChronoUnit.MILLIS), () =
 });
 
 // Test 6: Timer gets rescheduled and both expired and flapping get called.
-tm.check(keys[5], '1s 110z', expiredCalled(keys[5]), true, flappingCalled(keys[5]));
+tm.check(keys[5], 'PT1.11s', expiredCalled(keys[5]), true, flappingCalled(keys[5]));
 actions.ScriptExecution.createTimer(now.plus(525, time.ChronoUnit.MILLIS), () => {
   cache.put(keys[5], test(keys[5], keys[5], true, false, false));
-  tm.check(keys[5], '1s', expiredCalled(keys[5]), true, flappingCalled(keys[5]));
+  tm.check(keys[5], 'PT1s', expiredCalled(keys[5]), true, flappingCalled(keys[5]));
 });
 
 // Test 7: See if flapping was called and timer is rescheduled
@@ -121,10 +122,10 @@ cache.put(keys[10], test(keys[10], keys[10], false, false, false));
 // Check results
 actions.ScriptExecution.createTimer(now.plus(3000, time.ChronoUnit.MILLIS), () => {
   const passed = keys.map((key) => cache.get(key)).reduce((combine, value) => combine && value);
-  if(passed) logger.info('TimerMgr tests completed successfully!');
+  if (passed) logger.info('TimerMgr tests completed successfully!');
   else {
     const failed = keys.filter((key) => cache.get(key)).join('\n');
-    logger.error('TimerMgr tests have failed:\n{}',failed);
+    logger.error('TimerMgr tests have failed:\n{}', failed);
   }
 });
 

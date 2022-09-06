@@ -1,4 +1,4 @@
-var {rateLimit, testUtils} = require('openhab_rules_tools');
+var { rateLimit, testUtils } = require('openhab_rules_tools');
 
 var logger = log('rules_tools.RateLimit Tests');
 
@@ -17,20 +17,20 @@ testUtils.assert(funcCalled, 'Test 1: First run function was not called');
 // Test 2: calling after 2 second wait func is called
 funcCalled = false;
 testUtils.sleep(2);
-rl.run(test, '2s');
+rl.run(test, 'PT2s');
 testUtils.assert(funcCalled, 'Test 2: First run function was not called');
 funcCalled = false
 testUtils.sleep(2000);
 rl.run(test, 2);
-testUtils.assert(funcCalled, 'Test 2: Second run was not calle after two seconds');
+testUtils.assert(funcCalled, 'Test 2: Second run was not called after two seconds');
 
 // Test 3: calling before wait func is not called
 funcCalled = false;
 testUtils.sleep(2);
-rl.run(test, '2s');
+rl.run(test, 'PT2s');
 testUtils.assert(funcCalled, 'Test 3: First run function was not called');
 funcCalled = false;
-rl.run(test, '2s');
+rl.run(test, 'PT2s');
 testUtils.assert(!funcCalled, 'Test 3: Second run function was called before wait time');
 
 logger.info('All tests have passed');
