@@ -6,6 +6,8 @@ const PercentType = Java.type('org.openhab.core.library.types.PercentType');
 const QuantityType = Java.type('org.openhab.core.library.types.QuantityType');
 
 /**
+ * DEPRECATED DEPRECATED DEPRECATED
+ * Use openhab-js time.Duration.parse() instead, note it uses ISO8601 duration formats
  * Parses a duration string returning a js-joda Duration representing the
  * duration. Supports the followiung units:
  *   - d days
@@ -45,6 +47,8 @@ const parseDuration = (durationStr) => {
 }
 
 /**
+ * DEPRECATED DEPRECATED DEPRECATED
+ * Use openhab-js time.toZDT(duration)
  * Adds the duration to now. If the duration is a String, call parseDuration
  * first.
  * @param {time.Duration|String} duration
@@ -171,6 +175,8 @@ const toDateTime = (when) => {
 }
 
 /**
+ * DEPRECATED DEPRECATED DEPRECATED
+ * Use openhab-js toToday.
  * Moves the date time to today's date. If pass a duration, converts it to a
  * ZonedDateTime and then moves it to today's date.
  * @param {time.ZonedDateTime|java.time.ZonedDateTime|String|number|bigint|DateTimeType|DecimalType|PercentType|QuantityType} when date time or duration to move to today's date
@@ -213,6 +219,8 @@ const toYesterday = (when) => {
 }
 
 /**
+ * DEPRECATED DEPRECATED DEPRECATED
+ * Use openhab-js time.betweenTimes instead.
  * Tests to see if now falls between a start time or end time (ignoring the date) with logic
  * to handle cases where the time period spans midnight.
  * @param {time.ZonedDateTime|java.time.ZonedDateTime|String|number|bigint|DateTimeType|DecimalType|PercentType|QuantityType} start date time or duration whose time portion indicates the start of the time period
