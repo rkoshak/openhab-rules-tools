@@ -16,7 +16,7 @@ class CountdownTimer {
    * @param {string} countItem name of the Item to update with the seconds remaining
    */
   constructor(when, func, countItem) {
-    this.start = time.ZonedDateTime.now();
+    this.start = time.toZDT();
     this.end = time.toZDT(when);
     this.ONE_SEC = time.Duration.ofSeconds(1);
 
@@ -51,7 +51,7 @@ class CountdownTimer {
       if (!ctx.timeLeft.isZero()) {
         let sleepTime = (ctx.timeLeft.compareTo(ctx.ONE_SEC) < 0) ? ctx.timeLeft : ctx.ONE_SEC;
         ctx.timeLeft = ctx.timeLeft.minusDuration(sleepTime);
-        return '1s';
+        return 'PT1s';
       }
       else {
         return null;
