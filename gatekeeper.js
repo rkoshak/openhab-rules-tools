@@ -1,3 +1,4 @@
+const { time } = require('openhab');
 /**
  * Class that implements the Gatekeeper design pattern. When the user calls
  * addCommand, it will queue them up so that a new command is not called until

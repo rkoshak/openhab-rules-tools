@@ -1,3 +1,5 @@
+const { time } = require('openhab');
+
 /**
  * Implements a looping Timer which is passed a function that is expected to return
  * a when supported by time.toZDT. The loop will reschedule the timer based

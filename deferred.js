@@ -1,4 +1,5 @@
 const { timerMgr } = require('openhab_rules_tools');
+const { time, items } = require('openhab');
 
 /**
  * Class that can be used to schedule a command or update to be sent to an Item later.

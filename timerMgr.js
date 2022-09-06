@@ -1,3 +1,5 @@
+const { time } = require('openhab');
+
 /**
  * Implements a manager for Timers with a simple interface. Once built, call
  * check to create a timer or to reschedule the timer if it exists. Options
