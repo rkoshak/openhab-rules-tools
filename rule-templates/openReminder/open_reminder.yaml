@@ -22,7 +22,7 @@ configDescriptions:
     description: Inverts the match so an state that is the same as Alert State will cause the rule to run.
     defaultValue: false
     required: false
-  - name: trigger
+  - name: triggerType
     type: TEXT
     label: Trigger Type
     description: Choose what type of update triggers the rule.
@@ -77,7 +77,7 @@ triggers:
   - id: "1"
     configuration:
       groupName: "{{groupTriggers}}"
-    type: "{{trigger}}"
+    type: {{triggerType}}
 conditions: []
 actions:
   - inputs: {}
