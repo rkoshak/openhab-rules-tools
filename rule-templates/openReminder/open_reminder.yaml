@@ -22,20 +22,6 @@ configDescriptions:
     description: Inverts the match so an state that is the same as Alert State will cause the rule to run.
     defaultValue: false
     required: false
-  - name: triggerType
-    type: TEXT
-    label: Trigger Type
-    description: Choose what type of update triggers the rule.
-    defaultValue: core.GroupStateChangeTrigger
-    required: false
-    options:
-      - label: changed
-        value: core.GroupStateChangeTrigger
-      - label: received update
-        value: core.GroupStateUpdateTrigger
-      - label: received command
-        value: core.GroupCommandTrigger
-    limitToOptions: true
   - name: defaultTimeout
     type: TEXT
     label: Default Initial Timeout
@@ -77,7 +63,7 @@ triggers:
   - id: "1"
     configuration:
       groupName: "{{groupTriggers}}"
-    type: "{{triggerType}}"
+    type: core.GroupStateChangeTrigger
 conditions: []
 actions:
   - inputs: {}
