@@ -11,22 +11,22 @@ configDescriptions:
     label: Group of Triggering Items
     description: Group whose members should trigger this rule.
     required: true
-  - name: goodState
+  - name: alertState
     type: TEXT
-    label: Good State
+    label: Alert State
     description: Any state different from this will cause the rule to run.
     required: true
   - name: invert
     type: BOOLEAN
     label: Invert
-    description: Inverts the match so an state that is the same as Good State will cause the rule to run.
+    description: Inverts the match so an state that is the same as Alert State will cause the rule to run.
     defaultValue: false
     required: false
   - name: trigger
     type: TEXT
     label: Trigger Type
     description: Choose what type of update triggers the rule.
-    defaultValue: "changed"
+    defaultValue: "core.GroupStateChangeTrigger"
     required: false
     options:
       - label: "received command"
@@ -91,7 +91,7 @@ actions:
 
         // Rule Properties
 
-        var goodState = "{{goodState}}";
+        var alertState = "{{alertState}}";
 
         var defaultTimeout = "{{defaultTimeout}}";
 
@@ -107,7 +107,7 @@ actions:
 
         var noAlertPeriod = (dndStart == dndEnd);
 
-        var isAlertState = (curr) => { return ({{invert}}) ? (curr == goodState) : (curr != goodState); };
+        var isAlertState = (curr) => { return ({{invert}}) ? (curr == alertState) : (curr != alertState); };
 
 
         var TIMERS_KEY = ruleUID+'_timers';
@@ -201,7 +201,7 @@ actions:
           logger.debug('Running door alert rule with: \n' +
                        '  item:           ' + item + '\n' +
                        '  state:          ' + state + '\n' +
-                       '  goodState:      ' + goodState + '\n' +
+                       '  alertState:     ' + alertState + '\n' +
                        '  invert:         ' + true + '\n' +
                        '  defaultTimeout: ' + defaultTimeout + '\n' +
                        '  repeatPeriod:   ' + repeatPeriod + '\n' +
@@ -210,7 +210,7 @@ actions:
                        '  noAlertPeriod:  ' + noAlertPeriod + '\n' +
                        '  alertRuleUID:   ' + alertRuleUID);
 
-          // Returned to goodState and timer exists, cancel the looping timer
+          // Returned to alertState and timer exists, cancel the looping timer
           if(!isAlertState(state) && timers.has(item)) {
 
             logger.debug(item + ' has returned to a non-alerting state of ' + state + ', canceling the timer if it exists.');
@@ -219,11 +219,11 @@ actions:
 
           }
 
-          // Item changed to a not goodState, create a looping timer if one doesn't already exist
+          // Item changed to a not alertState, create a looping timer if one doesn't already exist
           else if(isAlertState(state)) {
             logger.debug(item + ' is in the alert state of ' + state);
 
-            // There shouldn't be a Timer if the Item just changed to the goodState, log to show
+            // There shouldn't be a Timer if the Item just changed to the alertState, log to show
             // something went wrong.
             if(timers.has(item)) {
               logger.warn(item + ' state is now ' + state + ' but an alert timer already exists! This should not have happened!');
