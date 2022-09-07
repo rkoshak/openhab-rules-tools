@@ -94,14 +94,12 @@ actions:
 
         var noAlertPeriod = (dndStart == dndEnd);
 
-        var run = (curr) => { return ({{invert}}) ? (curr == goodState) : (curr != goodState); };
+        var isAlertState = (curr) => { return ({{invert}}) ? (curr == goodState) : (curr != goodState); };
+
 
         var TIMERS_KEY = ruleUID+'_timers';
 
-        var ADD_KEY = ruleUID+'_addMillis';
-
-        var LAST_TIMER_KEY = ruleUID+'_lastTimer';
-
+        var TIMER_BUFFER = 600*1000000; // Nano seconds
 
 
         // If you edit this rule, run it manually to clear out the cache or else
@@ -111,62 +109,87 @@ actions:
         if(this.event === undefined) {
           logger.info('Resetting looping timers');
           cache.put(TIMERS_KEY, null);
-          cache.put(ADD_KEY, null);
-          cache.put(LAST_TIMER_KEY, null);
         }
 
         else {
-          var timers = cache.get(TIMERS_KEY, () => new Map());
-          var item = event.itemName;
-          var state = event.itemState.toString();
+          const timers = cache.get(TIMERS_KEY, () => new Map());
+          const item = event.itemName;
+          const state = event.itemState.toString();
+
+          // Looks at the currently scheduled timers and makes the time for a new one
+          // doesn't overlap.
+          // Loop through the timers and check the timeout time against the existing timers.
+          // If it's within half a second of one, move the timer forward 500 msec.
+          // If the timeout was moved at least once, loop through the timers again to make
+          // sure we didn't move it on top of an already checked timer.
+          const avoidOverlapping = (timeout) => {
+            let rval = time.toZDT(timeout);
+            let recheck = true;
+            while(recheck) {
+              recheck = false;
+              logger.debug('There are ' + timers.size + ' timers already scheduled');
+              timers.forEach((value, key) => {
+                if(!value.hasTerminated() &&
+                  rval.isClose(time.toZDT(value.timer.getExecutionTime()), time.Duration.ofMillis(250))) {
+                  logger.debug('Found timer ' + value.name + ' that has not terminated and is too close to timeout');
+                  rval = rval.plusNanos(TIMER_BUFFER);
+                  recheck = true;
+                }
+              });
+            }
+            return rval;
+          };
+
+          // Moves the alert time to the end of the DND period if the timeout is
+          // in the DND period. Then it makes sure it's at least TIMER_BUFFER nanosecs
+          // from any existing timer
+          const generateAlertTime = (timeout, dndStart, dndEnd) => {
+            let rval = time.toZDT(timeout);
+            if(rval.isBetweenTimes(dndStart, dndEnd)) {
+              logger.debug('Timer is scheduled during DND, moving to end of DND');
+              rval = dndEnd;
+            }
+            return avoidOverlapping(rval);
+          };
 
           // This returns the function called by the LoopingTimer. LoopingTimer will
           // reschedule the timer based on what the function passed to it returns. If
           // a duration is returned it will be reschuled for that time into the future.
           // If null is returned the looping stops.
-          var sendAlertGenerator = (alertItem) => {
+          const sendAlertGenerator = (alertItem) => {
             return () => {
               const currState = items.getItem(alertItem).state;
-              logger.debug('Timer expired for ' + alertItem + ', calling alert rule');
+              logger.debug('Timer expired for ' + alertItem);
 
-              var alert = true;
-              if(!noAlertPeriod && time.toZDT().isBetweenTimes(dndStart, dndEnd)) {
-                logger.debug('Currently in the do not disturb period between ' + dndStart
-                             + ' and ' + dndEnd + '. Alerting will end now.');
-                alert = false;
-              }
+              // Calculate the next repeat time
+              let repeatTime = (repeatPeriod) ? generateAlertTime(repeatPeriod, dndStart, dndEnd) : null;
 
-              if(!run(currState)) {
-                logger.debug('Item is now in a good state.');
-                alert = false;
-              }
-
-              if(alert) {
-                logger.debug('It is not between the do not disturb times and ' + alertItem
-                             + ' is still not in a good state.');
+              // Send alert
+              if(isAlertState(currState)) {
+                logger.debug('Item is still in an alert state.')
                 rules.runRule(alertRuleUID, { 'alertItem': alertItem, 'currState': currState }, true);
-                if(repeatPeriod == '' || repeatPeriod === null) {
-                  logger.debug('No repeat period is defined, will not repeat');
-                  timers.delete(alertItem);
-                  return null;
-                }
-                else {
-                  return repeatPeriod;
-                }
               }
+              // Cancel the repeats
               else {
-                logger.debug('No more alerts are scheduled.')
-                timers.delete(alertItem);
-                return null;
+                logger.debug('Item has returned to the non-alert state');
+                repeatTime = null;
               }
-            }
+
+              // If there is no repeat delete the timer from the map
+              if(!repeatTime) {
+                timers.delete(alertItem);
+              }
+
+              return repeatTime;
+            };
           };
+
 
           logger.debug('Running door alert rule with: \n' +
                        '  item:           ' + item + '\n' +
                        '  state:          ' + state + '\n' +
                        '  goodState:      ' + goodState + '\n' +
-                       '  invert:         ' + {{invert}} + '\n' +
+                       '  invert:         ' + true + '\n' +
                        '  defaultTimeout: ' + defaultTimeout + '\n' +
                        '  repeatPeriod:   ' + repeatPeriod + '\n' +
                        '  dndStart:       ' + dndStart + '\n' +
@@ -175,17 +198,17 @@ actions:
                        '  alertRuleUID:   ' + alertRuleUID);
 
           // Returned to goodState and timer exists, cancel the looping timer
-          if(!run(state) && timers.has(item)) {
+          if(!isAlertState(state) && timers.has(item)) {
 
-            logger.debug(item + ' has returned to a normal state of ' + state + ', canceling the timer if it exists.');
+            logger.debug(item + ' has returned to a non-alerting state of ' + state + ', canceling the timer if it exists.');
             timers.get(item).cancel();
             timers.delete(item);
 
           }
 
           // Item changed to a not goodState, create a looping timer if one doesn't already exist
-          else if(run(state)) {
-            logger.debug(item + ' is not the good state of ' + state);
+          else if(isAlertState(state)) {
+            logger.debug(item + ' is in the alert state of ' + state);
 
             // There shouldn't be a Timer if the Item just changed to the goodState, log to show
             // something went wrong.
@@ -196,24 +219,10 @@ actions:
             // on repeatPeriod
             else {
               const metadata = items.getItem(item).getMetadataValue(timeoutMetadata);
-              var timeout = (metadata) ? metadata : defaultTimeout;
-              timers.set(item, new loopingTimer.LoopingTimer());
-              const lastSched = cache.get(LAST_TIMER_KEY, () => time.toZDT().minusMinutes(1));
-              var addMillis = cache.get(ADD_KEY, () => 0);
-              logger.debug('Last timer was created at ' + lastSched + ' and last added millis is ' + addMillis);
-              if(time.Duration.between(lastSched, time.toZDT()).abs().toMillis() < 500) {
-                logger.debug('Last timer was scheduled too soon, adding to the subsequent timer');
-                addMillis += 500;
-                timeout = time.Duration.parse(timeout).plusMillis(addMillis);
-                cache.put(ADD_KEY, addMillis);
-              }
-              else {
-                logger.debug('Resetting additional millis');
-                cache.put(ADD_KEY, 0);
-              }
-              logger.debug('Starting alerting timer for ' + timeout + ' for ' + item);
+              let timeout = generateAlertTime((metadata) ? metadata : defaultTimeout, dndStart, dndEnd);
+              timers.set(item, new loopingTimer.LoopingTimer()); // add name as argument when openhab_rules_tools is updated to support that
+              logger.debug('Starting timer for ' + item + ' with ' + timeout);
               timers.get(item).loop(sendAlertGenerator(item), timeout);
-              cache.put(LAST_TIMER_KEY, time.toZDT());
             }
           }
         }
