@@ -29,12 +29,12 @@ configDescriptions:
     defaultValue: core.GroupStateChangeTrigger
     required: false
     options:
-      - label: received command
-        value: core.GroupCommandTrigger
       - label: changed
         value: core.GroupStateChangeTrigger
       - label: received update
         value: core.GroupStateUpdateTrigger
+      - label: received command
+        value: core.GroupCommandTrigger
     limitToOptions: true
   - name: defaultTimeout
     type: TEXT
