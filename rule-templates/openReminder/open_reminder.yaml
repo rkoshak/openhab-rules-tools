@@ -26,15 +26,16 @@ configDescriptions:
     type: TEXT
     label: Trigger Type
     description: Choose what type of update triggers the rule.
-    defaultValue: "core.GroupStateChangeTrigger"
+    defaultValue: core.GroupStateChangeTrigger
     required: false
     options:
-      - label: "received command"
-        value: "core.GroupCommandTrigger"
-      - label: "changed"
-        value: "core.GroupStateChangeTrigger"
-      - label: "received update"
-        value: "core.GroupStateUpdateTrigger"
+      - label: received command
+        value: core.GroupCommandTrigger
+      - label: changed
+        value: core.GroupStateChangeTrigger
+      - label: received update
+        value: core.GroupStateUpdateTrigger
+    limitToOptions: true
   - name: defaultTimeout
     type: TEXT
     label: Default Initial Timeout
