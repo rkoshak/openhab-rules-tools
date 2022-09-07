@@ -77,7 +77,7 @@ triggers:
   - id: "1"
     configuration:
       groupName: "{{groupTriggers}}"
-    type: {{triggerType}}
+    type: "{{triggerType}}"
 conditions: []
 actions:
   - inputs: {}
