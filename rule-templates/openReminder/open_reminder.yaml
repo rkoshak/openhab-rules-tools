@@ -22,6 +22,19 @@ configDescriptions:
     description: Inverts the match so an state that is the same as Good State will cause the rule to run.
     defaultValue: false
     required: false
+  - name: trigger
+    type: TEXT
+    label: Trigger Type
+    description: Choose what type of update triggers the rule.
+    defaultValue: "changed"
+    required: false
+    options:
+      - label: "received command"
+        value: "core.GroupCommandTrigger"
+      - label: "changed"
+        value: "core.GroupStateChangeTrigger"
+      - label: "received update"
+        value: "core.GroupStateUpdateTrigger"
   - name: defaultTimeout
     type: TEXT
     label: Default Initial Timeout
@@ -63,7 +76,7 @@ triggers:
   - id: "1"
     configuration:
       groupName: "{{groupTriggers}}"
-    type: core.GroupStateUpdateTrigger
+    type: {{trigger}}
 conditions: []
 actions:
   - inputs: {}
