@@ -46,7 +46,7 @@ configDescriptions:
     description: Reschedule the initial looping timer when the Item changes to the alerting state again or ignore the state change. Put another way, set the timer to run after the first alert event, or after the last alert event. Usually you'll make this true for motion sensor rules.
     defaultValue: false
     required: false
-  - name  - name: alertRuleUID
+  - name: alertRuleUID
     type: TEXT
     context: rule
     label: Alert Rule
