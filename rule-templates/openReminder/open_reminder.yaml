@@ -40,7 +40,13 @@ configDescriptions:
     description: How often to repeat calling the alert rule after the initial call while the Item remains in a "not good" state.  Use "PTVdWhXmYsZz" format where d=days, h=hours, m=minutes, s=seconds, and z=milliseconds (e.g. "PT2d5s" = two days, five seconds). If left blank no repeat is performed.
     defaultValue: ''
     required: false
-  - name: alertRuleUID
+  - name: reschedule
+    type: BOOLEAN
+    label: Reschedule
+    description: Should a repeated change to the same state as the Alert State cause the timer to be rescheduled or ignored?
+    defaultValue: false
+    required: false
+  - name  - name: alertRuleUID
     type: TEXT
     context: rule
     label: Alert Rule
@@ -87,6 +93,8 @@ actions:
         var alertRuleUID = "{{alertRuleUID}}";
 
         var repeatPeriod = "{{repeatPeriod}}";
+
+        var reschedule = {{reschedule}};
 
         var dndStart = "{{dndStart}}";
 
@@ -212,7 +220,11 @@ actions:
 
             // There shouldn't be a Timer if the Item just changed to the alertState, log to show
             // something went wrong.
-            if(timers.has(item)) {
+            if(timers.has(item) && reschedule) {
+              logger.debug('Rescheduling timer for ' + item + ' with ' + timeout);
+              timers.get(item).timer.reschedule(time.toZDT(timeout));
+            }
+            else if(timers.has(itemm) && !rescedule) {
               logger.warn(item + ' state is now ' + state + ' but an alert timer already exists! This should not have happened!');
             }
             // Schedule a looping timer to start at the initial timeout (from metadata) and repeat
