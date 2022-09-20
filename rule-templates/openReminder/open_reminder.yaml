@@ -224,7 +224,7 @@ actions:
               logger.debug('Rescheduling timer for ' + item + ' with ' + timeout);
               timers.get(item).timer.reschedule(time.toZDT(timeout));
             }
-            else if(timers.has(itemm) && !rescedule) {
+            else if(timers.has(item) && !rescedule) {
               logger.warn(item + ' state is now ' + state + ' but an alert timer already exists! This should not have happened!');
             }
             // Schedule a looping timer to start at the initial timeout (from metadata) and repeat
