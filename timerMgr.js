@@ -74,7 +74,7 @@ class TimerMgr {
 
     // timer doesn't already exist, create a new one
     else {
-      var timer = actions.ScriptExecution.createTimerWithArgument(timeout,
+      var timer = actions.ScriptExecution.createTimerWithArgument(key, timeout,
         this,
         this._notFlapping(key));
       this.timers[key] = {
