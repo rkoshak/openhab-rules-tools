@@ -1,4 +1,5 @@
 const { time } = require('openhab');
+const helpers = require('./helpers');
 
 /**
  * Implements a manager for Timers with a simple interface. Once built, call
@@ -49,15 +50,15 @@ class TimerMgr {
    * the timer using when.
    * If there is a timer already associated with key, if a flappingFunc is
    * provided, call it.
-   * @param {*} key usually a String, the "name" of the timer
+   * @param {string} key the identifier of the timer in the TimerMgr instance
    * @param {*} when any representation of time of duration, see time.toZDT
-   * @param {function} func optional function to call when the timer expires
-   * @param {boolean} reschedule optional flag, when present and true rescheudle the timer if it already exists
-   * @param {function} flappingFunc optional function to call when the timer already exists
+   * @param {function} func function to call when the timer expires
+   * @param {boolean} [reschedule=false] optional flag, when present and true rescheudle the timer if it already exists
+   * @param {function} [flappingFunc] optional function to call when the timer already exists
+   * @param {string} [name] timer name displayed in openHAB
    */
-  check(key, when, func, reschedule, flappingFunc) {
-
-    var timeout = time.toZDT(when);
+  check(key, when, func, reschedule, flappingFunc, name) {
+    const timeout = time.toZDT(when);
 
     // timer exists
     if (key in this.timers) {
@@ -74,9 +75,7 @@ class TimerMgr {
 
     // timer doesn't already exist, create a new one
     else {
-      var timer = actions.ScriptExecution.createTimerWithArgument(key, timeout,
-        this,
-        this._notFlapping(key));
+      var timer = helpers.createTimer(when, this._notFlapping(key), this, name, key);
       this.timers[key] = {
         'timer': timer,
         'flapping': flappingFunc,

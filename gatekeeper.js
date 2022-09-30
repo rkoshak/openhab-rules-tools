@@ -1,4 +1,6 @@
 const { time } = require('openhab');
+const helpers = require('./helpers');
+
 /**
  * Class that implements the Gatekeeper design pattern. When the user calls
  * addCommand, it will queue them up so that a new command is not called until
@@ -41,7 +43,7 @@ class Gatekeeper {
         const pause = time.toZDT(command[0]);
         const triggerTime = pause.minus(delta);
 
-        ctx.timer = actions.ScriptExecution.createTimer(triggerTime, ctx._procCommandGenerator(ctx));
+        ctx.timer = helpers.createTimer(triggerTime, ctx._procCommandGenerator(ctx), null, null, 'gatekeeper');
       }
 
     };
