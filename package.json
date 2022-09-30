@@ -19,5 +19,8 @@
   "author": "Richard Koshak",
   "bugs": {
     "url": "https://github.com/rkoshak/openhab-rules-tools/issues"
+  },
+  "devDependencies": {
+    "openhab": "^2.0.3"
   }
 }
