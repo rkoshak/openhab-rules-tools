@@ -10,11 +10,14 @@ class Gatekeeper {
 
   /**
    * Creates the Gatekeeper
+   *
+   * @param {string} [name] name of the Gatekeeper (used for the timer)
    */
-  constructor() {
+  constructor(name) {
     var ArrayDeque = Java.type('java.util.ArrayDeque');
     this.commands = new ArrayDeque();
     this.timer = null;
+    this.name = name;
   }
 
   /**
@@ -43,7 +46,7 @@ class Gatekeeper {
         const pause = time.toZDT(command[0]);
         const triggerTime = pause.minus(delta);
 
-        ctx.timer = helpers.createTimer(triggerTime, ctx._procCommandGenerator(ctx), null, null, 'gatekeeper');
+        ctx.timer = helpers.createTimer(triggerTime, ctx._procCommandGenerator(ctx), null, this.name, 'gatekeeper');
       }
 
     };
