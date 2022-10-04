@@ -23,9 +23,10 @@ class LoopingTimer {
   loop(func, when, name) {
 
     this.func = func;
+    this.name = name;
     if (!when) this.expired();
     else {
-      this.timer = helpers.createTimer(when, () => this.expired(), null, name);
+      this.timer = helpers.createTimer(when, () => this.expired(), null, name, 'loopingTimer');
     }
   }
 
@@ -37,9 +38,9 @@ class LoopingTimer {
   expired() {
     var when = this.func();
     if (when) {
-      this.timer = actions.ScriptExecution.createTimer(
+      this.timer = helpers.createTimer(
         time.toZDT(when),
-        () => this.expired(), null, null, 'loopingTimer');
+        () => this.expired(), null, this.name, 'loopingTimer');
     }
   }
 
