@@ -77,7 +77,7 @@ actions:
     configuration:
       type: application/javascript;version=ECMAScript-2021
       script: >
-        var {loopingTimer} = require('openhab_rules_tools');
+        var {loopingTimer, timeUtils} = require('openhab_rules_tools');
 
         var logger = log('rules_tools.'+ruleUID);
 
