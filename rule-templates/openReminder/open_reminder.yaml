@@ -133,7 +133,7 @@ actions:
 
             // time range spans midnight
             if (endTime.isBefore(startTime)) {
-              return currTime.isAfter(endTime) || currTime.isBefore(startTime);
+              return currTime.isAfter(startTime) || currTime.isBefore(endTime);
             } else {
               return currTime.isAfter(startTime) && currTime.isBefore(endTime);
             }
