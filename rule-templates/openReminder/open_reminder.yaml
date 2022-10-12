@@ -124,6 +124,21 @@ actions:
           const item = event.itemName;
           const state = event.itemState.toString();
 
+          // Temporary work around until PR to fix openhab-js gets merged
+          const isBetweenTimes = function (t, start, end) {
+            const startTime = time.toZDT(start).toLocalTime();
+            const endTime = time.toZDT(end).toLocalTime();
+        //    const currTime = this.toLocalTime();
+            const currTime = time.toZDT(t).toLocalTime();
+
+            // time range spans midnight
+            if (endTime.isBefore(startTime)) {
+              return currTime.isAfter(endTime) || currTime.isBefore(startTime);
+            } else {
+              return currTime.isAfter(startTime) && currTime.isBefore(endTime);
+            }
+          };
+
           // Looks at the currently scheduled timers and makes the time for a new one
           // doesn't overlap.
           // Loop through the timers and check the timeout time against the existing timers.
@@ -151,11 +166,14 @@ actions:
           // Moves the alert time to the end of the DND period if the timeout is
           // in the DND period. Then it makes sure it's at least TIMER_BUFFER nanosecs
           // from any existing timer
-          const generateAlertTime = (timeout, dndStart, dndEnd) => {
+          const generateAlertTime = (timeout, dnds, dnde) => {
             let rval = time.toZDT(timeout);
-            if(rval.isBetweenTimes(dndStart, dndEnd)) {
+            if(isBetweenTimes(rval, dnds, dnde)) { // temporary work around until PR gets merged to openhab-js
               logger.debug('Timer is scheduled during DND, moving to end of DND');
               rval = dndEnd;
+              if(time.toZDT(dndEnd).isBefore(time.toZDT())) {
+                rval = timeUtils.toTomorrow(dndEnd);
+              }
             }
             return avoidOverlapping(rval);
           };
@@ -164,13 +182,13 @@ actions:
           // reschedule the timer based on what the function passed to it returns. If
           // a duration is returned it will be reschuled for that time into the future.
           // If null is returned the looping stops.
-          const sendAlertGenerator = (alertItem) => {
+          const sendAlertGenerator = (alertItem, repeat, dnds, dnde) => {
             return () => {
               const currState = items.getItem(alertItem).state;
-              logger.debug('Timer expired for ' + alertItem);
+              logger.debug('Timer expired for ' + alertItem + ' with dnd between ' + dnds + ' and ' + dnde);
 
               // Calculate the next repeat time
-              let repeatTime = (repeatPeriod) ? generateAlertTime(repeatPeriod, dndStart, dndEnd) : null;
+              let repeatTime = (repeat) ? generateAlertTime(repeat, dnds, dnde) : null;
 
               // Send alert
               if(isAlertState(currState)) {
@@ -185,9 +203,11 @@ actions:
 
               // If there is no repeat delete the timer from the map
               if(!repeatTime) {
+                logger.debug('No repeat time');
                 timers.delete(alertItem);
               }
 
+              logger.debug('Rescheduling for ' + repeatTime);
               return repeatTime;
             };
           };
@@ -220,11 +240,7 @@ actions:
 
             // There shouldn't be a Timer if the Item just changed to the alertState, log to show
             // something went wrong.
-            if(timers.has(item) && reschedule) {
-              logger.debug('Rescheduling timer for ' + item + ' with ' + timeout);
-              timers.get(item).timer.reschedule(time.toZDT(timeout));
-            }
-            else if(timers.has(item) && !rescedule) {
+            if(timers.has(item)) {
               logger.warn(item + ' state is now ' + state + ' but an alert timer already exists! This should not have happened!');
             }
             // Schedule a looping timer to start at the initial timeout (from metadata) and repeat
@@ -234,7 +250,7 @@ actions:
               let timeout = generateAlertTime((metadata) ? metadata : defaultTimeout, dndStart, dndEnd);
               timers.set(item, new loopingTimer.LoopingTimer()); // add name as argument when openhab_rules_tools is updated to support that
               logger.debug('Starting timer for ' + item + ' with ' + timeout);
-              timers.get(item).loop(sendAlertGenerator(item), timeout);
+              timers.get(item).loop(sendAlertGenerator(item, repeatPeriod, dndStart, dndEnd), timeout);
             }
           }
         }
