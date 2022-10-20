@@ -1,4 +1,4 @@
-const { time } = require('openhab');
+const helpers = require('./helpers');
 
 /**
  * Implements a looping Timer which is passed a function that is expected to return
@@ -18,15 +18,15 @@ class LoopingTimer {
    * Kicks off the timer loop. Schedules a timer to call func at when
    * @param {function} func function to call at when, must return a when to continue the loop or null to stop
    * @param {*} when any of the types supported by time.toZDT
+   * @param {string} [name] timer name displayed in openHAB
    */
-  loop(func, when) {
+  loop(func, when, name) {
 
     this.func = func;
+    this.name = name;
     if (!when) this.expired();
     else {
-      this.timer = actions.ScriptExecution.createTimer(
-        time.toZDT(when),
-        () => this.expired());
+      this.timer = helpers.createTimer(when, () => this.expired(), null, name, 'loopingTimer');
     }
   }
 
@@ -38,9 +38,9 @@ class LoopingTimer {
   expired() {
     var when = this.func();
     if (when) {
-      this.timer = actions.ScriptExecution.createTimer(
+      this.timer = helpers.createTimer(
         time.toZDT(when),
-        () => this.expired());
+        () => this.expired(), null, this.name, 'loopingTimer');
     }
   }
 

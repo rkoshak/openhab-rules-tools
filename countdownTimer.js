@@ -14,8 +14,9 @@ class CountdownTimer {
    * @param {*} when time.toZDT compatible time or duration
    * @param {function} func function to call at when
    * @param {string} countItem name of the Item to update with the seconds remaining
+   * @param {string} [name] countdown name displayed in openHAB
    */
-  constructor(when, func, countItem) {
+  constructor(when, func, countItem, name) {
     this.start = time.toZDT();
     this.end = time.toZDT(when);
     this.ONE_SEC = time.Duration.ofSeconds(1);
@@ -27,7 +28,7 @@ class CountdownTimer {
     // Start the countdown timer
     this.countItem = countItem;
     this.countdownTimer = new loopingTimer.LoopingTimer();
-    this.countdownTimer.loop(this._iterateGenerator(this), 0); // start now
+    this.countdownTimer.loop(this._iterateGenerator(this), 0, name); // start now
   }
 
   /**
