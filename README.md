@@ -1,18 +1,30 @@
 # openHAB Rules Tools
-A collection of library functions, classes, rule templates, MainUI widgets, and examples to reuse in the development of new openHAB capabilities.
+A collection of library functions, classes, rule templates, MainUI widgets (eventually), and examples to reuse in the development of new openHAB capabilities.
 
 # Installation
 
 ## Libraries
 Previously this library supported Jython libraries that only work with OH 2.x.
-Those are still available in the `before-npm` branch but have been removed and are no longer maintained in main going forward.
+Those are still available in the `before-npm` branch but have been removed and are no longer maintained in `main` going forward.
 
 Similarly, ECMAScript 5.1 versions of these libraries exist in the `before-npm` branch.
-These too are removed from the main branch and are no longer maintained.
+These too are removed from the `main` branch and are no longer maintained.
 
-The libraries that will continue to be developed going forward will be JS Scripting, Blockly, and rule templates.
-The JS Scripting libraries can be installed using npm.
-Blockly libraries and rule templates can be installed from the openHAB marketplace.
+The libraries that will continue to be developed going forward will be JS Scripting, Blockly (eventually), and rule templates.
+
+The JS Scripting library depends on the `openhab-js` library.
+This library comes with the add-on but you may need to upgrade the library independently.
+It can be installed using `openhabian-config` menu option `46 | Install openhab-js` or by running `npm install openhab` from the `$OH_CONF/automation/js` folder.
+
+### openHABian
+`openhab_rules_tools` is now supported by openHABian.
+It should be installed by default.
+Look to see if `$OH_CONF/automation/js/node_modules/openhab_rules_tools` exists.
+If so you already have this library.
+If not, it can be installed using `openhabian-config` menu option `47 | Install openhab_rules_tools`.
+
+### Manual Installation
+From the `$OH_CONF/automation/js` folder run `npm install openhab_rules_tools`.
 
 ## Rule Templates
 Rule templates are written in various languages.
@@ -50,7 +62,7 @@ This should only be required for those modifying the scripts and modules.
 However, they are a good place to look at for examples for using various capabilities.
 
 # Usage
-For rule tempaltes, see the README.md file bundled with each rule template and the entry in the [Marketplace postings](https://community.openhab.org/c/marketplace/rule-templates/74).
+For rule templates, see the README.md file bundled with each rule template and the entry in the [Marketplace postings](https://community.openhab.org/c/marketplace/rule-templates/74).
 
 The following sections describe the purpose of each library capability.
 Be sure to look at the comments, the code, and the tests for further details on usage and details.
@@ -71,11 +83,20 @@ Name | Purpose
 ## How to Save an Instance Between Runs?
 Most of the library capabilities above are classes that one instantiates and reuses over multiple executions of a given rule. 
 So how does one save that instance so it doesn't get overwritten each time a rule runs?
-There are two options.
+There are three options.
 
-### Cache
-The openhab-js library includes a `cache` which is a place one can place variables that are shared across all rules and script actions/conditions.
-This is the preferred way to both share variables between rules and to preserve data across multiple rule runs.
+### sharedCache
+New to OH 3.4 release, a system wide cache has been added where variables can be stored and accessed from multiple runs of a given rule or between multiple rules.
+One can pull, and if the Object doesn't exist instantiate it and save it to the `sharedCache` in one line inside your rule.
+
+```
+var timers = sharedCache.get(ruleUID+"_tm", () => new timerMgr.TimerMgr());
+```
+
+It is important to use unique keys across all your rules to avoid collisions.
+
+### Cache [deprecated?]
+The JS Scripting add-on includes a `cache` which is a place one can place variables that are shared across all rules and script actions/conditions.
 One can pull, and if the Object doesn't exist instantiate it and save it to the `cache` in one line inside your rule.
 
 ```
@@ -83,6 +104,18 @@ var timers = cache.get(ruleUID+'_tm', () => new timerMgr.TimerMgr());
 ```
 
 Because the `cache` is shared across all rules, it's important to use unique keys or else one rule might overwrite a cached value from another one.
+Also, if you recreate the rule (e.g. by editing and saving it) you must clear the variables stored in the cache or else there will be context exceptions.
+In some of the rule templates I detect if the rule is run manually and clear out the cache in that case as a way to clear the cache.
+
+```
+if(this.event === undefined) {
+  logger.info('Resetting looping timers');
+  cache.put(TIMERS_KEY, null);
+}
+else {
+  // rule code goes here
+}
+```
 
 ### Global Variable
 If writing your rules in .js files, you can define a variable outside of your rules and that variable will be "global" to all the rules in that file.
