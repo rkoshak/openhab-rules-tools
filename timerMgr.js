@@ -25,13 +25,11 @@ class TimerMgr {
    * and calls the passed in timer function when check was called.
    */
   _notFlapping(key) {
-    return function (context) {
-      if (key in context.timers && 'notFlapping' in context.timers[key]) {
-        context.timers[key]['notFlapping']();
-      }
-      if (key in context.timers) {
-        delete context.timers[key];
-      }
+    if (key in context.timers && 'notFlapping' in context.timers[key]) {
+      context.timers[key]['notFlapping']();
+    }
+    if (key in context.timers) {
+      delete context.timers[key];
     }
   }
 
@@ -75,7 +73,7 @@ class TimerMgr {
 
     // timer doesn't already exist, create a new one
     else {
-      var timer = helpers.createTimer(when, this._notFlapping(key), this, name, key);
+      var timer = helpers.createTimer(when, this._notFlapping(key), name, key);
       this.timers[key] = {
         'timer': timer,
         'flapping': flappingFunc,

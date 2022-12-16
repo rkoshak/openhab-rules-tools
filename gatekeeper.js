@@ -46,7 +46,7 @@ class Gatekeeper {
         const pause = time.toZDT(command[0]);
         const triggerTime = pause.minus(delta);
 
-        ctx.timer = helpers.createTimer(triggerTime, ctx._procCommandGenerator(ctx), null, this.name, 'gatekeeper');
+        ctx.timer = helpers.createTimer(triggerTime, ctx._procCommandGenerator(ctx), this.name, 'gatekeeper');
       }
 
     };

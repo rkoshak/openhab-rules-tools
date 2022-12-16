@@ -26,7 +26,7 @@ class LoopingTimer {
     this.name = name;
     if (!when) this.expired();
     else {
-      this.timer = helpers.createTimer(when, () => this.expired(), null, name, 'loopingTimer');
+      this.timer = helpers.createTimer(when, () => this.expired(), name, 'loopingTimer');
     }
   }
 
@@ -40,7 +40,7 @@ class LoopingTimer {
     if (when) {
       this.timer = helpers.createTimer(
         time.toZDT(when),
-        () => this.expired(), null, this.name, 'loopingTimer');
+        () => this.expired(), this.name, 'loopingTimer');
     }
   }
 
