@@ -7,12 +7,11 @@ const { actions, time } = require('openhab');
  *
  * @param {*} when any representation of time or duration, see {@link https://openhab.github.io/openhab-js/time.html#.toZDT time.toZDT}
  * @param {function} func function to call when the timer expires
- * @param {*} [arg] argument to pass to the timer
  * @param {string} [name] name for the timer
  * @param {string} [key] key of the timer to append to the generated name
  * @returns openHAB Java {@link https://www.openhab.org/javadoc/latest/org/openhab/core/model/script/actions/timer Timer}
  */
-const createTimer = (when, func, arg, name, key) => {
+const createTimer = (when, func, name, key) => {
   const timeout = time.toZDT(when);
   if (name === null || name === undefined) {
     if (global.ruleUID !== undefined) { // Use UI ruleUID and key if available
@@ -21,7 +20,7 @@ const createTimer = (when, func, arg, name, key) => {
       name = 'file.' + global['javax.script.filename'].replace(/^.*[\\/]/, '') + ((key !== undefined) ? '.' + key : '');
     }
   }
-  return actions.ScriptExecution.createTimerWithArgument(name, timeout, arg, func);
+  return actions.ScriptExecution.createTimer(name, timeout, func);
 };
 
 module.exports = {

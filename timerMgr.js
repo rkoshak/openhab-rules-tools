@@ -21,21 +21,6 @@ class TimerMgr {
   }
 
   /**
-   * Called when the timer expires. Cleans up the timer from the manager
-   * and calls the passed in timer function when check was called.
-   */
-  _notFlapping(key) {
-    return function (context) {
-      if (key in context.timers && 'notFlapping' in context.timers[key]) {
-        context.timers[key]['notFlapping']();
-      }
-      if (key in context.timers) {
-        delete context.timers[key];
-      }
-    }
-  }
-
-  /**
    * Function to call when null was passed for the func or flappingFunc.
    */
   _noop() {
@@ -75,7 +60,16 @@ class TimerMgr {
 
     // timer doesn't already exist, create a new one
     else {
-      var timer = helpers.createTimer(when, this._notFlapping(key), this, name, key);
+      var timer = helpers.createTimer(when, () => {
+        // Call the passed in func when the timer expires.
+        if (key in this.timers && 'notFlapping' in this.timers[key]) {
+          this.timers[key]['notFlapping']();
+        }
+        // Clean up the timer from the manager.
+        if (key in this.timers) {
+          delete this.timers[key];
+        }
+      }, name, key);
       this.timers[key] = {
         'timer': timer,
         'flapping': flappingFunc,
