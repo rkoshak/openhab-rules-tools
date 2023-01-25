@@ -1,0 +1,244 @@
+uid: rules_tools:debounce
+label: Debounce
+description: Waits a configured amount of time before forwarding an Item's state change to a proxy Item.
+configDescriptions:
+  - name: debounceGroup
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Debounce Group
+    required: true
+    description: Group Item that holds the raw Items to debounce
+  - name: namespace
+    description: The Item metadata namespace containing the Debounce configs for the raw Items
+    type: TEXT
+    label: Debounce Metadata Namespace
+    required: false
+    defaultValue: namespace
+triggers:
+  - id: "1"
+    configuration:
+      groupName: "{{debounceGroup}}"
+    type: core.GroupStateChangeTrigger
+conditions:
+  - inputs: {}
+    id: "2"
+    label: Ignore NULL/UNDEF
+    description: Only runs the rule if it's not an Item change to NULL/UNDEF or it's not
+      an Item event.
+    configuration:
+      type: application/javascript
+      script: >
+        console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
+
+        // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO
+        // Rework when `event` always exists and check the event.type
+        if(this.event !== undefined && this.event.itemName !== undefined){
+          const item = items.getItem(this.event.itemName);
+          if(item.isUninitialized) {
+            console.debug('Debounce for Item', this.event.itemName, 'is blocked for state', this.event.itemState);
+          }
+          !item.isUninitialized;
+        }
+
+        else {
+          console.trace('Debounce passed conditions');
+          true;
+        }
+    type: script.ScriptCondition
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >
+        var {timerMgr} = require('openhab_rules_tools');
+
+        console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
+
+
+        var USAGE = "Debounce metadata should follow this format:\n"
+                    + ".items File: {{namespace}}=ProxyItem[command=true, timeout='PT2S', state='ON,OFF']\n"
+                    + "UI YAML: use '{{namespace}}' for the namespace and metadata format\n"
+                    + "value: ProxyItem\n"
+                    + "config:\n"
+                    + "  command: true\n"
+                    + "  timeout: PT3S\n"
+                    + "  state: ON,OFF\n"
+                    + "};\n"
+                    + "timeout must be in a format supported by time.toZDT() in the add-on's helper library."
+
+
+        /**
+         * Get and check the Item metadata.
+         * @return {dict} the metadata parsed and validated
+         */
+        var getConfig = (itemName) => {
+
+          // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO
+          // Replace with item.getMetadata() when available
+          // Get Metadata query stuff
+          const MetadataRegistry = osgi.getService('org.openhab.core.items.MetadataRegistry');
+          const Metadata = Java.type('org.openhab.core.items.Metadata');
+          const MetadataKey = Java.type('org.openhab.core.items.MetadataKey');
+
+          const md = MetadataRegistry.get(new MetadataKey('{{namespace}}', itemName));
+          if(!md) {
+            throw itemName + ' does not have {{namespace}} metadata!\n' + USAGE;
+          }
+
+          if(!md.value) {
+            throw itemName + ' has malformed {{namespace}} metadata, no value found!\n' + USAGE;
+          }
+
+          if(!items.getItem(md.value)) {
+            throw itemName + ' has invalid {{namespace}} metadata, proxy Item ' + md.value + ' does not exist!\n' + USAGE;
+          }
+
+          if(!md.configuration['timeout']) {
+            throw itemName + 'has malformed {{namespace}} metadata, timeout configuration parameter does not exist!\n' + USAGE;
+          }
+
+          if(!time.toZDT(md.configuration['timeout'])) {
+            throw itemName + ' has invalid {{namespace}} metadata, timeout ' + md.configuration['timeout'] + ' cannot be parsed to a valid duration!\n' + USAGE;
+          }
+
+          var cfg = {'proxy':   md.value,
+                     'timeout': md.configuration['timeout'],
+                     'command': 'command' in md.configuration && md.configuration['command'].toString().toLowerCase() == 'true',
+                     'states':  [],
+                    };
+          const stateStr = md.configuration['states'];
+          if(stateStr) {
+            stateStr.split(',').forEach((st) => {
+              cfg.states.push(st.trim());
+            });
+          }
+
+          return cfg;
+        };
+
+
+        /**
+         * Called at the end of a debounce to update or command the proxy Item
+         * @param {string} name the originating Item's name
+         * @param {string} state the originating Item's new state
+         * @param {string} proxy the name of the proxy Item
+         * @param {boolean} isCommand whether to send a command or update to the proxy
+         * @return {function} an argumentless function to call to update/command the proxy Item at the end of the debounce
+         */
+        var endDebounceGenerator = (name, state, proxy, isCommand) => {
+          return function(){
+            console.debug('End debounce for', name, "state", state, 'with proxy', proxy, 'and isCommand', isCommand);
+            const isCurrState = (items.getItem(name).state == state)
+            if(isCommand && !isCurrState) {
+              console.trace('Commanding');
+              items.getItem(proxy).sendCommand(state);
+            }
+            else if(!isCommand && !isCurrState) {
+              console.trace('Updating');
+              items.getItem(proxy).postUpdate(state);
+            }
+          };
+        };
+
+
+        var debounce = () => {
+          console.debug('Debounce:', event.type, 'item:', event.itemName);
+
+          // Initialize the timers, config and end debounce function
+          const timers = cache.private.get('timerMgr', () => new timerMgr.TimerMgr());
+          const cfg = getConfig(event.itemName);
+          const endDebounce = endDebounceGenerator(event.itemName, event.itemState, cfg.proxy, cfg.command);
+
+          // If there are no states in the debounce metadata or if the new state is in the list of debounce states
+          // set a timer based on the timeout parameter
+          if(cfg.states.length == 0
+             || cfg.states.includes(event.itemState.toString())) {
+            console.debug('Debouncing ', event.itemName, "'s state", event.itemState,
+                         'using proxy', cfg.proxy, 'timeout', cfg.timeout,
+                         'command ', cfg.command, 'and states ', cfg.states);
+            timers.check(event.itemName, cfg.timeout, endDebounce);
+          }
+          // If this is not a debounced state, immediately forward it to the proxy Item
+          else {
+            console.debug(event.itemName, 'changed to', event.itemState, 'which is not among the debounce states:', cfg.states);
+            timers.cancel(event.itemName);
+            endDebounce();
+          }
+        };
+
+        var init = () => {
+          console.info("Validating Item metadata, group membership, and initializing the proxies");
+          let isGood = true;
+          let badItems = [];
+
+          // Get all the Items with {{namespace}} metadata and check them
+          const is = items.getItems();
+          console.debug('There are', is.length, 'Items');
+          const filtered = is.filter( item => item.getMetadataValue('{{namespace}}'));
+          console.debug('There are ', filtered.length, 'Items with {{namespace}} metadata');
+          filtered.forEach(item => {
+            console.debug('Item', item.name, 'has {{namespace}} metadata');
+            try {
+              const cfg = getConfig(item.name);
+              const proxy = items.getItem(cfg.proxy);
+              if(proxy.state != item.state) {
+                console.info('Updating', cfg.proxy, 'to', item.state);
+                proxy.postUpdate(item.state);
+              }
+              else {
+                console.debug(cfg.proxy, 'is already in the state of', item.state);
+              }
+              if(!item.groupNames.includes('Debounce')) {
+                console.warn(item.name, 'has {{namespace}} metadata but is not a member of Debounce!')
+                isGood = false;
+                badItems.push(item.name);
+              }
+            }
+            catch(e) {
+              console.warn('Item', item.name, 'has invalid {{namespace}} metadata:\n', e, '\n', USAGE);
+              isGood = false;
+              badItems.push(item.name);
+            }
+
+          });
+
+          // Report those Items that are members of Debounce but don't have {{namespace}} metadata
+          items.getItem('Debounce').members.filter(item => {!item.getMetadataValue('{{namespace}}')}).forEach(item => {
+            console.warn(item.name, 'is a member of Debounce but lacks {{namespace}} metadata');
+            isGood = false;
+            badItems.push(item.name);
+          });
+
+          if(isGood) {
+            console.info('All debounce Items are configured correctly');
+          }
+          else{
+            console.log('The following Items have an invalid configuration. See above for details:', badItems);
+          }
+        };
+
+
+        // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO
+
+        // change when there is always an event object
+
+        if(this.event === undefined) {
+          init();
+        }
+
+        else {
+          switch(event.type) {
+            case 'ItemStateEvent':
+            case 'ItemStateChangedEvent':
+            case 'ItemCommandEvent':
+              debounce();
+              break;
+            default:
+              init();
+          }
+        }
+    type: script.ScriptAction
