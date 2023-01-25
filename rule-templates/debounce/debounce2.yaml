@@ -17,6 +17,12 @@ configDescriptions:
     label: Debounce Metadata Namespace
     required: false
     defaultValue: namespace
+  - name: initProxies
+    description: When true, when the rule is triggered by a non-Item event, in addition to validating
+      the configs the rule will initialize the proxy Items with the current state of the raw Items.
+    type: boolean
+    required: false
+    defaultValue: true
 triggers:
   - id: "1"
     configuration:
@@ -185,7 +191,7 @@ actions:
             try {
               const cfg = getConfig(item.name);
               const proxy = items.getItem(cfg.proxy);
-              if(proxy.state != item.state) {
+              if({{initProxies}} && proxy.state != item.state) {
                 console.info('Updating', cfg.proxy, 'to', item.state);
                 proxy.postUpdate(item.state);
               }
