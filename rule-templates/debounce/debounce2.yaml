@@ -21,7 +21,7 @@ configDescriptions:
     label: Initialize Proxies
     description: When true, when the rule is triggered by a non-Item event, in addition to validating
       the configs the rule will initialize the proxy Items with the current state of the raw Items.
-    type: boolean
+    type: BOOLEAN
     required: false
     defaultValue: true
 triggers:
