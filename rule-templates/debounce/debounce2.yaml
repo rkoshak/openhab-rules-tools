@@ -16,7 +16,7 @@ configDescriptions:
     type: TEXT
     label: Debounce Metadata Namespace
     required: false
-    defaultValue: namespace
+    defaultValue: debounce
   - name: initProxies
     label: Initialize Proxies
     description: When true, when the rule is triggered by a non-Item event, in addition to validating
