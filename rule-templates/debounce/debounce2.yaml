@@ -38,7 +38,7 @@ conditions:
     configuration:
       type: application/javascript
       script: >
-         console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
+        console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
 
         // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO 
 
