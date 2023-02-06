@@ -38,10 +38,12 @@ conditions:
     configuration:
       type: application/javascript
       script: >
-        console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
+         console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
 
-        // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO
-        // Rework when `event` always exists and check the event.type
+        // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO 
+
+        // Rework when `event` always exists and check the event.type 
+
         if(this.event !== undefined && this.event.itemName !== undefined){
           const item = items.getItem(this.event.itemName);
           if(item.isUninitialized) {
@@ -64,6 +66,7 @@ actions:
         var {timerMgr} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
+
 
 
         var USAGE = "Debounce metadata should follow this format:\n"
@@ -139,7 +142,7 @@ actions:
         var endDebounceGenerator = (name, state, proxy, isCommand) => {
           return function(){
             console.debug('End debounce for', name, "state", state, 'with proxy', proxy, 'and isCommand', isCommand);
-            const isCurrState = (items.getItem(name).state == state)
+            const isCurrState = (items.getItem(name).state == state);
             if(isCommand && !isCurrState) {
               console.trace('Commanding');
               items.getItem(proxy).sendCommand(state);
@@ -148,6 +151,7 @@ actions:
               console.trace('Updating');
               items.getItem(proxy).postUpdate(state);
             }
+            console.trace('Debounce is complete for', name);
           };
         };
 
@@ -182,7 +186,7 @@ actions:
           let isGood = true;
           let badItems = [];
 
-          // Get all the Items with {{namespace}} metadata and check them
+          // Get all the Items with debounce metadata and check them
           const is = items.getItems();
           console.debug('There are', is.length, 'Items');
           const filtered = is.filter( item => item.getMetadataValue('{{namespace}}'));
@@ -213,7 +217,7 @@ actions:
 
           });
 
-          // Report those Items that are members of Debounce but don't have {{namespace}} metadata
+          // Report those Items that are members of Debounce but don't have debounce metadata
           items.getItem('Debounce').members.filter(item => {!item.getMetadataValue('{{namespace}}')}).forEach(item => {
             console.warn(item.name, 'is a member of Debounce but lacks {{namespace}} metadata');
             isGood = false;
@@ -221,7 +225,7 @@ actions:
           });
 
           if(isGood) {
-            console.info('All debounce Items are configured correctly');
+            console.info('All {{namespace}} Items are configured correctly');
           }
           else{
             console.log('The following Items have an invalid configuration. See above for details:', badItems);
