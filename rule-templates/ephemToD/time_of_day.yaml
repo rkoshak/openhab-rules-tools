@@ -1,4 +1,4 @@
-uid: rules_tools:tod_sm
+uid: rules_tools:tsm
 label: Time of Day State Machine
 description: Creates timers to transition a state Item to a new state at defined times of day.
 configDescriptions:
