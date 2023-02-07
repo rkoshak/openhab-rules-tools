@@ -28,12 +28,16 @@ configDescriptions:
 triggers:
   - id: "1"
     configuration:
-      groupName: "{{timesOfDayGrp}}"
+      groupName: {{timesOfDayGrp}}
     type: core.GroupStateChangeTrigger
   - id: "2"
     configuration:
-      startlevel: 20
+      startlevel: 100
     type: core.SystemStartlevelTrigger
+  - id: "4"
+    configuration:
+      time: 00:05
+    type: timer.TimeOfDayTrigger
 conditions: []
 actions:
   - inputs: {}
