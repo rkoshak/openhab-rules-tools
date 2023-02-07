@@ -1,0 +1,41 @@
+uid: rules_tools:thing_status
+label: Thing Status Reporter
+description: Calls a user supplied script when a Thing changes it's status.
+configDescriptions:
+  - name: script
+    label: Rule to call
+    description: Rule to call when one or more Things match the comparison.
+    type: TEXT
+    context: rule
+    required: true
+triggers:
+  - id: "1"
+    label: GenericEventTrigger
+    description: GenericEventTrigger with filter
+    configuration:
+      eventSource: ""
+      eventTopic: openhab/things/*
+      eventTypes: ThingStatusInfoChangedEvent
+    type: core.GenericEventTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: |
+        console.loggerName = 'org.openhab.automation.rules_tools.Thing Status';
+        console.debug('ThingStatusInfoChangedEvent:' + event.toString());
+
+        var parsed = JSON.parse(event.payload);
+
+        var data = {};
+        data['thingID'] = event.topic.split('/')[2];;
+        data['thing'] = things.getThing(data['thingID']);
+        data['oldStatus'] = parsed[1].status;
+        data['oldDetail'] = parsed[1].statusDetail;
+        data['newStatus'] = parsed[0].status;
+        data['newDetail'] = parsed[0].statusDetail;
+
+        rules.runRule("{{script}}", data, true);
+    type: script.ScriptAction
