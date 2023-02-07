@@ -1,0 +1,310 @@
+uid: rules_tools:tsm
+label: Time Based State Machine
+description: Creates timers to transition a state Item to a new state at defined times of day.
+configDescriptions:
+  - name: timeOfDay
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: String
+    label: Time of Day State Item
+    required: true
+    description: String Item that holds the current time of day's state.
+  - name: timesOfDayGrp
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Times of Day Group
+    required: true
+    description: Has as members all the DateTime Items that define time of day states.
+  - name: namespace
+    type: TEXT
+    label: Time of Day Namespace
+    required: true
+    description: The Item metadata namespace (e.g. "tsm").
+triggers:
+  - id: "1"
+    configuration:
+      groupName: {{timesOfDayGrp}}
+    type: core.GroupStateChangeTrigger
+  - id: "2"
+    configuration:
+      startlevel: 100
+    type: core.SystemStartlevelTrigger
+  - id: "4"
+    configuration:
+      time: 00:05
+    type: timer.TimeOfDayTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >
+        var {timerMgr, helpers} = require('openhab_rules_tools');
+
+        console.loggerName = 'org.openhab.automation.rules_tools.TimeStateMachine';
+
+        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+
+
+        console.debug('Starting state machine in ten seconds...');
+
+
+        // Properties
+
+        var STATE_ITEM  = "{{timeOfDay}}";
+
+        var DT_GROUP    = "{{tiemsOfDayGrp}}";
+
+        var DAY_TYPES   = ['custom', 'holiday', 'dayset', 'weekend', 'weekday', 'default'];
+
+        var NAMESPACE   = '{{namespace}}';
+
+
+        var USAGE =   'Time Based State Machine Usage:\n'
+                    + 'All date times must be a member of ' + DT_GROUP + '.\n'
+                    + 'Each member of the Group must have ' + NAMESPACE + ' Item metadata of the following format:\n'
+                    + '  .items file: ' + NAMESPACE +'="STATE"[type="daytype", set="dayset", file="uri"]\n'
+                    + "  UI YAML: use '" + NAMESPACE + "' for the namespace and metadata format:\n"
+                    + '    value: STATE\n'
+                    + '    config:\n'
+                    + '      type: daytype\n'
+                    + '      set: dayset\n'
+                    + '      file: uri\n'
+                    + 'Where "STATE" is the state machine state that begins at the time stored in that Item, '
+                    + '"daytype" is one of "default", "weekday", "weekend", "dayset", "holiday", or "custom". '
+                    + 'If "dayset" is chosen for the type, the "set" property is required indicating the name of the '
+                    + 'custom dayset configured in Ephemeris. If "custom" is chosen as the type, the "file" property '
+                    + 'is required and should be the fully qualified path the the Ephemeris XML file with the custom '
+                    + 'holidays defined. The "set" and "file" properties are invalid when choosing any of the other '
+                    + '"types".';
+
+
+        /**
+         * Validates the passed in Item has valid NAMESPACE metadata.
+         *
+         * @param {string} itemName name of the Item to check
+         * @throws exception if the metadata doesn't exist or is invalid
+         */
+        var validateItemConfig = (itemName) => {
+          const md = items[itemName].getMetadata()[NAMESPACE];
+
+          if(!md) {
+            throw itemName + ' does not have ' + NAMESPACE + ' metadata!';
+          }
+
+          if(!md.value) {
+            throw itemName + ' has malformed ' + NAMESPACE + ' metadata, no value found!';
+          }
+
+          const dayType = md.configuration['type'];
+          if(!dayType) {
+            throw itemName + ' has malformed ' + NAMESPACE + ' metadata, required "type" property is not found!';
+          }
+
+          if(dayType == 'dayset' && !md.configuration['set']) {
+            throw itemName + ' has malformed ' + NAMESPACE + ' metadata, type is "dayset" but required "set" property is not found!';
+          }
+
+          if(dayType == 'custom' && !md.configuration['file']) {
+            throw itemName + ' has malformed ' + NAMESPACE + ' metadata, type is "custom" but required "file" property is not found!';
+          }
+
+          if(items[itemName].type != 'DateTimeItem') {
+            throw itemName + ' is not a DateTime Item!';
+          }
+
+          if(items[itemName].isUninitialized) {
+            throw itemName + " is not initialized!: " + items[itemName].state;
+          }
+
+          console.debug(itemName+ ' is valid');
+        };
+
+
+        /**
+         * Return all members of the DT_GROUP that has a "type" metadata configuration property that
+         * matches the passed in type.
+         *
+         * @param {string} type the day type defined in the metadata we want to get the Items for
+         * @returns {Array} all the Items with the matching type in the metadata
+         */
+        var getItemsOfType = (type) => {
+          const allItems = items[DT_GROUP].members;
+          return allItems.filter( item => item.getMetadata()[NAMESPACE].configuration['type'] == type);
+        };
+
+
+        /**
+         * Returns true if all the Items of the given type have a unique "state" value
+         * in the metadata.
+         *
+         * @param {string} the day type
+         * @returns {boolean} true if all states are unique, false otherwise
+         */
+        var checkUniqueStates = (type) => {
+          const allItems = getItemsOfType(type);
+          const states = new Set(allItems.map(i => { return i.getMetadata()[NAMESPACE].value; }));
+          return !allItems.length || allItems.length == states.size;
+        };
+
+
+        /**
+         * Check that all Items are configured correctly.
+         */
+        var validateAllConfigs = () => {
+          console.debug('Validating Item types, Item metadata, and Group membership');
+
+          // Check each Item's metadata
+          let isGood = helpers.checkGrpAndMetadata(NAMESPACE, DT_GROUP, validateItemConfig, USAGE);
+
+          // Check the state item
+          if(!items[STATE_ITEM]){
+            console.warn('The state Item ' + STATE_ITEM + ' does not exist!');
+            isGood = false;
+          }
+          const StringItem = Java.type('org.openhab.core.library.items.StringItem');
+          if(items[STATE_ITEM].type != 'StringItem') {
+            console.warn('The state Item ' + STATE_ITEM + ' is not a String Item!');
+            isGood = false;
+          }
+
+          // Check to see if we have a default set of Items
+          if(!getItemsOfType('default')) {
+            console.warn('There are no "default" day type Items defined! Make sure you have all day types covered!');
+            // we'll not invalidate if there are no "default" items
+          }
+
+          // Check that each data set has a unique state for each Item
+          DAY_TYPES.forEach(type => {
+            if(!checkUniqueStates(type)) {
+              console.warn('Not all the metadata values for Items of type ' + type + ' are unique!');
+              isGood = false;
+            }
+          })
+
+          // Report if all configs are good or not
+          if(isGood) {
+            console.debug('All ' + NAMESPACE + ' Items are configured correctly');
+          }
+          return isGood;
+        };
+
+
+        /**
+         * Pull the set of Items for today based on Ephemeris. The Ephemeris hierarchy is
+         * - custom
+         * - holiday
+         * - dayset
+         * - weeekend
+         * - weekday
+         * - default
+         *
+         * If there are no DateTime Items defined for today's type, null is returned.
+         */
+        var getTodayItems = () => {
+          // Get all the DateTime Items that might apply to today given what type of day it is
+          // For example, if it's a weekend, there will be no weekday Items pulled. Whether or not
+          // the entry in this dict has an array of Items determines whether today is of that day
+          // type.
+          const startTimes = [
+            { 'type': 'custom',  'times' : getItemsOfType('custom').filter(item => actions.Ephemeris.isBankHoliday(0, item.getMetadata()[NAMESPACE].configuration['file'])) },
+            { 'type': 'holiday', 'times' : (actions.Ephemeris.isBankHoliday()) ? getItemsOfType('holiday') : [] },
+            { 'type': 'dayset',  'times' : getItemsOfType('dayset').filter(item => actions.Ephemeris.isInDayset(items.getMetadata()[NAMESPACE].configuration['set'])) },
+            { 'type': 'weekend', 'times' : (actions.Ephemeris.isWeekend()) ? getItemsOfType('weekend') : [] },
+            { 'type': 'weekday', 'times' : (!actions.Ephemeris.isWeekend()) ? getItemsOfType('weekday') : [] },
+            { 'type': 'default', 'times' : getItemsOfType('default') }
+          ];
+
+          // Go through startTimes in order and choose the first one that has a non-empty list of Items
+          const dayStartTimes = startTimes.find(dayset => dayset.times.length);
+
+          if(dayStartTimes === null) {
+            console.warn('No DateTime Items found for today');
+            return null;
+          }
+          else {
+            console.info('Today is a ' + dayStartTimes.type + ' day.');
+            return dayStartTimes.times;
+          }
+        };
+
+
+        /**
+         * Returns a function called to transition the state machine from one state to the next
+         *
+         * @param {string} state the new state to transition to
+         * @param {function} the function that transitions the state
+         */
+        var stateTransitionGenerator = (state) => {
+          return function() {
+            console.info('Transitioning Time State Machine from ' + items[STATE_ITEM].state + ' to ' + state);
+            items[STATE_ITEM].sendCommand(state);
+          }
+        }
+
+
+        /**
+         * Returns a function that generates the timers for all the passed in startTimes
+         *
+         * @param {Array} startTimes list of today's state start times
+         * @param {timerMgr.TimerMgr} timers collection of timers
+         * @returns {function} called to generate the timers to transition between the states
+         */
+        var createTimersGenerator = (timers) => {
+          return function() {
+
+            if(validateAllConfigs()) {
+
+              // Cancel the timers, skipping the debounce timer
+              console.debug('Cancelling existing timers');
+              timers.cancelAll();
+
+              // Get the set of Items for today's state machine
+              console.debug("Acquiring today's state start times");
+              const startTimes = getTodayItems();
+
+              // Get the state and start time, sort them ignoring the date, skip the ones that have
+              // already passed and create a timer to transition for the rest.
+              console.debug('Creating timers for times that have not already passed');
+              const sortedTimes = startTimes.map(i => {
+                                                        return { 'state': i.getMetadata()[NAMESPACE].value,
+                                                                 'time' : time.toZDT(i).toToday() } })
+                                            .sort((a,b) => {
+                                              if(a.time.isBefore(b.time)) return -1;
+                                              else if(a.time.isAfter(b.time)) return 1;
+                                              else return 0;
+                                            })
+                                            .filter(tod => tod.time.isAfter(time.toZDT()))
+                                            .forEach(tod => {
+                                              // TODO: see if we can move to rules instead of timers
+                                              console.debug('Creating timer for ' + tod.state + ' at ' + tod.time);
+                                              timers.check(tod.state, tod.time, stateTransitionGenerator(tod.state));
+                                            });
+            }
+            else {
+              console.warn('The config is not valid, cannot proceed!');
+            }
+
+          };
+        };
+
+
+        var timers = cache.private.get('timers', () => new timerMgr.TimerMgr());
+
+
+        // Wait a minute after the last time the rule is triggered to make sure all Items are done changing (e.g.
+
+        // Astro Items) before calculating the new state.
+
+        timers.check('debounce',
+                     time.toZDT('PT10S'),
+                     createTimersGenerator(timers),
+                     true,
+                     () => { console.debug('Flapping detected, waiting before creating timers for today'); });
+    type: script.ScriptAction
