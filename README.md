@@ -44,14 +44,8 @@ Installation of a template can be done from MainUI under Settings -> Automation.
 9. Fill out the parameters and click Save.
 
 # Prerequisites
-
-## Rule Templates
-- openHAB 3.2 M2+
-- additional requirements in the docs for each
-
-## Libraries
-- openHAB 3.2 Release or later
-- JavaScript Scripting add-on installed with the default configuration
+As time passes and more new features are added to the openhab-js library and openHAB itself, the prerequisites for this library and the rule templates will change.
+Review the release notes to see which versions of these and the addition of new prerequisites are required for that release.
 
 # Tests
 Many of the library capabilities also have "unit tests" located in the `test` folder.
@@ -67,13 +61,13 @@ For rule templates, see the README.md file bundled with each rule template and t
 The following sections describe the purpose of each library capability.
 Be sure to look at the comments, the code, and the tests for further details on usage and details.
 
-Name | Purpose 
+Name | Purpose
 -|-
 `CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a second with the amount of time remaining on that timer. This works great to see in the UI how much time is left on a timer.
 `Deferred` | Allows one to easily schedule an update or command to be send to an Item in the future. It can be cancelled. This makes creating a timer for simple actions easier.
 `Gatekeeper` | Schedules a sequence of actions with a time between one to the next. It can be used to limit how quickly commands are sent to a device or create a schedule of tasks (e.g. irrigation).
 `LoopingTimer` | Creates a timer that loops until a condition is met. Pass in a function that returns how much time to schedule the next loop iteration or `null` when the timer should exit.
-`RateLimit` | Implements a check that ignores an action if it occurs too soon after the previous action. This is good to limit how often one receives alerts or how often to process events like from a motion snesor. 
+`RateLimit` | Implements a check that ignores an action if it occurs too soon after the previous action. This is good to limit how often one receives alerts or how often to process events like from a motion snesor.
 `timeUtils` | A collection of functions that convert and manipulate times and durations. Almost all the other library capabilities depend on this. `toDateTime` will convert almost any duration or date time to a `time.ZonedDateTime`.
 `TimerMgr` | A class that provides book keeping and management of multiple timers (e.g. one timer per Item for a rule that handled multiple Items). It supports rescheduling, flapping detection, etc.
 `testUtils` | A collection of functions useful for testing.
@@ -81,41 +75,23 @@ Name | Purpose
 `rulesUtils` | A collection of function to simplify the creation of a rule triggered by Items with a given tag or given Item metadata. These do not work well in UI rules.
 
 ## How to Save an Instance Between Runs?
-Most of the library capabilities above are classes that one instantiates and reuses over multiple executions of a given rule. 
+Most of the library capabilities above are classes that one instantiates and reuses over multiple executions of a given rule.
 So how does one save that instance so it doesn't get overwritten each time a rule runs?
 There are three options.
 
-### sharedCache
-New to OH 3.4 release, a system wide cache has been added where variables can be stored and accessed from multiple runs of a given rule or between multiple rules.
-One can pull, and if the Object doesn't exist instantiate it and save it to the `sharedCache` in one line inside your rule.
+### Shared Cache
+New to OH 3.4 release, a system wide cache has been added where variables can be stored and accessed across multiple runs of a rule or between script actions or conditions across multiple rules.
+On can pull, and if it doesn't exist instantiate a Object in one line inside your rule.
 
 ```
-var timers = sharedCache.get(ruleUID+"_tm", () => new timerMgr.TimerMgr());
+var timers = cache.shared.get('timers', () new timerMgr.TimerMgr());
 ```
 
 It is important to use unique keys across all your rules to avoid collisions.
 
-### Cache [deprecated?]
-The JS Scripting add-on includes a `cache` which is a place one can place variables that are shared across all rules and script actions/conditions.
-One can pull, and if the Object doesn't exist instantiate it and save it to the `cache` in one line inside your rule.
-
-```
-var timers = cache.get(ruleUID+'_tm', () => new timerMgr.TimerMgr());
-```
-
-Because the `cache` is shared across all rules, it's important to use unique keys or else one rule might overwrite a cached value from another one.
-Also, if you recreate the rule (e.g. by editing and saving it) you must clear the variables stored in the cache or else there will be context exceptions.
-In some of the rule templates I detect if the rule is run manually and clear out the cache in that case as a way to clear the cache.
-
-```
-if(this.event === undefined) {
-  logger.info('Resetting looping timers');
-  cache.put(TIMERS_KEY, null);
-}
-else {
-  // rule code goes here
-}
-```
+### Private Cache
+New to OH 3.4 release, a privatre cache has been added where variables can be stored and accessed from multiple runs of a given script action or condition.
+Just like with the shared cache, one can pull, and if the Object doesn't exist instantiate it and save it to the private cache in one line inside your rule.
 
 ### Global Variable
 If writing your rules in .js files, you can define a variable outside of your rules and that variable will be "global" to all the rules in that file.
@@ -138,7 +114,7 @@ When creating those functions one has a number of options.
 One can create an anonymous function inline.
 
 ```javascript
-this.timers.check(event.itemName, 1000, function() { 
+this.timers.check(event.itemName, 1000, function() {
   // do some stuff
 }
 ```
