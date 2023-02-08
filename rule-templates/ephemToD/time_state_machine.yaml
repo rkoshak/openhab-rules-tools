@@ -59,7 +59,7 @@ actions:
 
         var STATE_ITEM  = "{{timeOfDay}}";
 
-        var DT_GROUP    = "{{tiemsOfDayGrp}}";
+        var DT_GROUP    = "{{timesOfDayGrp}}";
 
         var DAY_TYPES   = ['custom', 'holiday', 'dayset', 'weekend', 'weekday', 'default'];
 
