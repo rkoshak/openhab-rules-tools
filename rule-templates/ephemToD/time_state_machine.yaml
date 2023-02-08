@@ -272,20 +272,36 @@ actions:
               // Get the state and start time, sort them ignoring the date, skip the ones that have
               // already passed and create a timer to transition for the rest.
               console.debug('Creating timers for times that have not already passed');
-              const sortedTimes = startTimes.map(i => {
-                                                        return { 'state': i.getMetadata()[NAMESPACE].value,
-                                                                 'time' : time.toZDT(i).toToday() } })
-                                            .sort((a,b) => {
-                                              if(a.time.isBefore(b.time)) return -1;
-                                              else if(a.time.isAfter(b.time)) return 1;
-                                              else return 0;
-                                            })
-                                            .filter(tod => tod.time.isAfter(time.toZDT()))
-                                            .forEach(tod => {
-                                              // TODO: see if we can move to rules instead of timers
-                                              console.debug('Creating timer for ' + tod.state + ' at ' + tod.time);
-                                              timers.check(tod.state, tod.time, stateTransitionGenerator(tod.state));
-                                            });
+              var mapped = startTimes.map(i => { return { 'state': i.getMetadata()[NAMESPACE].value,
+                                                          'time' : time.toZDT(i).toToday() } });
+              mapped.sort((a,b) => {
+                       if(a.time.isBefore(b.time)) return -1;
+                        else if(a.time.isAfter(b.time)) return 1;
+                        else return 0;
+                      })
+                      .filter(tod => tod.time.isAfter(time.toZDT()))
+                      .forEach(tod => {
+                        // TODO: see if we can move to rules instead of timers
+                        console.debug('Creating timer for ' + tod.state + ' at ' + tod.time);
+                        timers.check(tod.state, tod.time, stateTransitionGenerator(tod.state));
+                      });
+              
+              // Figure out the current time of day and move to that state if necessary
+              var beforeTimes = mapped.sort((a,b) => {
+                                        if(a.time.isAfter(b.time)) return -1;
+                                        else if(a.time.isBefore(b.time)) return 1;
+                                        else return 0;
+                                      })
+                                      .filter(tod => tod.time.isBefore(time.toZDT()));
+              if(!beforeTimes.length) {
+                console.warn("There is no date time for today before now, we can't know what the current state is.");
+              }
+              else {
+                const currState = beforeTimes[0].state
+                const stateItem = items[STATE_ITEM];
+                console.info('The current state is ' + currState);
+                if(stateItem.state != currState) stateItem.sendCommand(currState)
+              }
             }
             else {
               console.warn('The config is not valid, cannot proceed!');
