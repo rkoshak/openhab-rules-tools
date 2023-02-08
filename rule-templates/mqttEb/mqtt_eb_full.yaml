@@ -89,11 +89,11 @@ actions:
          */
         var pubStatus = () => {
           console.debug('Checking Thing status');
-          const thingStatus = things.getThing('mqtt:broker:broker').status;
+          const thingStatus = things.getThing('{{broker}}').status;
           console.debug('Thing status: ' + thingStatus);
           if(thingStatus == 'ONLINE') {
-            console.info('Publishing ONLINE to the LWT topic openhab/status.');
-            actions.get('mqtt', 'mqtt:broker:broker').publishMQTT('openhab/status', 'ONLINE', true);
+            console.info('Publishing ONLINE to the LWT topic {{topic}}.');
+            actions.get('mqtt', '{{broker}}').publishMQTT('{{topic}}', 'ONLINE', true);
           }
           else {
             console.debug('Asked to publish status but Thing is not ONLINE.');
@@ -108,8 +108,8 @@ actions:
          * This expects the event to be topic#message where the Item's name is the third level
          * of the topic and the event type is the fourth. For example:
          *
-         * org/openhab/MyLight/command#ON
-         * org/openhab/MyLight/state#ON
+         * {{topicRoot}}/in/MyLight/command#ON
+         * {{topicRoot}}/in/MyLight/state#ON
          */
         var procEvent = () => {
           console.debug('Processing an event bus event');
@@ -135,10 +135,10 @@ actions:
         var pubEvent = () => {
           console.debug('Publishing an event bus event');
           var retained = (event.type == 'ItemStateEvent');
-          var topic = 'openhab/out/' + event.itemName + ((retained) ? '/state' : '/command');
+          var topic = '{{topicRoot}}/out/' + event.itemName + ((retained) ? '/state' : '/command');
           var msg = ((retained) ? event.itemState : event.itemCommand).toString();
           console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
-          actions.get('mqtt', 'mqtt:broker:broker').publishMQTT(topic, msg, retained);
+          actions.get('mqtt', '{{broker}}').publishMQTT(topic, msg, retained);
         }
 
 
