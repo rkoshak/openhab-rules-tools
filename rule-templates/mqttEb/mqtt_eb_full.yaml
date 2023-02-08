@@ -1,0 +1,173 @@
+uid: rules_tools:mqtt_eventbus
+label: MQTT Event Bus
+description: Implements the MQTT EventBus, handling both subscription, publication, and status.
+configDescriptions:
+  - name: broker
+    type: TEXT
+    context: thing
+    label: MQTT Broker Thing
+    description: Select the MQTT Broker Thing used for the MQTT Event Bus
+    required: true
+  - name: topicRoot
+    type: TEXT
+    label: "openHAB Instance Name"
+    description: Name of this openHAB instance, used as the root fo the topic structure.
+    required: true
+  - name: cmd
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Command Group
+    description: Group Item whose member's commands are to be published.
+    required: true
+  - name: upd
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    label: Update Group
+    description: Group Item whose member's updates are to be published.
+    required: true
+  - name: channel
+    type: TEXT
+    context: channel
+    filterCriteria:
+      - name: kind
+        value: TRIGGER
+    label: MQTT Event Channel
+    description: The MQTT trigger channel that subscribes to the MQTT Event Bus.
+    required: true
+  - name: topic
+    type: TEXT
+    label: LWT Topic
+    description: Use the same LWT Topic configured on the MQTT Broker Thing
+    required: true
+triggers:
+  - id: "1"
+    configuration:
+      groupName: "{{cmd}}"
+    type: core.GroupCommandTrigger
+  - id: "2"
+    configuration:
+      groupName: "{{upd}}"
+    type: core.GroupStateUpdateTrigger
+  - id: "5"
+    label: EB Subscription
+    configuration:
+      thingUID: "{{broker}}"
+      channelUID: "{{channel}}"
+    type: core.ChannelEventTrigger
+  - id: "7"
+    configuration:
+      thingUID: "{{broker}}"
+      status: ONLINE
+    type: core.ThingStatusChangeTrigger
+  - id: "3"
+    configuration:
+      startlevel: 80
+    type: core.SystemStartlevelTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "9"
+    configuration:
+      type: application/javascript
+      script: >-
+        console.loggerName = 'org.openhab.automation.rules_tools.MQTTEventBus';
+
+        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+
+
+        console.info('MQTT Event Bus triggered');
+
+
+        /**
+         * Publishes ONLINE to the LWT topic if the Thing is ONLINE
+         */
+        var pubStatus = () => {
+          console.debug('Checking Thing status');
+          const thingStatus = things.getThing('mqtt:broker:broker').status;
+          console.debug('Thing status: ' + thingStatus);
+          if(thingStatus == 'ONLINE') {
+            console.info('Publishing ONLINE to the LWT topic openhab/status.');
+            actions.get('mqtt', 'mqtt:broker:broker').publishMQTT('openhab/status', 'ONLINE', true);
+          }
+          else {
+            console.debug('Asked to publish status but Thing is not ONLINE.');
+          }
+        };
+
+
+        /**
+         * Parses the event received and extracts the Item, event type, and state/command
+         * to update/command the Item.
+         *
+         * This expects the event to be topic#message where the Item's name is the third level
+         * of the topic and the event type is the fourth. For example:
+         *
+         * org/openhab/MyLight/command#ON
+         * org/openhab/MyLight/state#ON
+         */
+        var procEvent = () => {
+          console.debug('Processing an event bus event');
+          var parts = event.event.split('#');
+          const topic = parts[0];
+          const state = parts[1];
+          parts = topic.split('/');
+          const itemName = parts[2];
+          const eventType = parts[3];
+          console.debug('Received MQTT EB message: type = ' + eventType + ' item = ' + itemName + ' state/cmd = ' + state);
+          if(items[itemName] === null) {
+            console.warn('Received an event bus message for ' + itemName + ' which does not exist!');
+          }
+          else {
+            (eventType == 'command') ? items[itemName].sendCommand(state) : items[itemName].postUpdate(state);
+          }
+        }
+
+
+        /**
+         * Publishes commands and updates to the configured topic.
+         */
+        var pubEvent = () => {
+          console.debug('Publishing an event bus event');
+          var retained = (event.type == 'ItemStateEvent');
+          var topic = 'openhab/out/' + event.itemName + ((retained) ? '/state' : '/command');
+          var msg = ((retained) ? event.itemState : event.itemCommand).toString();
+          console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
+          actions.get('mqtt', 'mqtt:broker:broker').publishMQTT(topic, msg, retained);
+        }
+
+
+        if(this.event !== undefined) {
+          console.debug('Processing an MQTT Event Bus event: ' + event.type);
+          switch(event.type) {
+            // Publish status when the broker thing comes ONLINE
+            case 'ThingStatusInfoChangedEvent':
+              pubStatus();
+              break;
+            // Process an incoming message on the MQTT Channel Trigger, updating/commanding the corresponding Item
+            case 'ChannelTriggeredEvent':
+              pubStatus(); // system runlevel trigger isn't working
+              procEvent();
+              break;
+            // Publish state updates and commands on local Items
+            case 'ItemStateEvent':
+            case 'ItemCommandEvent':
+              pubStatus(); // system runlevel trigger isn't working
+              pubEvent();
+              break;
+            // Warn if we received an unknown event.
+            default:
+              pubStatus();
+          }
+        }
+
+        else {
+          console.debug('Triggered without event, attempting to publish the MQTT status');
+          pubStatus();
+        }
+    type: script.ScriptAction
