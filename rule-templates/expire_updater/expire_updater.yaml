@@ -1,0 +1,119 @@
+uid: rules_tools:expire_updater
+label: Expire Updater
+description: Called by another rule with item and newDuration, will update the expire metadata with the newDuration.
+configDescriptions: []
+triggers: []
+conditions: []
+actions:
+  - inputs: {}
+    id: "1"
+    configuration:
+      type: application/javascript
+      script: >-
+        console.loggerName = 'org.openhab.automation.rules_tools.Expire';
+
+        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+
+
+        var allowDelete = true;
+
+
+        /**
+         * value: 0h10m0s,command=ON
+         * config:
+         *  ignoreStateUpdates: "true"
+         *  ignoreCommands: "true"
+         */
+
+        /**
+         * Check to see if the passed in item exists as an Item.
+         * @param {ohItem|items.Item|String} i openHAB Item Object, JS Scripting item, or name of the Item as a String
+         * @returns {string} null if I isn't one of the supported types or the Item doesn't exist
+         */
+        var getItemName = (i) => {
+          var ohItem = Java.type('org.openhab.core.items.Item');
+          var javaString = Java.type('java.lang.String');
+          var itemName = null;
+
+          if(item === undefined) console.error('No item passed in to adjust expire metadata on.');
+          else if(item instanceof ohItem) {
+            console.debug('item is an OH Item');
+            itemName = item.getName();
+          }
+          else if(item.name !== undefined) {
+            console.debug("item.name is defined, let's go with that");
+            itemName = item.name;
+          }
+          else if(item instanceof String || item instanceof javaString) {
+            console.debug('item is a string, assuming it is an Item name');
+            itemName = item;
+          }
+
+          if(itemName === null) {
+            console.warn('Could not convert item to an item name');
+          }
+          else if(items[itemName] === undefined) {
+            console.warn('Could not find the Item named ' + itemName);
+            return null;
+          }
+          return itemName;
+        };
+
+
+        /**
+         * Parses the passed in duration string to validate it will work for Expire.
+         * @param {string} duration string to check
+         * @retruns {boolean} true if it can be used by Expire
+         */
+        var isValidMetadataTime = (durStr) => {
+          try {
+            const parsed = time.Duration.parse('PT'+durStr);
+            if(parsed.nano > 0) throw 'Expire does not support units smaller than a second.';
+            if(!durStr.includes('h')) throw 'Missing hour field in ' + durStr;
+            if(!durStr.includes('m')) throw 'Missing minutes field in ' + durStr;
+            if(!durStr.includes('s')) throw 'Missing seconds field in ' + durStr;
+          }
+          catch(e) {
+            console.error('Passed in expire string cannot be parsed. Examples of valid strings: "8h0m0s", "8h0m5s", "0h7m0s".\n' + e);
+            return false;
+          }
+          return true;
+        };
+
+
+        // ~~~~~~~~~~~Main Body Starts Here
+
+        console.debug('Updating expire for ' + this.item + ' with ' + this.newDuration);
+
+
+        var itemName = getItemName(item);
+
+
+        // Log error if Item doesn't exist
+
+        if(itemName === null) {
+          console.error("Cannot find Item using passed in item parameter.");
+        }
+
+
+        // Delete the expire metadata if no duration is passed in and that's enabled
+
+        else if(allowDelete && (this.newDuration === undefined || newDuration === null || newDuration == '')) {
+          console.debug('Removing expire metadata from ' + itemName);
+          items[itemName].removeMetadata('expire');
+        }
+
+
+        // Replace the duration if the passed in duration is valid, leave the rest as is.
+
+        else if(isValidMetadataTime(newDuration)) {
+          console.debug('Updating metadata');
+          const oldExpire = items[itemName].getMetadata()['expire'];
+          const oldValue = (oldExpire) ? oldExpire.value.split(',') : []; // if there isn't any metadata newDuration will be added
+          const newValue = (oldValue.length > 1) ? newDuration+','+oldValue[1] : newDuration;
+          console.debug('Replacing ' + oldValue + ' with ' + newValue + ' on itemName.');
+          items[itemName].replaceMetadata('expire', newValue, (oldExpire && oldExpire.configuration) ? oldExpire.configuration : {});
+        }
+
+        // error will be printed to log if passed in duration is not valid
+    type: script.ScriptAction
