@@ -78,7 +78,7 @@ actions:
       script: >-
         console.loggerName = 'org.openhab.automation.rules_tools.MQTTEventBus';
 
-        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
 
 
         console.info('MQTT Event Bus triggered');
