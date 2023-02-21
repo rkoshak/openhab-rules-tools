@@ -42,7 +42,7 @@ actions:
 
         var reading = event.itemState.floatValue();
 
-        var lastReading = (event.oldItemState.toString() == 'NULL' || event.oldItemState.toString() == 'UNDEF') ? 0 : event.oldItemState.floatValue();
+        var lastReading = (event.oldItemState.toString() == 'NULL' || event.oldItemState.toString() == 'UNDEF') ? reading : event.oldItemState.floatValue();
 
         var currTotal = (totalItem.isUninitialized) ? 0 : totalItem.rawState.floatValue();
 
