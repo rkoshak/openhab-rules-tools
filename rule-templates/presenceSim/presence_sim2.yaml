@@ -55,7 +55,7 @@ actions:
       script: >-
         console.loggerName = 'org.openhab.automation.rules_tools.Presence Sim';
 
-        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
 
 
         var PersistenceExtensions = Java.type('org.openhab.core.persistence.extensions.PersistenceExtensions');

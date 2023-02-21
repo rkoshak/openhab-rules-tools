@@ -49,7 +49,7 @@ actions:
 
         console.loggerName = 'org.openhab.automation.rules_tools.TimeStateMachine';
 
-        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
 
 
         console.debug('Starting state machine in ten seconds...');
@@ -285,7 +285,7 @@ actions:
                         console.debug('Creating timer for ' + tod.state + ' at ' + tod.time);
                         timers.check(tod.state, tod.time, stateTransitionGenerator(tod.state));
                       });
-              
+
               // Figure out the current time of day and move to that state if necessary
               var beforeTimes = mapped.sort((a,b) => {
                                         if(a.time.isAfter(b.time)) return -1;
