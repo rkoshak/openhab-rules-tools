@@ -9,13 +9,14 @@ configDescriptions:
     context: rule
     required: true
 triggers:
-  - id: "1"
-    label: GenericEventTrigger
-    description: GenericEventTrigger with filter
+  - id: "3"
+    label: A Thing Changes Status
+    description: Triggers when any Thing changes status
     configuration:
-      eventSource: ""
-      eventTopic: openhab/things/*
-      eventTypes: ThingStatusInfoChangedEvent
+      types: ThingStatusInfoChangedEvent
+      payload: ""
+      topic: openhab/things/**
+      source: ""
     type: core.GenericEventTrigger
 conditions: []
 actions:
