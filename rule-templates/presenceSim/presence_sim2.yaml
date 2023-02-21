@@ -44,7 +44,7 @@ conditions:
     id: "2"
     configuration:
       itemName: "{{enableSim}}"
-      state: ON
+      state: "ON"
       operator: "!="
     type: core.ItemStateCondition
 actions:
@@ -62,6 +62,7 @@ actions:
 
 
         items.{{simItems}}.members.forEach((i) => {
+
         //  const hState = i.history.historicState(time.toZDT().minusDays({{days}})); // doesn't work
           const hState = PersistenceExtensions.historicState(i.rawItem, time.toZDT().minusDays({{days}}));
           if(hState === undefined || hState === null) {
