@@ -40,11 +40,6 @@ configDescriptions:
     label: MQTT Event Channel
     description: The MQTT trigger channel that subscribes to the MQTT Event Bus.
     required: true
-  - name: topic
-    type: TEXT
-    label: LWT Topic
-    description: Use the same LWT Topic configured on the MQTT Broker Thing
-    required: true
 triggers:
   - id: "1"
     configuration:
