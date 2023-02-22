@@ -22,7 +22,7 @@ class CountdownTimer {
     this.ONE_SEC = time.Duration.ofSeconds(1);
 
     // Create a separate timer to run the func
-    this.timer = actions.ScriptExecution.createTimer(this.start, func);
+    this.timer = actions.ScriptExecution.createTimer(this.end, func);
     this.timeLeft = time.Duration.between(this.start, this.end);
 
     // Start the countdown timer
