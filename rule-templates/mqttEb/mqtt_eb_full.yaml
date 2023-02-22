@@ -60,15 +60,6 @@ triggers:
       thingUID: "{{broker}}"
       channelUID: "{{channel}}"
     type: core.ChannelEventTrigger
-  - id: "7"
-    configuration:
-      thingUID: "{{broker}}"
-      status: ONLINE
-    type: core.ThingStatusChangeTrigger
-  - id: "3"
-    configuration:
-      startlevel: 80
-    type: core.SystemStartlevelTrigger
 conditions: []
 actions:
   - inputs: {}
@@ -79,27 +70,6 @@ actions:
         console.loggerName = 'org.openhab.automation.rules_tools.MQTTEventBus';
 
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
-
-
-        console.info('MQTT Event Bus triggered');
-
-
-        /**
-         * Publishes ONLINE to the LWT topic if the Thing is ONLINE
-         */
-        var pubStatus = () => {
-          console.debug('Checking Thing status');
-          const thingStatus = things.getThing('{{broker}}').status;
-          console.debug('Thing status: ' + thingStatus);
-          if(thingStatus == 'ONLINE') {
-            console.info('Publishing ONLINE to the LWT topic {{topic}}.');
-            actions.get('mqtt', '{{broker}}').publishMQTT('{{topic}}', 'ONLINE', true);
-          }
-          else {
-            console.debug('Asked to publish status but Thing is not ONLINE.');
-          }
-        };
-
 
         /**
          * Parses the event received and extracts the Item, event type, and state/command
@@ -145,29 +115,22 @@ actions:
         if(this.event !== undefined) {
           console.debug('Processing an MQTT Event Bus event: ' + event.type);
           switch(event.type) {
-            // Publish status when the broker thing comes ONLINE
-            case 'ThingStatusInfoChangedEvent':
-              pubStatus();
-              break;
             // Process an incoming message on the MQTT Channel Trigger, updating/commanding the corresponding Item
             case 'ChannelTriggeredEvent':
-              pubStatus(); // system runlevel trigger isn't working
               procEvent();
               break;
             // Publish state updates and commands on local Items
             case 'ItemStateEvent':
             case 'ItemCommandEvent':
-              pubStatus(); // system runlevel trigger isn't working
               pubEvent();
               break;
             // Warn if we received an unknown event.
             default:
-              pubStatus();
+              console.warn('MQTT Event Bus rule triggered without an event we can process, ignoring');
           }
         }
 
         else {
-          console.debug('Triggered without event, attempting to publish the MQTT status');
-          pubStatus();
+          console.warn('MQTT Event Bus rule triggered without event, ignoring');
         }
     type: script.ScriptAction
