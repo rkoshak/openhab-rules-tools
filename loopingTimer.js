@@ -34,13 +34,19 @@ class LoopingTimer {
    * Called when the timer expires. Calls the passed in function and
    * reschedules it based on the returned when value, or ends if null was
    * returned.
+   * @throws exception when the time returned by the looping function is in the past
    */
   expired() {
-    var when = this.func();
+    const when = this.func();
     if (when) {
-      this.timer = helpers.createTimer(
-        time.toZDT(when),
-        () => this.expired(), this.name, 'loopingTimer');
+      const nextRun = time.toZDT(when);
+      if (nextRun.isAfter(now)) {
+        this.timer = helpers.createTimer(nextRun, () => this.expired(),
+          this.name, 'loopingTimer');
+      }
+      else {
+        throw 'when ' + when + ' returned by the loop function is in the past!';
+      }
     }
   }
 
