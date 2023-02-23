@@ -10,13 +10,17 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        var {helpers} = require('openhab_rules_tools');
+
         console.loggerName = 'org.openhab.automation.rules_tools.Expire';
 
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
 
 
-        var allowDelete = true;
+        helpers.validateLibraries('4.1.0', '2.0.1');
 
+
+        var allowDelete = true;
 
         /**
          * value: 0h10m0s,command=ON

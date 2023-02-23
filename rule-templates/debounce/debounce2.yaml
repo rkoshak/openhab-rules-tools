@@ -40,9 +40,9 @@ conditions:
       script: >
         console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
 
-        // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO 
+        // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO
 
-        // Rework when `event` always exists and check the event.type 
+        // Rework when `event` always exists and check the event.type
 
         if(this.event !== undefined && this.event.itemName !== undefined){
           const item = items.getItem(this.event.itemName);
@@ -63,10 +63,14 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        var {timerMgr} = require('openhab_rules_tools');
+        var {timerMgr, helpers} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
 
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+
+        helpers.validateLibraries('4.1.0', '2.0.1');
 
 
         var USAGE = "Debounce metadata should follow this format:\n"

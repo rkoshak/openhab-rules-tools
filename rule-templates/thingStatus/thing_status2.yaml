@@ -25,18 +25,35 @@ actions:
     configuration:
       type: application/javascript
       script: |
+        var {helpers} = require('openhab_rules_tools');
+
         console.loggerName = 'org.openhab.automation.rules_tools.Thing Status';
+
+        // osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+
+        helpers.validateLibraries('4.1.0', '2.0.1');
+
+
         console.debug('ThingStatusInfoChangedEvent:' + event.toString());
 
         var parsed = JSON.parse(event.payload);
 
+
         var data = {};
-        data['thingID'] = event.topic.split('/')[2];;
+
+        data['thingID'] = event.topic.split('/')[2];
+
         data['thing'] = things.getThing(data['thingID']);
+
         data['oldStatus'] = parsed[1].status;
+
         data['oldDetail'] = parsed[1].statusDetail;
+
         data['newStatus'] = parsed[0].status;
+
         data['newDetail'] = parsed[0].statusDetail;
+
 
         rules.runRule("{{script}}", data, true);
     type: script.ScriptAction
