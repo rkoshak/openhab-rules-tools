@@ -1,4 +1,5 @@
 const { actions, time, utils } = require('openhab');
+const VERSION = require('./package.json').version;
 
 /**
  * Utility function to create a named timer.
