@@ -94,31 +94,61 @@ const checkGrpAndMetadata = (namespace, grp, validateFunc, usage) => {
 };
 
 /**
- * Validates that the openhab-js library verison is >= to the passed in version
- * so rule tempaltes can do error handling if it's too old.
+ * Validates that the passed in version number is of the format X.Y.Z where
+ * X, Y, and Z are numbers.
  *
- * @param {string} version a version string of the format X.Y.Z
- * @returns true if the openhab-js verison is >= to the passed in version
- * @throws error if either the openhab-js version or the passed in version are not X.Y.Z format
+ * @param {string} version a version string to validate
+ * @returns {boolean} true if valid, false otherwise
  */
-const validateOpenhabJS = (version) => {
-
+const _validateVersionNum = (version) => {
   const re = /\d+\.\d+\.\d+/;
-  if (!re.test(utils.OPENHAB_JS_VERSION)) throw utils.OPENHAB_JS_VERSION + ' is not a valid version number';
-  if (!re.test(version)) throw utils.OPENHAB_JS_VERISON + 'is not a valid version number';
+  if (version === null || version === undefined || !(typeof version === 'string')) return false;
+  return re.test(version);
+};
 
-  const ohjsVersion = Number.parseFloat(utils.OPENHAB_JS_VERSION);
-  const ohjsPoint = Number.parseInt(utils.OPENHAB_JS_VERSION.split('.')[2]);
-  const testVersion = Number.parseFloat(version);
-  const testPoint = Number.parseInt(version.split('.')[2]);
+/**
+ * Compare version numbers of the format X.Y.Z.
+ *
+ * @param {string} v1 the first version number
+ * @param {string} v2 the second version number
+ * @throws error if v1 or v2 are not parsable
+ * @returns {-1|0|1} 0 if the versions are equal, -1 if v1 is lower and 1 if v1 is higher
+ */
+const compareVersions = (v1, v2) => {
+  if (!_validateVersionNum(v1)) throw v1 + ' is not a valid version number in the format X.Y.Z where X, Y, and Z are numbers!';
+  if (!_validateVersionNum(v2)) throw v2 + ' is not a valid version number in the format X.Y.Z where X, Y, and Z are numbers!';
 
-  if (ohjsVersion > testVersion) return true;
-  else if (ohjsVersion == testVersion && ohjsPoint >= testPoint) return true;
-  else return false;
+  const v1Version = Number.parseFloat(v1);
+  const v1Point = Number.parseInt(v1.split('.')[2]);
+  const v2Version = Number.parseFloat(v2);
+  const v2Point = Number.parseFloat(v2.split('.')[2]);
+
+  if (v1 == v2) return 0;
+  else if (v1Version > v2Version) return 1;
+  else if (v1Version == v2Version && v1Point > v2Point) return 1;
+  else return -1;
+};
+
+/**
+ * Checks to see if the minimum versions of openhab-js and openhab_rules_tools
+ * are met.
+ *
+ * @throws error if one or more of the version numbers are malformed
+ * @throws error if one or more of the versions are too old
+ */
+const validateLibraries = (minOHJS, minOHRT) => {
+  if (compareVersions(utils.OPENHAB_JS_VERSION, minOHJS) < 0)
+    throw 'Minimum library version not met: openhab-js '
+    + utils.OPENHAB_JS_VERSION + ' installed, ' + minOHJS + ' required';
+  if (compareVersions(VERSION, minOHRT) < 0)
+    throw 'Minimum library version not met: openhab_rules_tools '
+    + VERSION + ' installed, ' + minOHRT + ' required';
 };
 
 module.exports = {
   createTimer,
   checkGrpAndMetadata,
-  validateOpenhabJS
+  compareVersions,
+  validateLibraries,
+  OHRT_VERSION: VERSION
 };
