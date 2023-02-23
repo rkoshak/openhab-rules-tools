@@ -1,4 +1,4 @@
-const { actions, time } = require('openhab');
+const { actions, time, utils } = require('openhab');
 
 /**
  * Utility function to create a named timer.
@@ -93,7 +93,32 @@ const checkGrpAndMetadata = (namespace, grp, validateFunc, usage) => {
   return isGood;
 };
 
+/**
+ * Validates that the openhab-js library verison is >= to the passed in version
+ * so rule tempaltes can do error handling if it's too old.
+ *
+ * @param {string} version a version string of the format X.Y.Z
+ * @returns true if the openhab-js verison is >= to the passed in version
+ * @throws error if either the openhab-js version or the passed in version are not X.Y.Z format
+ */
+const validateOpenhabJS = (version) => {
+
+  const re = /\d+\.\d+\.\d+/;
+  if (!re.test(utils.OPENHAB_JS_VERSION)) throw utils.OPENHAB_JS_VERSION + ' is not a valid version number';
+  if (!re.test(version)) throw utils.OPENHAB_JS_VERISON + 'is not a valid version number';
+
+  const ohjsVersion = Number.parseFloat(utils.OPENHAB_JS_VERSION);
+  const ohjsPoint = Number.parseInt(utils.OPENHAB_JS_VERSION.split('.')[2]);
+  const testVersion = Number.parseFloat(version);
+  const testPoint = Number.parseInt(version.split('.')[2]);
+
+  if (ohjsVersion > testVersion) return true;
+  else if (ohjsVersion == testVersion && ohjsPoint >= testPoint) return true;
+  else return false;
+};
+
 module.exports = {
   createTimer,
-  checkGrpAndMetadata
+  checkGrpAndMetadata,
+  validateOpenhabJS
 };
