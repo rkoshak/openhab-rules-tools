@@ -73,6 +73,7 @@ Name | Purpose
 `testUtils` | A collection of functions useful for testing.
 `groupUtils` | A collection of functions to simplify mapping and reducing members or descendents of a Group.
 `rulesUtils` | A collection of function to simplify the creation of a rule triggered by Items with a given tag or given Item metadata. These do not work well in UI rules.
+`helpers` | These are some helper functions to centralize some stuff commonly done by several of the other parts of the library and rule templates (e.g. centralize creation of timer Objects)
 
 ## How to Save an Instance Between Runs?
 Most of the library capabilities above are classes that one instantiates and reuses over multiple executions of a given rule.
