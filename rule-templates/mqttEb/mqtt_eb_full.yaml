@@ -62,9 +62,15 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        var {helpers} = require('openhab_rules_tools');
+
         console.loggerName = 'org.openhab.automation.rules_tools.MQTTEventBus';
 
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+
+
+        helpers.validateLibraries('4.1.0', '2.0.1');
+
 
         /**
          * Parses the event received and extracts the Item, event type, and state/command

@@ -53,18 +53,19 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        var {helpers} = require('openhab_rules_tools');
+
         console.loggerName = 'org.openhab.automation.rules_tools.Presence Sim';
 
-        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+        // osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
 
-        var PersistenceExtensions = Java.type('org.openhab.core.persistence.extensions.PersistenceExtensions');
+        helpers.validateLibraries('4.1.0', '2.0.1');
 
 
         items.{{simItems}}.members.forEach((i) => {
 
-        //  const hState = i.history.historicState(time.toZDT().minusDays({{days}})); // doesn't work
-          const hState = PersistenceExtensions.historicState(i.rawItem, time.toZDT().minusDays({{days}}));
+          const hState = i.history.historicState(time.toZDT().minusDays({{days}}));
           if(hState === undefined || hState === null) {
             console.warn(i.name + ' does not have a historic state for ' + '{{days}}' + ' days ago');
           }
