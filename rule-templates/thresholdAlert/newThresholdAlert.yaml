@@ -1,0 +1,613 @@
+uid: rules_tools:threshold_alert
+label: Threshold Alert
+description: Triggers on a change to a member of a Group. If the new state meets a user defined criteria, an alert rule is called. When exiting an alert state, an end alert rule is called. Running this rule manually will validate the configuration.
+configDescriptions:
+  - name: group
+    label: Triggering Group
+    description: Group whose members should trigger this rule
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Group
+    required: true
+  - name: thresholdState
+    label: Threshold State
+    description: The state compared to to determine if the Item is alerting or not. This supports units.
+    type: TEXT
+    required: true
+  - name: operator
+    label: Comparison Operator
+    description: Comparison used with Threshold State to determine if the current state is alerting.
+    type: TEXT
+    required: true
+    options:
+      - label: '= equals'
+        value: '=='
+      - label: '!= not equal to'
+        value: '!='
+      - label: '< less than'
+        value: '<'
+      - label: '<= less than or equal'
+        value: '<='
+      - label: '> greater than'
+        value: '>'
+      - label: '>= greater than or equal'
+        value: '>='
+    limitToOptions: true
+  - name: invert
+    label: Invert Comparison
+    description: Inverts the comparison to mean the opposite (e.g. if true and operator == will mean !=)
+    type: BOOLEAN
+    defaultValue: false
+    required: false
+  - name: defaultAlertDelay
+    label: Alert Delay
+    description: How long to wait before calling the rule when the Item meets the threshold comparison, ISO8061 duration format. Can be overridden by Item metadata.
+    type: TEXT
+    defaultValue: ''
+    required: false
+  - name: defaultRemPeriod
+    label: Reminder Period
+    description: How long to wait between repeated calls to the threshold rule, ISO8601 duration format. Can be overridden by Item metadata.
+    type: TEXT
+    defaultValue: ''
+    required: false
+  - name: namespace
+    label: Metadata Namespace
+    description: The Item metadata namespace where per Item alert delay and reminder periods can be defined
+    type: TEXT
+    defaultValue: thresholdAlert
+    required: false
+  - name: alertRule
+    label: Alert Rule
+    description: The rule called when the Item meets the threshold criteria for at least as long as alert delay. This rule will be called repeatedly if reminder period is defined.
+    type: TEXT
+    context: rule
+    required: true
+  - name: endAlertRule
+    label: End Alert Rule
+    description: The rule called when the Item was previously alerted but no longer meets the threshold criteria. This is optional, will only be called once, and can be the same as the alert rule.
+    type: TEXT
+    context: rule
+    required: false
+  - name: dndStart
+    label: Do Not Disturb Start Time
+    description: Start of an optional do not disturb period. Calls to either the alert rule or the end alert rule will be suppressed during this period with the latest call made at the end of the period.
+    type: TEXT
+    context: time
+    defaultValue: ''
+    required: false
+  - name: dndEnd
+    label: Do Not Distrub End Time
+    description: End of the do not disturb period. If this time is before the start time, the period is assumed to span midnight.
+    context: time
+    defaultValue: ''
+    required: false
+  - name: gkDelay
+    label: Gatekeeper Delay
+    description: Sometimes a delay is needed between calls to the rules to avoid multithreaded exceptions. The delay is in milliseconds.
+    type: DECIMAL
+    defaultValue: 0
+    required: false
+triggers:
+  - id: "2"
+    configuration:
+      groupName: {{group}}
+    type: core.GroupStateChangeTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "1"
+    configuration:
+      type: application/javascript
+      script: >-
+        var {helpers, loopingTimer, gatekeeper} =
+        require('openhab_rules_tools');
+
+        var {DecimalType, QuantityType, PercentType} = require('@runtime');
+
+
+        console.loggerName = 'org.openhab.automation.rules_tools.Threshold Alert.'+ruleUID;
+
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+
+        helpers.validateLibraries('4.1.0', '2.0.1');
+
+
+        console.debug('Starting threshold alert');
+
+
+        // Properties
+
+        var group = '{{group}}';
+
+        var alertState = '{{thresholdState}}';
+
+        var operator = '{{operator}}';
+
+        var comparison = (currState, alertState) => { return currState {{operator}} alertState; }; // calculated
+
+        var invert = {{invert}};
+
+        var defaultAlertDelay = '{{defaultAlertDelay}}';
+
+        var defaultRemPeriod = '{{defaultRemPeriod}}';
+
+        var namespace = '{{namespace}}';
+
+        var alertRuleUID = '{{alertRule}}';
+
+        var endAlertUID = '{{endAlertRule}}';
+
+        var dndStart = '{{dndStart}}';
+
+        var dndEnd = '{{dndEnd}}';
+
+        var GK_DELAY = {{gkDelay}};
+
+
+        // holds an Object containing the alertTimer, alertOverTimer, and alerted flag
+
+        var timers = cache.private.get('timers', () => { return {}; });
+
+
+        // ~~~~~~~~~~~Functions
+
+        /**
+         * Converts an Item's state to a value we can compare in this rule.
+         *
+         * @param {State} an Item's state
+         * @return {String|float|Quantity} the state converted to a usable type
+         */
+        var eventToValue = (itemState) => {
+          if(itemState instanceof DecimalType || itemState instanceof PercentType) return itemState.floatValue();
+          if(itemState instanceof QuantityType) return Quantity(itemState);
+          return itemState.toString();
+        }
+
+
+        /**
+         * Determines if the Item is in an alerting state based on the configured comparison.apply
+         *
+         * @param {State} current state of the Item
+         * @param {string} state to compare the current state to
+         * @return {boolean} true if current is an alerting state
+         */
+        var isAlertingState = (currState, alertState) => {
+          let calc = currState + ' ' + operator + ' ' + alertState;
+          if(invert) calc = '!(' + calc + ')';
+          console.debug('Checking if we are in the alerting state: ' + calc);
+
+          let rval = false;
+
+          // Numerical Comparison
+          if(!isNaN(currState)) {
+            console.debug(currState + ' is a number, attempting a numeric comparison');
+            rval = comparison(currState, Number.parseFloat(alertState));
+          }
+          // QuantityType Comparison
+          else if(currState instanceof QuantityType || Quantity(currState)) {
+            console.debug(currState + ' is a QuantityType, attempting a Quantity comparison');
+            try {
+              switch(operator) {
+                case '==': rval = currState.equal(alertState);
+                case '!=': rval = !currState.equals(alertState);
+                case '<' : rval = currState.lessThan(alertState);
+                case '<=': rval = currState.lessThanOrEqual(alertState);
+                case '>' : rval = currState.greaterThan(alertState);
+                case '>=': rval = currState.greaterThanOrEqual(alertState);
+              }
+            }
+            catch(e) {
+              console.error('Cannot compare ' + currState + ' to alert state ' + alertState + ', alert state is incompatible');
+              return false;
+            }
+          }
+          // Non-numerical Comparison
+          else {
+            console.debug('Not a number, attempting a non-numeric comparison');
+            rval = comparison(currState, alertState);
+          }
+          return (invert) ? !rval : rval;
+        }
+
+
+        /**
+         * Checks the proposed alerting time and adjusts it to occur at the end of the DND
+         * if the proposed time falls in the DND time.
+         *
+         * @param {anything supported by time.toZDT()} timeout proposed time to send the alert
+         * @param {String} dndStart time the DND starts
+         * @param {String} dndEnd time the DND ends
+         * @return {time.ZonedDateTime} adjusted time to send the alert
+         */
+        var generateAlertTime = (timeout, dndStart, dndEnd) => {
+          if(!timeout) return null;
+
+          let rval = time.toZDT(timeout);
+          let start = time.toZDT(dndStart);
+          let end = time.toZDT(dndEnd);
+          if(rval.isBetweenTimes(dndStart, dndEnd)) {
+            console.debug('Alert is scheduled during do not distrub time, moving to ' + dndEnd);
+            rval = dndEnd;
+            if(time.toZDT(rval).isBefore(time.toZDT())) {
+              rval = timeUtils.toTomorrow(dndEnd);
+            }
+          }
+          return rval;
+        }
+
+
+        /**
+         * Calls the rule with the alert info, using the gatekeeper to prevent overloading the
+         * rule. The rule is called to inforce conditions.
+         *
+         * @param {string} ruleID UID of the rule to call
+         * @param {string} alertItem name of the Item
+         * @param {State} current state of the Item
+         * @param {boolean} indicates if the Item is alerting or not
+         */
+        var callRule = (ruleID, alertItem, state, isAlerting) => {
+          var gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
+          gk.addCommand(GK_DELAY, () => {
+            rules.runRule(ruleID, { 'alertItem': alertItem, 'currState': state.toString(), 'alerting': isAlerting }, true);
+          });
+        }
+
+
+        /**
+         * Creates the function that gets called by the loopingTimer for a given Item. The generated
+         * function returns how long to wait for the next call (adjusted for DND) or null when it's
+         * time to exit.
+         *
+         * @param {string} name Item we are alerting on
+         * @param {string} dndStart string representation of the start of the DND period, '' if there isn't one
+         * @param {string} dndEnd string representaiton of the end of the DND period, '' if there isn't one
+         * @param {Object} Object containing alertTimer, endAlertTimer, and alerted
+         * @return {function} function that takes no arguments called by the looping timer
+         */
+        var sendAlertGenerator = (name, dndStart, dndEnd, record) => {
+          return () => {
+            const item = items[name];
+            const currState = eventToValue(items[name].rawState);
+            const metadata = item.getMetadata()[namespace];
+            const remPeriod = (metadata && metadata.configuration['remPeriod']) ? metadata.configuration['remPeriod'] : defaultRemPeriod;
+
+            // We can still get Multithreaded exceptions when calling another rule, this should reduce the occurance of that
+            console.debug('Alert timer expired for ' + name + ' with dnd between ' + dndStart + ' and ' + dndEnd);
+            let repeatTime = generateAlertTime(remPeriod, dndStart, dndEnd); // returns null if remPeriod is '', which cancels the loop
+
+            // Call alert rule if still alerting
+            if(isAlertingState(currState, alertState)) {
+              console.debug(name + ' is still in an alerting state.');
+              callRule(alertRuleUID, name, currState, true);
+              record.alerted = true;
+              if(repeatTime === null) record.alertTimer = null; // clean up if no longer looping
+              return repeatTime;
+            }
+            // no longer alerting, cancel the repeat, send an alert if configured
+            else {
+              console.debug(name + ' is no longer in an alerting state but timer was not cancelled, this should not happen');
+              record.alertTimer = null;
+              return null;
+            }
+          }
+        }
+
+
+        /**
+         * Called when the Item event indicates that it's in an alerting state. If there isn't
+         * already a looping timer running, create one to initially run at alertTime (adjusted
+         * for DND) and repeat according to remPeriod. If dndStart is after dndEnd, the DND is
+         * assumed to span midnight.
+         *
+         * @param {string} name of the Item that generated the event
+         * @param {State|String} state state of the Item that generated the event
+         * @param {Object} record contains alertTimer, endAlertTimer, and alerted flag
+         */
+        var alerting = (name, state, record) => {
+          console.debug(name + ' is in the alert state of ' + state);
+
+          // Cancel the endAlertTimer if there is one
+          if(record.endAlertTimer !== null) {
+            console.debug('Cancelling endAlertTimer for ' + name);
+            record.endAlertTimer.cancel();
+            record.endAlertTimer = null;
+          }
+
+          // Set a timer for how long the Item needs to be in the alerting state before alerting.
+          // If one is already set, ignore it
+          if(record.alertTimer === null) {
+            const item = items[name];
+            const metadata = item.getMetadata()[namespace];
+            const alertDelay = (metadata && metadata.configuration['alertDelay']) ? metadata.configuration['alertDelay'] : defaultAlertDelay;
+            let timeout = generateAlertTime(alertDelay, dndStart, dndEnd, record);
+            if(timeout === null) timeout = 'PT0S'; // run now
+            console.debug('Creating looping alert timer for ' + name + ' at ' + timeout);
+            record.alertTimer = new loopingTimer.LoopingTimer();
+            record.alertTimer.loop(sendAlertGenerator(name, dndStart, dndEnd, record), timeout);
+          }
+          else {
+            console.debug(name + ' already has an alert timer, ignoring event.');
+          }
+        }
+
+
+        /**
+         * Called when the Item event indicates that it is not in an alerting state.
+         * Clean up the record a
+         * @param {string} name name of the Item that generated the event
+         * @param {Object} record contains alertTimer, endAlertTimer, and alerted flag
+         */
+        var notAlerting = (name, record) => {
+          console.debug(name + ' is no longer in the alerting state, previous alerted = ' +record.alerted);
+
+          // Cancel the alertTimer
+          if(record.alertTimer !== null) {
+            console.debug('Cancelling alertTimer for ' + name);
+            record.alertTimer.cancel();
+            record.alertTimer = null;
+          }
+
+          // Send alert if required
+          if(endAlertUID && record.alerted) {
+            console.debug('Sending alert that ' + name + ' is no longer in the alerting state');
+            // Schedule a timer if in DND, otherwise run now
+            record.endAlertTimer = new loopingTimer.LoopingTimer();
+            record.endAlertTimer.loop(() => {
+              console.debug('Calling end alert rule for ' + name);
+              callRule(endAlertUID, name, items[name].state, false);
+              record.alerted = false;
+              record.endAlertTimer = null;
+            }, generateAlertTime(time.toZDT(), dndStart, dndEnd));
+          }
+          else if(!endAlertUID && record.alerted) {
+            console.debug('No end alert rule is configured, exiting alerting for ' + name);
+            record.alerted = false;
+          }
+          else if(!record.alerted) {
+            console.debug('Exiting alerting but alert was never sent, not sending alert for ' + name);
+          }
+          else {
+            console.warn('We should not have reached this!');
+          }
+        }
+
+
+        /**
+         * Process an Item event, checking to see if it is in an alerting state and calling
+         * the alerting rule with repeats if configured. If it is no longer in an alerting
+         * state and an alert was sent, call the end alerting rule if configured.
+         *
+         * @param {string} name the name of the Item
+         * @param {string} state the Item's current state
+         */
+        var procEvent = (name, state) => {
+          console.debug('Processing state ' + state + ' from ' + name);
+          const timers = cache.private.get('lt', () => { return {}; });
+
+            // Initialze the record in timers if one doesn't already exist
+          if(timers[name] === undefined || timers[name].alertTimer === undefined || timers[name].endAlertTimer === undefined || timers[name].alerted === undefined) {
+            console.debug('Initializing record for ' + name);
+            timers[name] = {alertTimer: null, endAlertTimer: null, alerted: false };
+          }
+          const record = timers[name];
+
+          if(record === undefined) {
+            console.error('Record does not exist!');
+            return;
+          }
+
+          // Alerting state, set up an alert timer
+          if(isAlertingState(state, alertState)) {
+            alerting(name, state, record);
+          }
+          // Not alerting, cancel the timer and alert if configured
+          else if(name in timers) {
+            notAlerting(name, record);
+          }
+          // Ignore the event
+          else {
+            console.debug(name + ' is not in an alerting state');
+          }
+        }
+
+
+        /**
+         * Analyzes the rule properties and Items to verify that the config will work.
+         */
+        var init = () => {
+
+          console.debug( 'Rule config:\n'
+                       + '  Alert State - ' + alertState + '\n'
+                       + '  Operator - ' + operator + '\n'
+                       + '  Invert Operator - ' + invert + '\n'
+                       + '  Default Alert Delay - ' + defaultAlertDelay + '\n'
+                       + '  Default Reminder Duration - ' + defaultRemPeriod + '\n'
+                       + '  DND Start - ' + dndStart + '\n'
+                       + '  DND End - ' + dndEnd + '\n'
+                       + '  Alert Rule - ' + alertRuleUID + '\n'
+                       + '  End Alert Rule - ' + endAlertUID + '\n'
+                       + '  Alert Group - ' + group + '\n'
+                       + '  Alert Items - ' + items[group].members.map(i => i.name).join(', ') + '\n'
+                       + '  Gatekeeper Delay - ' + GK_DELAY);
+
+          var error = false;
+          var warning = false;
+
+          // Warn if alertState is empty string, there are cases where that could be OK but most of
+          // the time it isn't.
+          if(alertState == '') {
+            warning = true;
+            console.info('Alert State is an empty String, is that intended?');
+          }
+
+          // Verify the operator is valid
+          if(!['==', '!=', '<', '<=', '>', '>='].includes(operator)) {
+            error = true;
+            console.error('Invalid operator ' + operator);
+          }
+
+          // Inform that there is no default alert delay configured, there will be no pause before alerting
+          if(defaultAlertDelay == '') {
+            console.info('Items without ' + namespace + ' alertDealy metadata will alert immediately');
+          }
+
+          // Inform that there is no default reminder period configured, there will be no repreated alerts
+          if(defaultRemPeriod == '') {
+            console.info('Items without ' + namespace + ' remPeriod metadata will not repeate alerts');
+          }
+
+          // Inform if both of the DND times are not set
+          // Error if one but not the other is defined
+          // Error if either cannot be parsed into a ZDT
+          if(dndStart == '' && dndEnd == '') {
+            console.info('DND Start and End are empty, no DND period will be applied');
+          }
+          else if(dndStart == '' && dndEnd != '') {
+            console.error('DND Start is defined but DND End is not.')
+          }
+          else if(dndStart != '' && dndEnd == '') {
+            console.error('DND Start is not defined but DND End is.')
+          }
+          else if(dndStart != '') {
+            try {
+              time.toZDT(dndStart);
+            } catch(e) {
+              error = true;
+              console.error('DND Start ' + dndStart + ' is not parsable into a time');
+            }
+          }
+          else if(dndEnd != '') {
+            try {
+              time.toZDT(dndEnd);
+            } catch(e) {
+              error = true;
+              console.error('DND End ' + dndEnd + ' is not parsable into a time');
+            }
+          }
+
+          // Error is no alert rule is configured or the rule is disabled or does not exist
+          if(alertRuleUID == '') {
+            error = true;
+            console.error('No alert rule is configured!');
+          }
+          try {
+            if(!rules.isEnabled(alertRuleUID)) {
+              error = true;
+              console.error('Alert rule ' + alertRuleUID + ' is disabled');
+            }
+          } catch(e) {
+            error = true;
+            console.error('Alert rule ' + alertRuleUID + ' does not exist');
+          }
+
+          // Inform if the end alert rule is not configured
+          // Error if it is configured but it is disabled or does not exist
+          if(endAlertUID == '') {
+            console.info('No end alert rule configured, no rule will be called when alerting ends');
+          }
+          try {
+            if(!rules.isEnabled(endAlertUID)) {
+              error = true;
+              console.error('End alert rule ' + endAlertUID + ' is diabled');
+            }
+          } catch(e) {
+            error = true;
+            console.error('End alert rule ' + endAlertUID + ' does not exist');
+          }
+
+          // Inform if none of the Items have namespace metadata
+          const allItems = items[group].members;
+          const noMetadata = allItems.filter(item => item.getMetadata()[namespace] === undefined);
+          if(noMetadata.length > 0) {
+            console.info('These Items do not have ' + namespace + ' metadata and will use the default alert delay and reminder duration: '
+                         + noMetadata.map(i => i.name).join(', '));
+          }
+          // Error if alertDelay or remPeriod are not parsable durations
+          allItems.filter(item => item.getMetadata()[namespace]).forEach(item => {
+            const metadata = item.getMetadata()[namespace];
+            const alertDelayStr = metadata.configuration['alertDelay'];
+            if(alertDelayStr) {
+              try {
+                time.Duration.parse(alertDelayStr);
+              } catch(e) {
+                error = true;
+                console.error('Alert delay metadata ' + alertDelayStr + ' is not a valid ISO8601 duration string');
+              }
+            }
+            const remPeriodStr = metadata.configuration['remPeriod'];
+            if(remPeriodStr) {
+              try {
+                time.Duration.parse(remPeriodStr);
+              } catch(e) {
+                error = true;
+                console.error('Reminder period metadata ' + remPeriodStr + ' is not a valid ISO8601 duration string');
+              }
+            }
+
+            // Warn if namespace metadata is defined but either alertDelay nor remPeriod are defined
+            if((alertDelayStr === null || alertDelayStr === '' || alertDelayStr === undefined)
+               && (remPeriodStr === null || remPeriodStr === '' || remPeriodStr === undefined)) {
+              warning = true;
+              console.warn(name + ' has ' + namespace + ' metadata but has no alertDelay or remPeriod configuration parameters');
+            }
+          });
+
+          // Error if the Group has QuantityTypes but alertState is not
+          const quantityTypes = allItems.filter(item => item.rawState instanceof QuantityType);
+          if(quantityTypes.length > 0) {
+            try {
+              Quantity(alertState);
+            } catch(e) {
+              error = true;
+              console.error(group + ' contains QuantityType states but alertState ' + alertState + ' cannot be converted to a QuantityType');
+            }
+          }
+
+          // Error if the Group has more than one type of Item
+          const itemTypes = allItems.filter(item => item.rawItem.class.name === allItems[0].rawItem.class.name);
+          if(itemTypes.length != allItems.length) {
+            error = true;
+            console.error(group + ' has a mix of Item types');
+          }
+
+          if(error) console.error('Errors were found in the configuration, see above for details.')
+          else if(warning) console.warn('Warnings were found in the configuration, see above for details. Warnings do not necessarily mean there is a problem.')
+          else console.info('Threshold Alert configs check out as OK')
+        }
+
+
+        //~~~~~~~~~~~~~ Body
+
+        // If triggered by anything other than an Item event, check the config
+
+        // Otherwise process the event to see if alerting is required
+
+        if(this.event === undefined) {
+          console.info('Rule triggered without an event, checking config.');
+          init();
+        }
+
+        else {
+          switch(event.type) {
+            case 'ItemStateEvent':
+            case 'ItemStateChangedEvent':
+              console.debug('Processing an Item event');
+              procEvent(event.itemName, eventToValue(event.itemState));
+              break;
+        //    case 'ThingStatusInfoChangedEvent': ToDo
+
+        //      break;
+            default:
+              console.info('Rule triggered without an event it can process, checking the rule config');
+              cache.private.clear();
+              init();
+          }
+        }
+    type: script.ScriptAction
+    label: Detect and alert
+    description: Manages calling the alerting rules when the Items meet or stop
+      meeting the threshold.
