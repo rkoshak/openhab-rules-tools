@@ -40,7 +40,7 @@ class LoopingTimer {
     const when = this.func();
     if (when) {
       const nextRun = time.toZDT(when);
-      if (nextRun.isAfter(now)) {
+      if (nextRun.isAfter(time.toZDT())) {
         this.timer = helpers.createTimer(nextRun, () => this.expired(),
           this.name, 'loopingTimer');
       }
