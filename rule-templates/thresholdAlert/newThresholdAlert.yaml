@@ -70,6 +70,7 @@ configDescriptions:
     description: The rule called when the Item was previously alerted but no longer meets the threshold criteria. This is optional, will only be called once, and can be the same as the alert rule.
     type: TEXT
     context: rule
+    defaultValue: ''
     required: false
   - name: dndStart
     label: Do Not Disturb Start Time
@@ -81,6 +82,7 @@ configDescriptions:
   - name: dndEnd
     label: Do Not Distrub End Time
     description: End of the do not disturb period. If this time is before the start time, the period is assumed to span midnight.
+    type: TEXT
     context: time
     defaultValue: ''
     required: false
@@ -93,7 +95,7 @@ configDescriptions:
 triggers:
   - id: "2"
     configuration:
-      groupName: {{group}}
+      groupName: "{{group}}"
     type: core.GroupStateChangeTrigger
 conditions: []
 actions:
@@ -102,7 +104,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        var {helpers, loopingTimer, gatekeeper} =
+        var {helpers, loopingTimer, gatekeeper, timeUtils} =
         require('openhab_rules_tools');
 
         var {DecimalType, QuantityType, PercentType} = require('@runtime');
@@ -182,27 +184,49 @@ actions:
 
           let rval = false;
 
+          let isQT = false;
+          try {
+            if(currState instanceof QuantityType || Quantity(currState)) {
+              isQT = true;
+            }
+          }
+          catch(e) {
+            // do nothing
+          }
+  
           // Numerical Comparison
           if(!isNaN(currState)) {
             console.debug(currState + ' is a number, attempting a numeric comparison');
             rval = comparison(currState, Number.parseFloat(alertState));
           }
           // QuantityType Comparison
-          else if(currState instanceof QuantityType || Quantity(currState)) {
+          else if(isQT) {
             console.debug(currState + ' is a QuantityType, attempting a Quantity comparison');
             try {
               switch(operator) {
-                case '==': rval = currState.equal(alertState);
-                case '!=': rval = !currState.equals(alertState);
-                case '<' : rval = currState.lessThan(alertState);
-                case '<=': rval = currState.lessThanOrEqual(alertState);
-                case '>' : rval = currState.greaterThan(alertState);
-                case '>=': rval = currState.greaterThanOrEqual(alertState);
+                case '==': 
+                  rval = currState.equal(alertState);
+                  break;
+                case '!=': 
+                  rval = !currState.equals(alertState);
+                  break;
+                case '<' : 
+                  rval = currState.lessThan(alertState);
+                  break;
+                case '<=': 
+                  rval = currState.lessThanOrEqual(alertState);
+                  break;
+                case '>' : 
+                  rval = currState.greaterThan(alertState);
+                  break;
+                case '>=': 
+                  rval = currState.greaterThanOrEqual(alertState);
+                  break;
               }
             }
             catch(e) {
-              console.error('Cannot compare ' + currState + ' to alert state ' + alertState + ', alert state is incompatible');
-              return false;
+              console.debug('Cannot compare ' + currState + ' to alert state ' + alertState + ', alert state is incompatible, reverting to string comparison');
+              return comparison(currState.toString(), alertState.toString());
             }
           }
           // Non-numerical Comparison
@@ -252,7 +276,7 @@ actions:
         var callRule = (ruleID, alertItem, state, isAlerting) => {
           var gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
           gk.addCommand(GK_DELAY, () => {
-            rules.runRule(ruleID, { 'alertItem': alertItem, 'currState': state.toString(), 'alerting': isAlerting }, true);
+            rules.runRule(ruleID, { 'alertItem': alertItem, 'alertState': state.toString(), 'isAlerting': isAlerting }, true);
           });
         }
 
@@ -509,14 +533,16 @@ actions:
           if(endAlertUID == '') {
             console.info('No end alert rule configured, no rule will be called when alerting ends');
           }
-          try {
-            if(!rules.isEnabled(endAlertUID)) {
+          else {
+            try {
+              if(!rules.isEnabled(endAlertUID)) {
+                error = true;
+                console.error('End alert rule ' + endAlertUID + ' is diabled');
+              }
+            } catch(e) {
               error = true;
-              console.error('End alert rule ' + endAlertUID + ' is diabled');
+              console.error('End alert rule ' + endAlertUID + ' does not exist');
             }
-          } catch(e) {
-            error = true;
-            console.error('End alert rule ' + endAlertUID + ' does not exist');
           }
 
           // Inform if none of the Items have namespace metadata
@@ -562,8 +588,8 @@ actions:
             try {
               Quantity(alertState);
             } catch(e) {
-              error = true;
-              console.error(group + ' contains QuantityType states but alertState ' + alertState + ' cannot be converted to a QuantityType');
+              warn = true;
+              console.warn(group + ' contains QuantityType states but alertState ' + alertState + ' cannot be converted to a QuantityType, comparison will default to a String comparsion');
             }
           }
 
