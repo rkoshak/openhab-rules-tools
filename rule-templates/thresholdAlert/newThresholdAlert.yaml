@@ -155,7 +155,7 @@ actions:
 
         var GK_DELAY = {{gkDelay}};
 
-        var hystRange = '{{hystRange}}'
+        var hystRange = '{{hysteresis}}'
 
 
         // holds an Object containing the alertTimer, alertOverTimer, and alerted flag
