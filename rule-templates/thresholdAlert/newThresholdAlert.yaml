@@ -41,6 +41,12 @@ configDescriptions:
     type: BOOLEAN
     defaultValue: false
     required: false
+  - name: hysteresis
+    label: Hysteresis
+    description: Optional value above/below the threshold the state must achieve before it is considered to nolonger alerting.
+    type: TEXT
+    defaultValue: ''
+    required: false
   - name: defaultAlertDelay
     label: Alert Delay
     description: How long to wait before calling the rule when the Item meets the threshold comparison, ISO8061 duration format. Can be overridden by Item metadata.
@@ -125,11 +131,11 @@ actions:
 
         var group = '{{group}}';
 
-        var alertState = '{{thresholdState}}';
+        var thresholdStr = '{{thresholdState}}';
 
         var operator = '{{operator}}';
 
-        var comparison = (currState, alertState) => { return currState {{operator}} alertState; }; // calculated
+        var comparison = (currState, threshold) => { return currState {{operator}} threshold; };
 
         var invert = {{invert}};
 
@@ -149,6 +155,8 @@ actions:
 
         var GK_DELAY = {{gkDelay}};
 
+        var hystRange = '{{hystRange}}'
+
 
         // holds an Object containing the alertTimer, alertOverTimer, and alerted flag
 
@@ -156,84 +164,104 @@ actions:
 
 
         // ~~~~~~~~~~~Functions
-
         /**
          * Converts an Item's state to a value we can compare in this rule.
          *
-         * @param {State} an Item's state
+         * @param {State|string} an Item's state
          * @return {String|float|Quantity} the state converted to a usable type
          */
-        var eventToValue = (itemState) => {
-          if(itemState instanceof DecimalType || itemState instanceof PercentType) return itemState.floatValue();
-          if(itemState instanceof QuantityType) return Quantity(itemState);
-          return itemState.toString();
+        var stateToValue = (state) => {
+          if(typeof state === 'string') {
+            console.debug('state is a string: ' + state);
+            if(state.includes(' ')) {
+              try {
+                console.debug('state is a Quantity: ' + state);
+                return Quantity(state)
+              } catch(e) {
+                // do nothing, leave it as a String
+                console.debug('Not a Quantity but has a space, leaving as a string: ' + state);
+                return state;
+              }
+            }
+            else if(!isNaN(state)) {
+              console.debug('state is a number: ' + state)
+              return Number.parseFloat(state);
+            }
+            console.debug('Leaving state as a string');
+            return state;
+          }
+          else if(state instanceof DecimalType || state instanceof PercentType) {
+            console.debug('state is a DecimalType or PercentType: ' + state);
+            return state.floatValue();
+          }
+          else if(state instanceof QuantityType) {
+            console.debug('state is a QuantityType, converting to Quantity: ' + state);
+            return Quantity(state);
+          }
+          else {
+            console.debug('Not numeric, leaving as a string: ' + state);
+            return state.toString();
+          }
         }
 
 
         /**
          * Determines if the Item is in an alerting state based on the configured comparison.apply
          *
-         * @param {State} current state of the Item
-         * @param {string} state to compare the current state to
+         * @param {string|float|Quantity} current state of the Item
+         * @param {string|float|Quantity} threshold state to compare the current state to
          * @return {boolean} true if current is an alerting state
          */
-        var isAlertingState = (currState, alertState) => {
-          let calc = currState + ' ' + operator + ' ' + alertState;
+        var isAlertingState = (currState, threshold) => {
+          let calc = currState + ' ' + operator + ' ' + threshold;
           if(invert) calc = '!(' + calc + ')';
           console.debug('Checking if we are in the alerting state: ' + calc);
 
           let rval = false;
 
-          let isQT = false;
-          try {
-            if(currState instanceof QuantityType || Quantity(currState)) {
-              isQT = true;
-            }
-          }
-          catch(e) {
-            // do nothing
-          }
-  
-          // Numerical Comparison
-          if(!isNaN(currState)) {
-            console.debug(currState + ' is a number, attempting a numeric comparison');
-            rval = comparison(currState, Number.parseFloat(alertState));
-          }
-          // QuantityType Comparison
-          else if(isQT) {
-            console.debug(currState + ' is a QuantityType, attempting a Quantity comparison');
+          // Quantities
+          if(currState.unit !== undefined && threshold.unit !== undefined) {
+            console.debug(currState + ' and ' + threshold + ' are both Quantities, using a Quantity comparison.');
             try {
               switch(operator) {
-                case '==': 
-                  rval = currState.equal(alertState);
+                case '==':
+                  rval = currState.equal(threshold);
                   break;
-                case '!=': 
-                  rval = !currState.equals(alertState);
+                case '!=':
+                  rval = !currState.equals(threshold);
                   break;
-                case '<' : 
-                  rval = currState.lessThan(alertState);
+                case '<' :
+                  rval = currState.lessThan(threshold);
                   break;
-                case '<=': 
-                  rval = currState.lessThanOrEqual(alertState);
+                case '<=':
+                  rval = currState.lessThanOrEqual(threshold);
                   break;
-                case '>' : 
-                  rval = currState.greaterThan(alertState);
+                case '>' :
+                  rval = currState.greaterThan(threshold);
                   break;
-                case '>=': 
-                  rval = currState.greaterThanOrEqual(alertState);
+                case '>=':
+                  rval = currState.greaterThanOrEqual(threshold);
                   break;
               }
             }
             catch(e) {
-              console.debug('Cannot compare ' + currState + ' to alert state ' + alertState + ', alert state is incompatible, reverting to string comparison');
-              return comparison(currState.toString(), alertState.toString());
+              console.debug('Cannot compare ' + currState + ' to alert state ' + threshold + ', alert state is incompatible, reverting to string comparison');
+              return comparison(currState.toString(), threshold.toString());
             }
           }
-          // Non-numerical Comparison
-          else {
-            console.debug('Not a number, attempting a non-numeric comparison');
-            rval = comparison(currState, alertState);
+
+          // Numbers
+          else if(!isNaN(currState) && !isNaN(threshold)) {
+            console.debug(currState + ' and ' + threshold + ' are both numbers, using a numerical comparison');
+            rval = comparison(currState, threshold);
           }
+
+          // Strings
+          else {
+            console.debug('One or both of ' + currState + ' or ' + threshold + ' are not numbers or Quantities, using a string comparison');
+            rval = comparison(''+currState, ''+threshold);
+          }
+
           return (invert) ? !rval : rval;
         }
 
@@ -274,9 +302,10 @@ actions:
          * @param {boolean} indicates if the Item is alerting or not
          */
         var callRule = (ruleID, alertItem, state, isAlerting) => {
+          console.debug('Calling ' + ruleID + ' with alertItem=' + alertItem + ', alertState=' + state + ', isAlerting=' + isAlerting);
           var gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
           gk.addCommand(GK_DELAY, () => {
-            rules.runRule(ruleID, { 'alertItem': alertItem, 'alertState': state.toString(), 'isAlerting': isAlerting }, true);
+            rules.runRule(ruleID, { 'alertItem': alertItem, 'alertState': ''+state, 'isAlerting': isAlerting }, true);
           });
         }
 
@@ -289,13 +318,14 @@ actions:
          * @param {string} name Item we are alerting on
          * @param {string} dndStart string representation of the start of the DND period, '' if there isn't one
          * @param {string} dndEnd string representaiton of the end of the DND period, '' if there isn't one
-         * @param {Object} Object containing alertTimer, endAlertTimer, and alerted
+         * @param {Object} Object containing alertTimer, endAlertTimer, alerted, alertState
          * @return {function} function that takes no arguments called by the looping timer
          */
         var sendAlertGenerator = (name, dndStart, dndEnd, record) => {
           return () => {
             const item = items[name];
-            const currState = eventToValue(items[name].rawState);
+            const currState = stateToValue(items[name].rawState);
+            const threshold = stateToValue(thresholdStr);
             const metadata = item.getMetadata()[namespace];
             const remPeriod = (metadata && metadata.configuration['remPeriod']) ? metadata.configuration['remPeriod'] : defaultRemPeriod;
 
@@ -304,11 +334,13 @@ actions:
             let repeatTime = generateAlertTime(remPeriod, dndStart, dndEnd); // returns null if remPeriod is '', which cancels the loop
 
             // Call alert rule if still alerting
-            if(isAlertingState(currState, alertState)) {
+            if(isAlertingState(currState, threshold)) {
               console.debug(name + ' is still in an alerting state.');
               callRule(alertRuleUID, name, currState, true);
+              if(!record.alerted) record.alertState = currState;
               record.alerted = true;
               if(repeatTime === null) record.alertTimer = null; // clean up if no longer looping
+              console.debug('Waiting until ' + repeatTime + ' to send reminder');
               return repeatTime;
             }
             // no longer alerting, cancel the repeat, send an alert if configured
@@ -360,13 +392,52 @@ actions:
 
 
         /**
+         * Applies the hysteresis and returns true if the curr value is different enough from the
+         * alert value or if the calculation cannot be done because the three arguments are not
+         * compatible.
+         * @param {string|float|Quantity} curr current state
+         * @param {string|float|Quantity} alert the state that was alerted
+         * @param {string|float|hyst} hyst the hysteresis range
+         * @return {boolean} true if curr is different from alert by hyst or more, or if the arguments are incompatable.
+         */
+        var applyHyst = (curr, alert, hyst) => {
+          console.debug('Applying hysteresis with: ' + curr + ', ' + alert + ', ' + hyst);
+
+          // Quantity
+          if(curr.unit !== undefined && alert.unit && hyst.unit !== undefined) {
+            try {
+              const delta = (curr.lessThan(alert)) ? alert.subtract(curr) : curr.subtract(alert);
+              console.debug('Applying hysteresis, delta = ' + delta + ' hystRange = ' + hyst);
+              return delta.greaterThan(hyst);
+            } catch(e) {
+              console.error('Attempting to apply hysteresis with Quantities of incompatable units. Not applying hysteresis');
+              return true;
+            }
+          }
+          // Number
+          else if(typeof curr !== 'string' && typeof alert !== 'string' && typeof hyst !== 'string') {
+            const delta = Math.abs(curr - alert);
+            console.debug('Applying hysteresis, delta = ' + delta + ' hystRange = ' + hyst);
+            return delta > hyst;
+          }
+          else {
+            console.debug('Not all values are compatible, skipping hysteresis');
+            return true;
+          }
+        }
+
+        /**
          * Called when the Item event indicates that it is not in an alerting state.
          * Clean up the record a
          * @param {string} name name of the Item that generated the event
+         * @param {string|float|Quantity} state state that generated the event
          * @param {Object} record contains alertTimer, endAlertTimer, and alerted flag
          */
-        var notAlerting = (name, record) => {
-          console.debug(name + ' is no longer in the alerting state, previous alerted = ' +record.alerted);
+        var notAlerting = (name, state, record) => {
+          console.debug(name + "'s new state is " + state + ' which is no longer in the alerting state, previous alerted state is ' + record.alerted);
+
+          // Skip if we don't pass hysteresis
+          if(record.alerted && !applyHyst(state, stateToValue(thresholdStr), stateToValue(hystRange))) return;
 
           // Cancel the alertTimer
           if(record.alertTimer !== null) {
@@ -384,12 +455,14 @@ actions:
               console.debug('Calling end alert rule for ' + name);
               callRule(endAlertUID, name, items[name].state, false);
               record.alerted = false;
+              record.alertState = null;
               record.endAlertTimer = null;
             }, generateAlertTime(time.toZDT(), dndStart, dndEnd));
           }
           else if(!endAlertUID && record.alerted) {
             console.debug('No end alert rule is configured, exiting alerting for ' + name);
             record.alerted = false;
+            record.alertState = null;
           }
           else if(!record.alerted) {
             console.debug('Exiting alerting but alert was never sent, not sending alert for ' + name);
@@ -406,7 +479,7 @@ actions:
          * state and an alert was sent, call the end alerting rule if configured.
          *
          * @param {string} name the name of the Item
-         * @param {string} state the Item's current state
+         * @param {string|float|Quantity} state the Item's current state
          */
         var procEvent = (name, state) => {
           console.debug('Processing state ' + state + ' from ' + name);
@@ -425,12 +498,12 @@ actions:
           }
 
           // Alerting state, set up an alert timer
-          if(isAlertingState(state, alertState)) {
+          if(isAlertingState(state, stateToValue(thresholdStr))) {
             alerting(name, state, record);
           }
           // Not alerting, cancel the timer and alert if configured
           else if(name in timers) {
-            notAlerting(name, record);
+            notAlerting(name, state, record);
           }
           // Ignore the event
           else {
@@ -445,7 +518,7 @@ actions:
         var init = () => {
 
           console.debug( 'Rule config:\n'
-                       + '  Alert State - ' + alertState + '\n'
+                       + '  Alert State - ' + thresholdStr + '\n'
                        + '  Operator - ' + operator + '\n'
                        + '  Invert Operator - ' + invert + '\n'
                        + '  Default Alert Delay - ' + defaultAlertDelay + '\n'
@@ -461,9 +534,9 @@ actions:
           var error = false;
           var warning = false;
 
-          // Warn if alertState is empty string, there are cases where that could be OK but most of
+          // Warn if thresholdStr is empty string, there are cases where that could be OK but most of
           // the time it isn't.
-          if(alertState == '') {
+          if(thresholdStr == '') {
             warning = true;
             console.info('Alert State is an empty String, is that intended?');
           }
@@ -582,14 +655,18 @@ actions:
             }
           });
 
-          // Error if the Group has QuantityTypes but alertState is not
-          const quantityTypes = allItems.filter(item => item.rawState instanceof QuantityType);
+          // Error if the Group has QuantityTypes but thresholdStr is not
+          const quantityTypes = allItems.filter(item => item.quantityState !== null);
           if(quantityTypes.length > 0) {
             try {
-              Quantity(alertState);
+              if(!thresholdStr.includes(' ')) {
+                warn = true;
+                console.warn(group + ' contains Quantity states by thresholdStr ' + thresholdStr + ' does not have units, comparison will revert to number or string comparison.');
+              }
+              Quantity(thresholdStr);
             } catch(e) {
-              warn = true;
-              console.warn(group + ' contains QuantityType states but alertState ' + alertState + ' cannot be converted to a QuantityType, comparison will default to a String comparsion');
+              warning = true;
+              console.warn(group + ' contains Quantity states but thresholdStr ' + thresholdStr + ' cannot be converted to a Quantity, comparison will default to a String comparsion');
             }
           }
 
@@ -600,11 +677,26 @@ actions:
             console.error(group + ' has a mix of Item types');
           }
 
+          // Warn if there are QuantityTypes but hystRange does not have units
+          if(hystRange !== '' && quantityTypes.length > 0) {
+            if(!hystRange.includes(' ')) {
+              warning = true;
+              console.warn(group + ' has QuantityTypes but hystRange ' + hystRange + ' does not have units.');
+            }
+            else {
+              try {
+                Quantity(hystRange);
+              } catch(e) {
+                warning = true;
+                console.warn(group + ' has QuantityTypes by hystRange ' + hystRange + ' cannot be parsed into a Quantity.');
+              }
+            }
+          }
+
           if(error) console.error('Errors were found in the configuration, see above for details.')
           else if(warning) console.warn('Warnings were found in the configuration, see above for details. Warnings do not necessarily mean there is a problem.')
           else console.info('Threshold Alert configs check out as OK')
         }
-
 
         //~~~~~~~~~~~~~ Body
 
@@ -622,10 +714,9 @@ actions:
             case 'ItemStateEvent':
             case 'ItemStateChangedEvent':
               console.debug('Processing an Item event');
-              procEvent(event.itemName, eventToValue(event.itemState));
+              procEvent(event.itemName, stateToValue(event.itemState));
               break;
         //    case 'ThingStatusInfoChangedEvent': ToDo
-
         //      break;
             default:
               console.info('Rule triggered without an event it can process, checking the rule config');
