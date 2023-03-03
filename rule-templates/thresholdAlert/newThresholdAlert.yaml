@@ -164,6 +164,7 @@ actions:
 
 
         // ~~~~~~~~~~~Functions
+
         /**
          * Converts an Item's state to a value we can compare in this rule.
          *
