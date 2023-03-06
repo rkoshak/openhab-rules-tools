@@ -1,0 +1,73 @@
+uid: rules_tools:delay_start
+label: Delay Start
+description: Triggers at system runlevel 40 and disables a set of rules. Then triggers at a user selected system runlevel and reenables those rules.
+configDescriptions:
+  - name: rules
+    label: Rules
+    description: Rules to disable during startup.
+    type: TEXT
+    context: rule
+    required: true
+    multiple: true
+  - name: pause
+    label: Reenable Delay
+    description: How long after the second trigger to wait before reenabling the rules, ISO8601 duration format. Defaults to reenable them immediately.
+    type: TEXT
+    defaultValue: ''
+    required: false
+triggers:
+  - id: "1"
+    configuration:
+      startlevel: 40
+    type: core.SystemStartlevelTrigger
+  - id: "2"
+    configuration:
+      startlevel: 100
+    type: core.SystemStartlevelTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >-
+        var {helpers} = require('openhab_rules_tools');
+
+        console.loggerName = 'org.openhab.automation.rules_tools.Delayed Start';
+
+        helpers.validateLibraries('4.1.0', '2.0.1');
+
+
+        // Properties
+
+        var disabledRules = '{{rules}}'.replace('[','').replace(']', '').split(', ');
+
+        var delay = '{{pause}}';
+
+
+        // First time the rule is called at runlevel 40 the flag will be initialized to false
+
+        var alreadyCalled = cache.private.get('flag', () => false);
+
+        var timerTime = (alreadyCalled) ? delay : 0; // run immediately the first run of the rule
+
+        var activity = (alreadyCalled) ? 'enabling' : 'disabling';
+
+        var when = (alreadyCalled) ? 'after ' + delay : 'immediately';
+
+
+        console.info('Delayed Start triggered, ' + activity + ' rules ' + when);
+
+
+        helpers.createTimer(timerTime, () => disabledRules.forEach(rule => {
+          console.info(activity, rule);
+          try {
+            rules.setEnabled(rule, alreadyCalled);
+          }
+          catch(e) {
+            console.error('Failed to disable rule ' + rule + ': ' + e);
+          }
+        }), 'delayedStart');
+
+        cache.private.put('flag', true);
+    type: script.ScriptAction
