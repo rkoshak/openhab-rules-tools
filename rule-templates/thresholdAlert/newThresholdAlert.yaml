@@ -193,7 +193,7 @@ actions:
           catch(e) {
             // do nothing
           }
-  
+
           // Numerical Comparison
           if(!isNaN(currState)) {
             console.debug(currState + ' is a number, attempting a numeric comparison');
@@ -204,22 +204,22 @@ actions:
             console.debug(currState + ' is a QuantityType, attempting a Quantity comparison');
             try {
               switch(operator) {
-                case '==': 
+                case '==':
                   rval = currState.equal(alertState);
                   break;
-                case '!=': 
+                case '!=':
                   rval = !currState.equals(alertState);
                   break;
-                case '<' : 
+                case '<' :
                   rval = currState.lessThan(alertState);
                   break;
-                case '<=': 
+                case '<=':
                   rval = currState.lessThanOrEqual(alertState);
                   break;
-                case '>' : 
+                case '>' :
                   rval = currState.greaterThan(alertState);
                   break;
-                case '>=': 
+                case '>=':
                   rval = currState.greaterThanOrEqual(alertState);
                   break;
               }
@@ -276,7 +276,21 @@ actions:
         var callRule = (ruleID, alertItem, state, isAlerting) => {
           var gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
           gk.addCommand(GK_DELAY, () => {
-            rules.runRule(ruleID, { 'alertItem': alertItem, 'alertState': state.toString(), 'isAlerting': isAlerting }, true);
+            try {
+              const allAlerting = items[group].members.filter(item => isAlertingState(stateToValue(item.state), stateToValue(thresholdStr)));
+              const alertingNames = allAlerting.map(item => item.label);
+              const nullItems = items[group].members.filter(item => item.state == 'NULL' || item.state == 'UNDEF');
+              const nullItemNames = nullItems.map(item => item.label);
+              rules.runRule(ruleID, {'alertItem': alertItem,
+                                     'alertState': ''+state,
+                                     'isAlerting': isAlerting,
+                                     'threshItems': allAlerting,
+                                     'threshItemLabels': alertingNames,
+                                     'nullItems': nullItems,
+                                     'nullItemLabels': nullItemNames}, true);
+            } catch(e) {
+              console.error('Error running rule ' + ruleID + '\n' + e);
+            }
           });
         }
 
