@@ -98,6 +98,9 @@ configDescriptions:
     type: DECIMAL
     defaultValue: 0
     required: false
+  - name: rateLimit
+    label: Rate Limit
+    description: Only allow the alert rule to be called this often. Events that occur before that time are dropped. Use ISO8601 duration formatting. If used with a Gatekeeper Delay it should be significantly longer.
 triggers:
   - id: "2"
     configuration:
@@ -110,7 +113,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        var {helpers, loopingTimer, gatekeeper, timeUtils} =
+        var {helpers, loopingTimer, gatekeeper, timeUtils, rateLimit} =
         require('openhab_rules_tools');
 
         var {DecimalType, QuantityType, PercentType} = require('@runtime');
@@ -155,8 +158,9 @@ actions:
 
         var GK_DELAY = {{gkDelay}};
 
-        var hystRange = '{{hysteresis}}'
+        var hystRange = '{{hysteresis}}';
 
+        var rateLimitPeriod = '{{rateLimit}}';
 
         // holds an Object containing the alertTimer, alertOverTimer, and alerted flag
 
@@ -304,24 +308,30 @@ actions:
          */
         var callRule = (ruleID, alertItem, state, isAlerting) => {
           console.debug('Calling ' + ruleID + ' with alertItem=' + alertItem + ', alertState=' + state + ', isAlerting=' + isAlerting);
-          var gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
-          gk.addCommand(GK_DELAY, () => {
-            try {
-              const allAlerting = items[group].members.filter(item => isAlertingState(stateToValue(item.state), stateToValue(thresholdStr)));
-              const alertingNames = allAlerting.map(item => item.label);
-              const nullItems = items[group].members.filter(item => item.state == 'NULL' || item.state == 'UNDEF');
-              const nullItemNames = nullItems.map(item => item.label);
-              rules.runRule(ruleID, {'alertItem': alertItem,
-                                     'alertState': ''+state,
-                                     'isAlerting': isAlerting,
-                                     'threshItems': allAlerting,
-                                     'threshItemLabels': alertingNames,
-                                     'nullItems': nullItems,
-                                     'nullItemLabels': nullItemNames}, true);
-            } catch(e) {
-              console.error('Error running rule ' + ruleID + '\n' + e);
-            }
-          });
+          var rl = cache.private.get('rl', () => new rateLimit.RateLimit());
+
+          const throttle = () => {
+            var gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
+            gk.addCommand(GK_DELAY, () => {
+              try {
+                const allAlerting = items[group].members.filter(item => isAlertingState(stateToValue(item.state), stateToValue(thresholdStr)));
+                const alertingNames = allAlerting.map(item => item.label);
+                const nullItems = items[group].members.filter(item => item.state == 'NULL' || item.state == 'UNDEF');
+                const nullItemNames = nullItems.map(item => item.label);
+                rules.runRule(ruleID, {'alertItem':        alertItem,
+                                       'alertState':       ''+state,
+                                       'isAlerting':       isAlerting,
+                                       'threshItems':      allAlerting,
+                                       'threshItemLabels': alertingNames,
+                                       'nullItems':        nullItems,
+                                       'nullItemLabels':   nullItemNames}, true);
+              } catch(e) {
+                console.error('Error running rule ' + ruleID + '\n' + e);
+              }
+            });
+          }
+          // Only rate limit the alert, always make the end alert call
+          (isAlerting && rateLimitPeriod !== '') ? rl.run(throttle, rateLimitPeriod) : throttle();
         }
 
 
@@ -544,7 +554,8 @@ actions:
                        + '  End Alert Rule - ' + endAlertUID + '\n'
                        + '  Alert Group - ' + group + '\n'
                        + '  Alert Items - ' + items[group].members.map(i => i.name).join(', ') + '\n'
-                       + '  Gatekeeper Delay - ' + GK_DELAY);
+                       + '  Gatekeeper Delay - ' + GK_DELAY + '\n'
+                       + '  Rate Limit - ' + rateLimitPeriod);
 
           var error = false;
           var warning = false;
@@ -564,12 +575,26 @@ actions:
 
           // Inform that there is no default alert delay configured, there will be no pause before alerting
           if(defaultAlertDelay == '') {
-            console.info('Items without ' + namespace + ' alertDealy metadata will alert immediately');
+            console.info('Items without ' + namespace + ' alertDelay metadata will alert immediately');
+          } else {
+            try{
+              time.Duration.parse(defaultAlertDelay);
+            } catch(e) {
+              error = true;
+              console.error('The default alert delay ' + defaultAlertDelay + ' is not a parsable ISO8601 duration string');
+            }
           }
 
           // Inform that there is no default reminder period configured, there will be no repreated alerts
           if(defaultRemPeriod == '') {
             console.info('Items without ' + namespace + ' remPeriod metadata will not repeate alerts');
+          } else {
+            try {
+              time.Duration.parse(defaultRemPeriod);
+            } catch(e) {
+              error = true;
+              console.error('The default reminder period ' + defaultRemPeriod + ' is not a parsable ISO8601 duration string');
+            }
           }
 
           // Inform if both of the DND times are not set
@@ -708,6 +733,22 @@ actions:
             }
           }
 
+          if(rateLimitPeriod !== '') {
+            try {
+              time.Duration.parse(rateLimitPeriod);
+            } catch(e) {
+              error = true;
+              console.error('A rate limit was provided but ' + rateLimitPeriod + ' is not a parsable ISO8601 duration string.');
+            }
+          }
+
+          if(rateLimitPeriod !== '' && GK_DELAY > 0) {
+            if(time.Duration.parse(rateLimitPeriod).lessThan(GK_DELAY)) {
+              warning = true;
+              console.warn('Both rate limit and gatekeeper delay are defined but gatekeeper delay is greater than the rate limit. The rate limit should be significantly larger.');
+            }
+          }
+
           if(error) console.error('Errors were found in the configuration, see above for details.')
           else if(warning) console.warn('Warnings were found in the configuration, see above for details. Warnings do not necessarily mean there is a problem.')
           else console.info('Threshold Alert configs check out as OK')
@@ -731,8 +772,7 @@ actions:
               console.debug('Processing an Item event');
               procEvent(event.itemName, stateToValue(event.itemState));
               break;
-        //    case 'ThingStatusInfoChangedEvent': ToDo
-        //      break;
+        //    case 'ThingStatusInfoChangedEvent': ToDo //      break;
             default:
               console.info('Rule triggered without an event it can process, checking the rule config');
               cache.private.clear();
@@ -740,6 +780,3 @@ actions:
           }
         }
     type: script.ScriptAction
-    label: Detect and alert
-    description: Manages calling the alerting rules when the Items meet or stop
-      meeting the threshold.
