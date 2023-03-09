@@ -95,7 +95,7 @@ configDescriptions:
   - name: gkDelay
     label: Gatekeeper Delay
     description: Sometimes a delay is needed between calls to the rules to avoid multithreaded exceptions. The delay is in milliseconds.
-    type: DECIMAL
+    type: INTEGER
     defaultValue: 0
     required: false
   - name: rateLimit
