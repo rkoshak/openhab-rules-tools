@@ -159,7 +159,7 @@ actions:
 
         var dndEnd = '{{dndEnd}}';
 
-        var GK_DELAY = {{gkDelay}};
+        var gkDelay = {{gkDelay}};
 
         var hystRange = '{{hysteresis}}';
 
