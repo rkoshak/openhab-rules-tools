@@ -173,7 +173,6 @@ actions:
 
         var reschedule = '{{reschedule}}';
 
-
         // ~~~~~~~~~~~Functions
 
         /**
@@ -377,7 +376,7 @@ actions:
             record.alertTimer = new loopingTimer.LoopingTimer();
             record.alertTimer.loop(sendAlertGenerator(record), timeout);
           }
-          else if(record.alertTimer !== null && reschedule) {
+          else if(record.alertTimer !== null && record.reschedule) {
             console.debug('Rescheduling the timer');
             record.alertTimer.timer.reschedule(time.toZDT(timeout));
           }
@@ -584,7 +583,8 @@ actions:
           if(md['threshold'] !== undefined) record.threshold = stateToValue(md['threshold']);
           if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].rawState);
           record.operator   = (md['operator'] !== undefined) ? md['operator'] : operator;
-          record.invert     = (md['invert'] !== undefined) ? (md['invert'].toString().toLowerCase() == 'true') ? true : false : invert;
+          record.invert     = (md['invert'] !== undefined) ? md['invert'] === true : invert;
+          record.reschedule = (md['reschedule'] !== undefined) ? md['reschedule'] === true : reschedule;
           record.compare    = generateComparison(record.operator);
           record.alertDelay = (md['alertDelay'] !== undefined) ? md['alertDelay'] : defaultAlertDelay;
           record.remPeriod  = (md['remPeriod'] !== undefined) ? md['remPeriod'] : defaultRemPeriod;
@@ -599,6 +599,7 @@ actions:
                         + '  Threshold         - ' + record.threshold + '\n'
                         + '  Operator          - ' + record.operator + '\n'
                         + '  Invert            - ' + record.invert + '\n'
+                        + '  Reschedule        - ' + record.reschedule + '\n'
                         + '  Alert Delay       - ' + record.alertDelay + '\n'
                         + '  Reminder Period   - ' + record.remPeriod + '\n'
                         + '  Alert Rule ID     - ' + record.alertRule + '\n'
@@ -707,6 +708,7 @@ actions:
                        + '  Threhsold                 - ' + thresholdStr + '\n'
                        + '  Operator                  - ' + operator + '\n'
                        + '  Invert Operator           - ' + invert + '\n'
+                       + '  Reschedule                - ' + reschedule + '\n'
                        + '  Default Alert Delay       - ' + defaultAlertDelay + '\n'
                        + '  Default Reminder Duration - ' + defaultRemPeriod + '\n'
                        + '  DND Start                 - ' + dndStart + '\n'
@@ -893,6 +895,10 @@ actions:
             if(md['invert'] !== undefined && (md['invert'] !== true && md['invert'] !== false)) {
               error = true;
               console.error('Item ' + item.name + ' has an unparsible invert ' + md['invert'] + ' in ' + namespace + ' metadata');
+            }
+            if(md['reschedule'] !== undefined && (md['reschedule'] !== true && md['reschedule'] !== false)) {
+              error = true;
+              console.error('Item ' + item.name + ' has an unparsible reschedule ' + md['reschedule'] + ' in ' + namespace + ' metadata');
             }
             if(md['alertDelay'] !== undefined && !validateDuration(md['alertDelay'])) {
               error = true;
