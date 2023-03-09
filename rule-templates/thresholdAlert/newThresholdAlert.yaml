@@ -166,11 +166,6 @@ actions:
         var rateLimitPeriod = '{{rateLimit}}';
 
 
-        // holds an Object containing the alertTimer, alertOverTimer, and alerted flag
-
-        var timers = cache.private.get('timers', () => { return {}; });
-
-
         // ~~~~~~~~~~~Functions
 
         /**
@@ -617,7 +612,7 @@ actions:
          * @return {boolen} true if op is one of ==, !=, <, <=, >, >=
          */
         var validateOperator = (op) => {
-          return ['==', '!=', '<', '<=', '>', '>='].includes(operator);
+          return ['==', '!=', '<', '<=', '>', '>='].includes(op);
         }
 
 
@@ -642,8 +637,14 @@ actions:
          */
         var validateTime = (t) => {
           try {
-            time.toZDT(t);
-            return true;
+            const militaryHrRegex = /^(0?[0-9]|1[0-9]|2[0-3])(:[0-5][0-9]){1,2}$/;
+            const meridianHrRegex = /^(0?[0-9]|1[0-2])(:[0-5][0-9]){1,2} ?[a|p|A|P]\.?[m|M]\.?$/;
+            if(militaryHrRegex.test(t) || meridianHrRegex.test(t)) {
+              time.toZDT(t);
+              return true;
+            } else {
+              return false;
+            }
           } catch(e) {
             console.error('Failed to parse time ' + t + ': ' + e);
             return false;
@@ -731,7 +732,7 @@ actions:
           // the time it isn't.
           if(thresholdStr == '') {
             warning = true;
-            console.info('Alert State is an empty String, is that intended?');
+            console.warn('Alert State is an empty String, is that intended?');
           }
 
           // Verify the operator is valid
@@ -842,6 +843,7 @@ actions:
           // Validate Item metadata
           allItems.filter(item => item.getMetadata()[namespace]).forEach(item => {
             const md = item.getMetadata()[namespace].configuration;
+            console.debug('Metadata for Item ' + item.name + '\n' + Object.keys(md).map(prop => prop + ': ' + md[prop]).join('\n'));
 
             // Anything is OK for threshold
             if(md['thresholdItem'] !== undefined) {
@@ -850,7 +852,7 @@ actions:
                 error = true;
                 console.error('Item ' + item.name + ' has both thershold and thresholdItem defined in ' + namespace + ' metadata');
               }
-              if(items[threshItem] === undefined) {
+              if(items[threshItem] === undefined || items[threshItem] === null) {
                 error = true;
                 console.error('Item ' + item.name + ' defines thresholdItem ' + threshItem + ' which does not exist');
               } else if(item.quantityState !== null && items[threshItem].quantityState === null){
@@ -867,7 +869,7 @@ actions:
                 console.error('Item ' + item.name + ' is not a number but thresholdItem ' + threshItem + ' is');
               }
             }
-            if(md['operator'] !== undefined && !validateOperator(md['opearator'])) {
+            if(md['operator'] !== undefined && !validateOperator(md['operator'])) {
               error = true;
               console.error('Item ' + item.name + ' has an invalid operator ' + md['operator'] + ' in ' + namespace + ' metadata');
             }
@@ -895,6 +897,10 @@ actions:
               error = true;
               console.error('Item ' + item.name + ' has a non-numerical gatekeeperDelay ' + md['gatekeeperDelay'] + ' in ' + namespace + ' metadata');
             }
+            if(md['gatekeeperDelay'] !== undefined && md['gatekeeperDelay'] < 0) {
+              warning = true;
+              console.warn('Item ' + item.name + ' has a negative gatekeeperDelay ' + md['gatekeeperDelay'] + ' in ' + namespace + ' metadata');
+            }
             if(md['hysteresis'] !== undefined && !validateHysteresis(md['hysteresis'])) {
               error = true;
               console.error('Item ' + item.name + ' has a non-numerical nor Quantity hystersis ' + md['hysteresis'] + ' in' + namespace + ' metadata');
@@ -902,6 +908,14 @@ actions:
             else if(md['hysteresis'] && item.quantityState !== null && stateToValue(md['hysteresis']).unit === undefined) {
               warn = true;
               console.warn('Item ' + item.name + ' has a Quantity but hystereis ' + md['hysteresis'] + ' is not a Quantity');
+            }
+            else if(md['hysteresis'] && item.quantityState !== null && stateToValue(md['hysteresis']).unit !== undefined) {
+              try {
+                item.quantityState.equals(stateToValue(md['hysteresis']));
+              } catch(e) {
+                error = true;
+                console.error('Item ' + item.name + ' has a hysteresis ' + md['hysteresis'] + ' with units incompatible with ' + item.quantityState.unit);
+              }
             }
             if(md['rateLimit'] !== undefined && !validateDuration(md['rateLimit'])) {
               error = true;
@@ -915,13 +929,14 @@ actions:
               error = true;
               console.error('Item ' + item.name + ' has an unparsable dndEnd time ' + md['dndEnd'] + ' in ' + namespace + ' metadata');
             }
-            if(!(md['dndStart'] !== undefined && md['dndEnd'] !== undefined)) {
+            if((md['dndStart'] === undefined && md['dndEnd'] !== undefined)
+               || (md['dndStart'] !== undefined && md['dndEnd'] === undefined)) {
               error = true;
               console.error('Item ' + item.name + ' one but not both of dndStart and dndEnd defined on ' + namespace + ' metadata');
             }
 
             // Warn if metadata is present but none of the known configuration parameters are
-            if(!['threshold', 'operator', 'invert', 'alertDelay', 'remPeriod', 'alertRuleID', 'endRuleID', 'gatekeeperDelay', 'hysteresis', 'ratelimit', 'dndStart', 'dndEnd']
+            if(!['threshold', 'thresholdItem', 'operator', 'invert', 'alertDelay', 'remPeriod', 'alertRuleID', 'endRuleID', 'gatekeeperDelay', 'hysteresis', 'rateLimit', 'dndStart', 'dndEnd']
                .some(name =>  md[name] !== undefined)) {
               warning = true;
               console.warn('Item ' + item.name + ' has ' + namespace + ' metadata but does not have any known configuration property used by this rule');
@@ -941,7 +956,7 @@ actions:
         // Otherwise process the event to see if alerting is required
 
         if(this.event === undefined) {
-          console.info('Rule triggered without an event, checking config.');
+          console.debug('Rule triggered without an event, checking config.');
           init();
         }
 
@@ -953,7 +968,7 @@ actions:
               procEvent(event.itemName, stateToValue(event.itemState));
               break;
             default:
-              console.info('Rule triggered without an event it can process, checking the rule config');
+              console.debug('Rule triggered without an Item event, checking the rule config');
               cache.private.clear();
               init();
           }
