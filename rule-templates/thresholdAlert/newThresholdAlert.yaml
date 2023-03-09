@@ -41,6 +41,12 @@ configDescriptions:
     type: BOOLEAN
     defaultValue: false
     required: false
+  - name: reschedule
+    label: Reschedule
+    description: If an alert timer already exists from a previous run of the rule, when true reschedule it. Otherwise the alert is ignored and the alert rule is called based on the previous event.
+    type: BOOLEAN
+    defaultValue: false
+    required: false
   - name: hysteresis
     label: Hysteresis
     description: Optional value above/below the threshold the state must achieve before it is considered to nolonger alerting.
@@ -165,6 +171,8 @@ actions:
 
         var rateLimitPeriod = '{{rateLimit}}';
 
+        var reschedule = '{{reschedule}}';
+
 
         // ~~~~~~~~~~~Functions
 
@@ -238,7 +246,10 @@ actions:
          * @return {time.ZonedDateTime} adjusted time to send the alert
          */
         var generateAlertTime = (timeout, dndStart, dndEnd) => {
-          if(!timeout) return null;
+          if(!validateDuration(timeout)) {
+            console.debug('Timeout ' + timeout + ' is not valid, using timeout of now');
+            timeout = 'PT0S';
+          }
 
           let rval = time.toZDT(timeout);
           let start = time.toZDT(dndStart);
@@ -247,6 +258,7 @@ actions:
             console.debug('Alert is scheduled during do not distrub time, moving to ' + dndEnd);
             rval = dndEnd;
             if(time.toZDT(rval).isBefore(time.toZDT())) {
+              console.debug('Moving alert time to tomorrow');
               rval = timeUtils.toTomorrow(dndEnd);
             }
           }
@@ -357,12 +369,17 @@ actions:
 
           // Set a timer for how long the Item needs to be in the alerting state before alerting.
           // If one is already set, ignore it
+          let timeout = generateAlertTime(record.alertDelay, record.dndStart, record.dndEnd);
+          if(timeout === null) timeout = 'PT0S'; // run now
+
           if(record.alertTimer === null) {
-            let timeout = generateAlertTime(record.alertDealy, record.dndStart, record.dndEnd);
-            if(timeout === null) timeout = 'PT0S'; // run now
             console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
             record.alertTimer = new loopingTimer.LoopingTimer();
             record.alertTimer.loop(sendAlertGenerator(record), timeout);
+          }
+          else if(record.alertTimer !== null && reschedule) {
+            console.debug('Rescheduling the timer');
+            record.alertTimer.timer.reschedule(time.toZDT(timeout));
           }
           else {
             console.debug(record.name + ' already has an alert timer, ignoring event.');
