@@ -101,7 +101,7 @@ configDescriptions:
   - name: rateLimit
     label: Rate Limit
     description: Only allow the alert rule to be called this often. Events that occur before that time are dropped. Use ISO8601 duration formatting. If used with a Gatekeeper Delay it should be significantly longer.
-    type: TEST
+    type: TEXT
     defaultValue: ''
     required: false
 triggers:
