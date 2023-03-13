@@ -322,6 +322,7 @@ actions:
           return () => {
             const item = items[record.name];
             const currState = stateToValue(items[record.name].rawState);
+            refreshRecord(record);
 
             // We can still get Multithreaded exceptions when calling another rule, this should reduce the occurance of that
             console.debug('Alert timer expired for ' + record.name + ' with dnd between ' + record.dndStart + ' and ' + record.dndEnd);
@@ -552,6 +553,49 @@ actions:
 
 
         /**
+         * Populate/refresh the record with any changes to parameters that may have been
+         * made to the Item's metadata since the rule was first run.
+         *
+         * @param {Object} record contains all the settings and timners for an Item
+         */
+        var refreshRecord = (record) => {
+          // Metadata may have changed, update record with latest values
+          console.debug('Populating record from Item metadata or rule defauls');
+          const md = (items[record.name].getMetadata()[namespace] !== undefined) ? items[record.name].getMetadata()[namespace].configuration : {};
+          record.threshold = stateToValue(thresholdStr);
+          if(md['threshold'] !== undefined) record.threshold = stateToValue(md['threshold']);
+          if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].rawState);
+          record.operator   = (md['operator'] !== undefined) ? md['operator'] : operator;
+          record.invert     = (md['invert'] !== undefined) ? md['invert'] === true : invert;
+          record.reschedule = (md['reschedule'] !== undefined) ? md['reschedule'] === true : reschedule;
+          record.compare    = generateComparison(record.operator);
+          record.alertDelay = (md['alertDelay'] !== undefined) ? md['alertDelay'] : defaultAlertDelay;
+          record.remPeriod  = (md['remPeriod'] !== undefined) ? md['remPeriod'] : defaultRemPeriod;
+          record.alertRule  = (md['alertRuleID'] !== undefined) ? md['alertRuleID'] : alertRuleUID;
+          record.endRule    = (md['endRuleID'] !== undefined) ? md['endRuleID'] : endAlertUID;
+          record.gatekeeper = (md['gatekeeperDelay'] !== undefined) ? md['gatekeeperDelay'] : gkDelay;
+          record.hysteresis = stateToValue((md['hysteresis'] !== undefined) ? md['hysteresis'] : hystRange);
+          record.rateLimt   = (md['rateLimit'] !== undefined) ? md['rateLimit'] : rateLimitPeriod;
+          record.dndStart   = (md['dndStart'] !== undefined) ? md['dndStart'] : dndStart;
+          record.dndEnd     = (md['dndEnd'] !== undefined) ? md['dndEnd'] : dndEnd;
+          console.debug('Processing event for Item ' + record.name + ' with properties: \n'
+                        + '  Threshold         - ' + record.threshold + '\n'
+                        + '  Operator          - ' + record.operator + '\n'
+                        + '  Invert            - ' + record.invert + '\n'
+                        + '  Reschedule        - ' + record.reschedule + '\n'
+                        + '  Alert Delay       - ' + record.alertDelay + '\n'
+                        + '  Reminder Period   - ' + record.remPeriod + '\n'
+                        + '  Alert Rule ID     - ' + record.alertRule + '\n'
+                        + '  End Alert Rule ID - ' + record.endRule + '\n'
+                        + '  Gatekeeper Delay  - ' + record.gatekeeper + '\n'
+                        + '  Hystersis         - ' + record.hysteresis + '\n'
+                        + '  Rate Limt         - ' + record.rateLimt + '\n'
+                        + '  DnD Start         - ' + record.dndStart + '\n'
+                        + '  DnD End           - ' + record.dndEnd);
+        }
+
+
+        /**
          * Process an Item event, checking to see if it is in an alerting state and calling
          * the alerting rule with repeats if configured. If it is no longer in an alerting
          * state and an alert was sent, call the end alerting rule if configured.
@@ -576,39 +620,7 @@ actions:
           }
           const record = records[name];
 
-          // Metadata may have changed, update record with latest values
-          console.debug('Populating record from Item metadata or rule defauls');
-          const md = (items[name].getMetadata()[namespace] !== undefined) ? items[name].getMetadata()[namespace].configuration : {};
-          record.threshold = stateToValue(thresholdStr);
-          if(md['threshold'] !== undefined) record.threshold = stateToValue(md['threshold']);
-          if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].rawState);
-          record.operator   = (md['operator'] !== undefined) ? md['operator'] : operator;
-          record.invert     = (md['invert'] !== undefined) ? md['invert'] === true : invert;
-          record.reschedule = (md['reschedule'] !== undefined) ? md['reschedule'] === true : reschedule;
-          record.compare    = generateComparison(record.operator);
-          record.alertDelay = (md['alertDelay'] !== undefined) ? md['alertDelay'] : defaultAlertDelay;
-          record.remPeriod  = (md['remPeriod'] !== undefined) ? md['remPeriod'] : defaultRemPeriod;
-          record.alertRule  = (md['alertRuleID'] !== undefined) ? md['alertRuleID'] : alertRuleUID;
-          record.endRule    = (md['endRuleID'] !== undefined) ? md['endRuleID'] : endAlertUID;
-          record.gatekeeper = (md['gatekeeperDelay'] !== undefined) ? md['gatekeeperDelay'] : gkDelay;
-          record.hysteresis = stateToValue((md['hysteresis'] !== undefined) ? md['hysteresis'] : hystRange);
-          record.rateLimt   = (md['rateLimit'] !== undefined) ? md['rateLimit'] : rateLimitPeriod;
-          record.dndStart   = (md['dndStart'] !== undefined) ? md['dndStart'] : dndStart;
-          record.dndEnd     = (md['dndEnd'] !== undefined) ? md['dndEnd'] : dndEnd;
-          console.debug('Processing event for Item ' + name + ' with properties: \n'
-                        + '  Threshold         - ' + record.threshold + '\n'
-                        + '  Operator          - ' + record.operator + '\n'
-                        + '  Invert            - ' + record.invert + '\n'
-                        + '  Reschedule        - ' + record.reschedule + '\n'
-                        + '  Alert Delay       - ' + record.alertDelay + '\n'
-                        + '  Reminder Period   - ' + record.remPeriod + '\n'
-                        + '  Alert Rule ID     - ' + record.alertRule + '\n'
-                        + '  End Alert Rule ID - ' + record.endRule + '\n'
-                        + '  Gatekeeper Delay  - ' + record.gatekeeper + '\n'
-                        + '  Hystersis         - ' + record.hysteresis + '\n'
-                        + '  Rate Limt         - ' + record.rateLimt + '\n'
-                        + '  DnD Start         - ' + record.dndStart + '\n'
-                        + '  DnD End           - ' + record.dndEnd);
+          refreshRecord(record);
 
           // Alerting state, set up an alert timer
           if(isAlertingState(state, record)) {
@@ -723,6 +735,23 @@ actions:
           var error = false;
           var warning = false;
           const allItems = items[group].members;
+
+          console.info('Cancelling any running timers');
+          const records = cache.private.get('records');
+          if(records !== null) {
+            Object.keys(records).forEach(record => {
+              if(record.alertTimer !== null && record.alertTimer !== undefined){
+                console.info(record.name + ' has an alert timer scheduled, cancelling now.');
+                record.alertTimer = null;
+                record.alertTimer.cancel();
+              }
+              if(record.endAlertTimer !== null && record.endAlertTimer !== undefined) {
+                console.info(record.name + ' has an end alert timer scheduled, cancelling now.');
+                record.endAlertTimer.cancel();
+                record.endAlertTimer = null;
+              }
+            });
+          }
 
 
           // Error if the Group has QuantityTypes but thresholdStr is not
