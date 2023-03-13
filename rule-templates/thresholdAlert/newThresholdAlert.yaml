@@ -652,7 +652,7 @@ actions:
          */
         var validateDuration = (dur) => {
           try {
-            time.Duration.parse(dur);
+            if(dur !== '') time.Duration.parse(dur);
             return true
           } catch(e) {
             console.error('Failed to parse duration ' + dur + ': ' + e);
