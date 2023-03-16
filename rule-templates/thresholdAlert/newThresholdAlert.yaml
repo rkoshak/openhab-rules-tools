@@ -87,6 +87,7 @@ configDescriptions:
   - name: initAlertRule
     label: Initial Alert Rule
     description: The rule called when the Item immediately enters the alert state regardless of what the alert delay is set to.
+    type: TEXT
     context: rule
     defaultValue: ''
     required: false
