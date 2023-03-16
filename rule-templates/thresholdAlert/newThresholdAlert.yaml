@@ -84,6 +84,12 @@ configDescriptions:
     context: rule
     defaultValue: ''
     required: false
+  - name: initAlertRule
+    label: Initial Alert Rule
+    description: The rule called when the Item immediately enters the alert state regardless of what the alert delay is set to.
+    context: rule
+    defaultValue: ''
+    required: false
   - name: dndStart
     label: Do Not Disturb Start Time
     description: Start of an optional do not disturb period. Calls to either the alert rule or the end alert rule will be suppressed during this period with the latest call made at the end of the period.
@@ -173,6 +179,9 @@ actions:
 
         var reschedule = {{reschedule}};
 
+        var initAlertRuleUID = '{{initAlertRule}}';
+
+
         // ~~~~~~~~~~~Functions
 
         /**
@@ -182,6 +191,7 @@ actions:
          * @return {String|float|Quantity} the state converted to a usable type
          */
         var stateToValue = (state) => {
+          console.debug('Processing state ' + state + ' of type ' + typeof state);
           if(typeof state === 'string') {
             console.debug('state is a string: ' + state);
             if(state.includes(' ')) {
@@ -197,6 +207,10 @@ actions:
             else if(!isNaN(state)) {
               console.debug('state is a number: ' + state)
               return Number.parseFloat(state);
+            }
+            else if(state == 'UnDefType' || state == 'NULL' || state == 'UNDEF') {
+              console.debug('state is an undef type, normalizing to UnDefType');
+              return 'UnDefType';
             }
             console.debug('Leaving state as a string');
             return state;
@@ -231,6 +245,7 @@ actions:
           console.debug('Checking if we are in the alerting state: ' + calc);
 
           let rval = record.compare(currState, record.threshold);
+          console.debug('Result is ' + (record.invert) ? !rval : rval);
           return (record.invert) ? !rval : rval;
         }
 
@@ -242,12 +257,12 @@ actions:
          * @param {anything supported by time.toZDT()} timeout proposed time to send the alert
          * @param {String} dndStart time the DND starts
          * @param {String} dndEnd time the DND ends
-         * @return {time.ZonedDateTime} adjusted time to send the alert
+         * @return {time.ZonedDateTime} adjusted time to send the alert or null if there is a problem
          */
         var generateAlertTime = (timeout, dndStart, dndEnd) => {
-          if(!validateDuration(timeout)) {
-            console.debug('Timeout ' + timeout + ' is not valid, using timeout of now');
-            timeout = 'PT0S';
+          if(timeout === '' || !validateDuration(timeout)){
+            console.debug('Timeout ' + timeout + ' is not valid, using null');
+            return null;
           }
 
           let rval = time.toZDT(timeout);
@@ -270,17 +285,20 @@ actions:
          * rule. The rule is called to inforce conditions.
          *
          * @param {string|float|Quantity} state Item state that is generating the alert
+         * @param {string} ruleID rule to call
+         * @param {boolean} isAlerting indicates if the Item is alerting or not
+         * @param {boolean} isInitialAlert indicates if the Item is just detected as alerting but not yet alerted
          * @param {Object} record all the information related to the Item the rule is being called on behalf of
-         * @param {boolean} indicates if the Item is alerting or not
          */
-        var callRule = (state, isAlerting, record) => {
-          const ruleID = (isAlerting) ? record.alertRule : record.endRule;
+        var callRule = (state, ruleID, isAlerting, isInitialAlert, record) => {
+
           if(ruleID == '') {
-            console.debug('No rule defined, not calling the rule');
+            console.debug('No rule ID passed, ignoring');
             return;
           }
 
-          console.debug('Calling ' + ruleID + ' with alertItem=' + record.name + ', alertState=' + state + ', isAlerting=' + isAlerting);
+          console.debug('Calling ' + ruleID + ' with alertItem=' + record.name + ', alertState=' + state + ', isAlerting='
+                        + isAlerting + ', and initial alert ' + isInitialAlert);
           var rl = cache.private.get('rl', () => new rateLimit.RateLimit());
 
           const throttle = () => {
@@ -296,6 +314,7 @@ actions:
                 rules.runRule(ruleID, {'alertItem':        record.name,
                                        'alertState':       ''+state,
                                        'isAlerting':       isAlerting,
+                                       'isInitialAlert':   isInitialAlert,
                                        'threshItems':      allAlerting,
                                        'threshItemLabels': alertingNames,
                                        'nullItems':        nullItems,
@@ -303,10 +322,12 @@ actions:
               } catch(e) {
                 console.error('Error running rule ' + ruleID + '\n' + e);
               }
+              console.debug('Rule ' + ruleID + ' has been called for ' + record.name);
             });
           }
           // Only rate limit the alert, always make the end alert call
-          (isAlerting && rateLimitPeriod !== '') ? rl.run(throttle, rateLimitPeriod) : throttle();
+          (isAlerting && record.rateLimit !== '') ? rl.run(throttle, record.rateLimit) : throttle();
+
         }
 
 
@@ -325,17 +346,17 @@ actions:
             refreshRecord(record);
 
             // We can still get Multithreaded exceptions when calling another rule, this should reduce the occurance of that
-            console.debug('Alert timer expired for ' + record.name + ' with dnd between ' + record.dndStart + ' and ' + record.dndEnd);
+            console.debug('Alert timer expired for ' + record.name + ' with dnd between ' + record.dndStart + ' and ' + record.dndEnd + ' and reminder period ' + record.remPeriod);
             let repeatTime = generateAlertTime(record.remPeriod, record.dndStart, record.dndEnd); // returns null if remPeriod is '', which cancels the loop
 
             // Call alert rule if still alerting
             if(isAlertingState(currState, record)) {
               console.debug(record.name + ' is still in an alerting state.');
-              callRule(currState, true, record);
+              callRule(currState, record.alertRule, true, false, record);
               if(!record.alerted) record.alertState = currState;
               record.alerted = true;
               if(repeatTime === null) record.alertTimer = null; // clean up if no longer looping
-              console.debug('Waiting until ' + repeatTime + ' to send reminder');
+              console.debug('Waiting until ' + repeatTime + ' to send reminder for ' + record.name);
               return repeatTime;
             }
             // no longer alerting, cancel the repeat, send an alert if configured
@@ -372,17 +393,20 @@ actions:
           let timeout = generateAlertTime(record.alertDelay, record.dndStart, record.dndEnd);
           if(timeout === null) timeout = 'PT0S'; // run now
 
-          if(record.alertTimer === null) {
+          // Do nothing if we have already alerted
+          if(record.alertTimer === null && !record.isAlerting) {
             console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
             record.alertTimer = new loopingTimer.LoopingTimer();
             record.alertTimer.loop(sendAlertGenerator(record), timeout);
+            console.debug('Calling the initial alert rule for ' + record.name);
+            callRule(state, record.alertRule, false, true, record);
           }
           else if(record.alertTimer !== null && record.reschedule) {
-            console.debug('Rescheduling the timer');
+            console.debug('Rescheduling the timer for ' + record.name + ' at ' + timeout);
             record.alertTimer.timer.reschedule(time.toZDT(timeout));
           }
           else {
-            console.debug(record.name + ' already has an alert timer, ignoring event.');
+            console.debug(record.name + ' already has an alert timer or has already alerted, ignoring event.');
           }
         }
 
@@ -448,7 +472,7 @@ actions:
             record.endAlertTimer = new loopingTimer.LoopingTimer();
             record.endAlertTimer.loop(() => {
               console.debug('Calling end alert rule for ' + record.name);
-              callRule(stateToValue(items[record.name].rawState), false, record);
+              callRule(stateToValue(items[record.name].rawState), record.endRule, false, false, record);
               record.alerted = false;
               record.alertState = null;
               record.endAlertTimer = null;
@@ -565,33 +589,35 @@ actions:
           record.threshold = stateToValue(thresholdStr);
           if(md['threshold'] !== undefined) record.threshold = stateToValue(md['threshold']);
           if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].rawState);
-          record.operator   = (md['operator'] !== undefined) ? md['operator'] : operator;
-          record.invert     = (md['invert'] !== undefined) ? md['invert'] === true : invert;
-          record.reschedule = (md['reschedule'] !== undefined) ? md['reschedule'] === true : reschedule;
-          record.compare    = generateComparison(record.operator);
-          record.alertDelay = (md['alertDelay'] !== undefined) ? md['alertDelay'] : defaultAlertDelay;
-          record.remPeriod  = (md['remPeriod'] !== undefined) ? md['remPeriod'] : defaultRemPeriod;
-          record.alertRule  = (md['alertRuleID'] !== undefined) ? md['alertRuleID'] : alertRuleUID;
-          record.endRule    = (md['endRuleID'] !== undefined) ? md['endRuleID'] : endAlertUID;
-          record.gatekeeper = (md['gatekeeperDelay'] !== undefined) ? md['gatekeeperDelay'] : gkDelay;
-          record.hysteresis = stateToValue((md['hysteresis'] !== undefined) ? md['hysteresis'] : hystRange);
-          record.rateLimt   = (md['rateLimit'] !== undefined) ? md['rateLimit'] : rateLimitPeriod;
-          record.dndStart   = (md['dndStart'] !== undefined) ? md['dndStart'] : dndStart;
-          record.dndEnd     = (md['dndEnd'] !== undefined) ? md['dndEnd'] : dndEnd;
+          record.operator      = (md['operator'] !== undefined) ? md['operator'] : operator;
+          record.invert        = (md['invert'] !== undefined) ? md['invert'] === true : invert;
+          record.reschedule    = (md['reschedule'] !== undefined) ? md['reschedule'] === true : reschedule;
+          record.compare       = generateComparison(record.operator);
+          record.alertDelay    = (md['alertDelay'] !== undefined) ? md['alertDelay'] : defaultAlertDelay;
+          record.remPeriod     = (md['remPeriod'] !== undefined) ? md['remPeriod'] : defaultRemPeriod;
+          record.alertRule     = (md['alertRuleID'] !== undefined) ? md['alertRuleID'] : alertRuleUID;
+          record.endRule       = (md['endRuleID'] !== undefined) ? md['endRuleID'] : endAlertUID;
+          record.initAlertRule = (md['initAlertRuleID'] !== undefined) ? md['initAlertRuleID'] : initAlertRuleUID
+          record.gatekeeper    = (md['gatekeeperDelay'] !== undefined) ? md['gatekeeperDelay'] : gkDelay;
+          record.hysteresis    = stateToValue((md['hysteresis'] !== undefined) ? md['hysteresis'] : hystRange);
+          record.rateLimt      = (md['rateLimit'] !== undefined) ? md['rateLimit'] : rateLimitPeriod;
+          record.dndStart      = (md['dndStart'] !== undefined) ? md['dndStart'] : dndStart;
+          record.dndEnd        = (md['dndEnd'] !== undefined) ? md['dndEnd'] : dndEnd;
           console.debug('Processing event for Item ' + record.name + ' with properties: \n'
-                        + '  Threshold         - ' + record.threshold + '\n'
-                        + '  Operator          - ' + record.operator + '\n'
-                        + '  Invert            - ' + record.invert + '\n'
-                        + '  Reschedule        - ' + record.reschedule + '\n'
-                        + '  Alert Delay       - ' + record.alertDelay + '\n'
-                        + '  Reminder Period   - ' + record.remPeriod + '\n'
-                        + '  Alert Rule ID     - ' + record.alertRule + '\n'
-                        + '  End Alert Rule ID - ' + record.endRule + '\n'
-                        + '  Gatekeeper Delay  - ' + record.gatekeeper + '\n'
-                        + '  Hystersis         - ' + record.hysteresis + '\n'
-                        + '  Rate Limt         - ' + record.rateLimt + '\n'
-                        + '  DnD Start         - ' + record.dndStart + '\n'
-                        + '  DnD End           - ' + record.dndEnd);
+                        + '  Threshold          - ' + record.threshold + '\n'
+                        + '  Operator           - ' + record.operator + '\n'
+                        + '  Invert             - ' + record.invert + '\n'
+                        + '  Reschedule         - ' + record.reschedule + '\n'
+                        + '  Alert Delay        - ' + record.alertDelay + '\n'
+                        + '  Reminder Period    - ' + record.remPeriod + '\n'
+                        + '  Alert Rule ID      - ' + record.alertRule + '\n'
+                        + '  End Alert Rule ID  - ' + record.endRule + '\n'
+                        + '  Init Alert Rule ID - ' + record.initAlertRule
+                        + '  Gatekeeper Delay   - ' + record.gatekeeper + '\n'
+                        + '  Hystersis          - ' + record.hysteresis + '\n'
+                        + '  Rate Limt          - ' + record.rateLimt + '\n'
+                        + '  DnD Start          - ' + record.dndStart + '\n'
+                        + '  DnD End            - ' + record.dndEnd);
         }
 
 
@@ -604,7 +630,8 @@ actions:
          * @param {string|float|Quantity} state the Item's current state
          */
         var procEvent = (name, state) => {
-          console.debug('Processing state ' + state + ' from ' + name);
+          const value = stateToValue(state);
+          console.debug('Processing state ' + value + ' from ' + name);
           const records = cache.private.get('records', () => { return {}; });
 
             // Initialze the record in timers if one doesn't already exist or it's incomplete
@@ -623,12 +650,12 @@ actions:
           refreshRecord(record);
 
           // Alerting state, set up an alert timer
-          if(isAlertingState(state, record)) {
-            alerting(state, record);
+          if(isAlertingState(value, record)) {
+            alerting(value, record);
           }
           // Not alerting, cancel the timer and alert if configured
-          else if(!record.endRule && record.alerted){
-            notAlerting(state, record);
+          else if(record.endRule !== '' && record.alerted){
+            notAlerting(value, record);
           }
           // Ignore the event
           else {
@@ -753,16 +780,22 @@ actions:
             });
           }
 
+          // Inform if the threshold is UnDefType
+          if(thresholdStr === 'UnDefType') {
+            console.info('Threshold is UnDefType, this will cause Item states of NULL and UNDEF to be converted to UnDefType for comparisons.');
+          }
 
           // Error if the Group has QuantityTypes but thresholdStr is not
           const quantityTypes = allItems.filter(item => item.quantityState !== null);
-          if(quantityTypes.length > 0) {
+          if(quantityTypes.length > 0 && thresholdStr !== 'UnDefType') {
             try {
               if(!thresholdStr.includes(' ')) {
                 warn = true;
                 console.warn(group + ' contains Quantity states by thresholdStr ' + thresholdStr + ' does not have units, comparison will revert to number or string comparison.');
               }
-              Quantity(thresholdStr);
+              else {
+                Quantity(thresholdStr);
+              }
             } catch(e) {
               warning = true;
               console.warn(group + ' contains Quantity states but thresholdStr ' + thresholdStr + ' cannot be converted to a Quantity, comparison will default to a String comparsion');
@@ -844,7 +877,17 @@ actions:
           }
           else if(!validateRule(endAlertUID)) {
             error = true;
-            console.error('End alert rule ' + endAlertUID + ' is diabled or deos not exist');
+            console.error('End alert rule ' + endAlertUID + ' is diabled or does not exist');
+          }
+
+          // Inform if the initial alert rule is not configured
+          // Error if it is configured but it is disabled or does not exist
+          if(initAlertRuleUID == '') {
+            console.info('No initial alert rule configured, no rule will be called when the alert state is first detected');
+          }
+          else if(!validateRule(initAlertRuleUID)) {
+            error = true;
+            console.error('Initial alert rule ' + initAlertRuleUID + ' is disable or does not exist');
           }
 
           // Validate hysteresis
@@ -944,6 +987,10 @@ actions:
             if(md['endRuleID'] !== undefined && !validateRule(md['endRuleID'])) {
               error = true;
               console.error('Item ' + item.name + ' has an invalid endRuleID ' + md['endRuleID'] + ' in ' + namespace + ' metadata');
+            }
+            if(md['initAlertRuleID'] !== undefined && !validateRule(md['initAlertRuleID'])) {
+              error = true;
+              console.error('Item ' + item.name + ' has an invalid initAlertRuleID ' + md['initAlertRuleID'] + ' in ' + namespace + ' metadata');
             }
             if(md['gatekeeperDelay'] !== undefined && isNaN(md.gatekeeperDelay)) {
               error = true;
