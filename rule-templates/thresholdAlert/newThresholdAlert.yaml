@@ -135,7 +135,9 @@ actions:
         var {DecimalType, QuantityType, PercentType} = require('@runtime');
 
 
-        console.loggerName = 'org.openhab.automation.rules_tools.Threshold Alert.'+ruleUID;
+        var loggerBase = 'org.openhab.automation.rules_tools.Threshold Alert.'+ruleUID;
+
+        console.loggerName = loggerBase;
 
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
@@ -181,7 +183,6 @@ actions:
         var reschedule = {{reschedule}};
 
         var initAlertRuleUID = '{{initAlertRule}}';
-
 
         // ~~~~~~~~~~~Functions
 
@@ -261,7 +262,7 @@ actions:
          * @return {time.ZonedDateTime} adjusted time to send the alert or null if there is a problem
          */
         var generateAlertTime = (timeout, dndStart, dndEnd) => {
-          if(timeout === '' || !validateDuration(timeout)){
+          if(timeout === '' || (!(timeout instanceof time.ZonedDateTime) && !validateDuration(timeout))){
             console.debug('Timeout ' + timeout + ' is not valid, using null');
             return null;
           }
@@ -394,18 +395,27 @@ actions:
           let timeout = generateAlertTime(record.alertDelay, record.dndStart, record.dndEnd);
           if(timeout === null) timeout = 'PT0S'; // run now
 
-          // Do nothing if we have already alerted
+          // First time the Item entered the alert state
           if(record.alertTimer === null && !record.isAlerting) {
+            // Schedule the initAlertTimer first and it will run first
+            console.debug('Calling the initial alert rule for ' + record.name);
+            record.initAlertTimer = new loopingTimer.LoopingTimer();
+            record.initAlertTimer.loop(() => {
+              console.debug('Calling init alert rule for ' + record.name);
+              callRule(state, record.alertRule, false, true, record);
+              record.initAlertTimer = null;
+            }, generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd));
+            // Create the alert timer
             console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
             record.alertTimer = new loopingTimer.LoopingTimer();
             record.alertTimer.loop(sendAlertGenerator(record), timeout);
-            console.debug('Calling the initial alert rule for ' + record.name);
-            callRule(state, record.alertRule, false, true, record);
           }
+          // Reschedule the alert timer
           else if(record.alertTimer !== null && record.reschedule) {
             console.debug('Rescheduling the timer for ' + record.name + ' at ' + timeout);
             record.alertTimer.timer.reschedule(time.toZDT(timeout));
           }
+          // Do nothing
           else {
             console.debug(record.name + ' already has an alert timer or has already alerted, ignoring event.');
           }
@@ -458,6 +468,13 @@ actions:
 
           // Skip if we don't pass hysteresis
           if(record.alerted && !applyHyst(state, record.threshold, record.hysteresis)) return;
+
+          // Cancel the initAlerTimer
+          if(record.alertTimer !== null) {
+            console.debug('Cancelling alert timer for ' + record.name);
+            record.initAlertTimer.cancel();
+            record.initAlertTimer = null;
+          }
 
           // Cancel the alertTimer
           if(record.alertTimer !== null) {
@@ -639,11 +656,13 @@ actions:
           if(records[name] === undefined
              || records[name].alertTimer === undefined
              || records[name].endAlertTimer === undefined
+             || records[name].initAlertTimer == undefined
              || records[name].alerted === undefined) {
             console.debug('Initializing record for ' + name);
             records[name] = {name:          name,
-                             alertTimer:    null,
-                             endAlertTimer: null,
+                             alertTimer:    (records[name] === undefined) ? null: records[name].alertTimer,
+                             endAlertTimer: (records[name] === undefined) ? null: records[name].endAlertTimer,
+                             initAlertTimer: (records[name] === undefined) ? null: records[name].initAlertTimer,
                              alerted:       false};
           }
           const record = records[name];
@@ -1064,6 +1083,7 @@ actions:
           switch(event.type) {
             case 'ItemStateEvent':
             case 'ItemStateChangedEvent':
+              console.loggerName = loggerBase+'.'+event.itemName;
               console.debug('Processing an Item event');
               procEvent(event.itemName, stateToValue(event.itemState));
               break;
