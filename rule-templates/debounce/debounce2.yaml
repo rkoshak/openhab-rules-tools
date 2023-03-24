@@ -63,6 +63,8 @@ actions:
     configuration:
       type: application/javascript
       script: >
+        // Version 0.2
+
         var {timerMgr, helpers} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
