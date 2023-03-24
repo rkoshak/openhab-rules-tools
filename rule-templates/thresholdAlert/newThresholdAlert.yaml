@@ -129,6 +129,8 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        // Version 0.9
+
         var {helpers, loopingTimer, gatekeeper, timeUtils, rateLimit} =
         require('openhab_rules_tools');
 

@@ -31,6 +31,8 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        // Verison 0.2
+
         var {helpers} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.Delayed Start';

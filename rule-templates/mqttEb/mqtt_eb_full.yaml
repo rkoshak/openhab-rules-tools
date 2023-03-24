@@ -62,11 +62,13 @@ actions:
     configuration:
       type: application/javascript
       script: >-
+        // Verison 0.3
+
         var {helpers} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.MQTTEventBus';
 
-        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'INFO');
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
 
         helpers.validateLibraries('4.1.0', '2.0.1');
