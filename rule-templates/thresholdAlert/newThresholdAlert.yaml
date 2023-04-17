@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.9
+        // Version 0.10
 
         var {helpers, loopingTimer, gatekeeper, timeUtils, rateLimit} =
         require('openhab_rules_tools');
@@ -1085,6 +1085,7 @@ actions:
           switch(event.type) {
             case 'ItemStateEvent':
             case 'ItemStateChangedEvent':
+            case 'ItemStateUpdatedEvent':
               console.loggerName = loggerBase+'.'+event.itemName;
               console.debug('Processing an Item event');
               procEvent(event.itemName, stateToValue(event.itemState));
