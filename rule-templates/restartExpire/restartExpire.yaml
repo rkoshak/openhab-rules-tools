@@ -1,0 +1,43 @@
+uid: rules_tools:restartExpire
+label: Restart Expire
+description: At system start resets the Expire timers by updating the Items to their current state. Note, does not work with Expire configs that ignore updates.
+configDescriptions: []
+triggers:
+  - id: "1"
+    configuration:
+      startlevel: 50
+    type: core.SystemStartlevelTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: >
+        // Version 0.1
+
+        var {helpers} = require('openhab_rules_tools');
+
+
+        console.loggerName = 'org.openhab.automation.rules_tools.Restart Expire.'+ruleUID;
+
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+
+        helpers.validateLibraries('4.1.0', '2.0.1');
+
+
+        console.info('Restarting Expire timers');
+
+
+        var expireItems = items.getItems().filter(i => i.getMetadata('expire') !== null).forEach( i => {
+          if(i.getMetadata('expire').configuration['ignoreStateUpdates'] == 'true') {
+            console.debug('Commanding Item ' + i.name + ' Expire by command');
+            i.sendCommand(i.state);
+          }
+          else {
+            console.debug('Resetting Item ' + i.name + ' Expire by update');
+            i.postUpdate(i.state);
+          }
+        });
+    type: script.ScriptAction
