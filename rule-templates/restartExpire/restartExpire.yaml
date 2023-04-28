@@ -31,7 +31,7 @@ actions:
 
 
         var expireItems = items.getItems().filter(i => i.getMetadata('expire') !== null).forEach( i => {
-          if(i.getMetadata('expire').configuration['ignoreStateUpdates'] == 'true') {
+          if(i.getMetadata('expire').configuration['ignoreStateUpdates'] == 'true' && !i.isUninitialized) {
             console.debug('Commanding Item ' + i.name + ' Expire by command');
             i.sendCommand(i.state);
           }
