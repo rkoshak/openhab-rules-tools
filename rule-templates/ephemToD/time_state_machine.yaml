@@ -299,7 +299,7 @@ actions:
                                       })
                                       .filter(tod => tod.time.isBefore(time.toZDT()));
               if(!beforeTimes.length) {
-                console.warn("There is no date time for today before now, we can't know what the current state is.");
+                console.debug("There is no date time for today before now, we can't know what the current state is, keeping the current time of day state of " + items[STATE_ITEM].state + ".");
               }
               else {
                 const currState = beforeTimes[0].state
