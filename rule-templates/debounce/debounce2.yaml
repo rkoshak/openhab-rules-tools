@@ -93,14 +93,7 @@ actions:
          */
         var getConfig = (itemName) => {
 
-          // ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO ~ TODO
-          // Replace with item.getMetadata() when available
-          // Get Metadata query stuff
-          const MetadataRegistry = osgi.getService('org.openhab.core.items.MetadataRegistry');
-          const Metadata = Java.type('org.openhab.core.items.Metadata');
-          const MetadataKey = Java.type('org.openhab.core.items.MetadataKey');
-
-          const md = MetadataRegistry.get(new MetadataKey('{{namespace}}', itemName));
+          const md = items[itemName].getMetadata()['{{namespace}}'];          
           if(!md) {
             throw itemName + ' does not have {{namespace}} metadata!\n' + USAGE;
           }
@@ -195,7 +188,7 @@ actions:
           // Get all the Items with debounce metadata and check them
           const is = items.getItems();
           console.debug('There are', is.length, 'Items');
-          const filtered = is.filter( item => item.getMetadataValue('{{namespace}}'));
+          const filtered = is.filter( item => item.getMetadata()['{{namespace}}']);
           console.debug('There are ', filtered.length, 'Items with {{namespace}} metadata');
           filtered.forEach(item => {
             console.debug('Item', item.name, 'has {{namespace}} metadata');
@@ -209,8 +202,8 @@ actions:
               else {
                 console.debug(cfg.proxy, 'is already in the state of', item.state);
               }
-              if(!item.groupNames.includes('Debounce')) {
-                console.warn(item.name, 'has {{namespace}} metadata but is not a member of Debounce!')
+              if(!item.groupNames.includes('{{debounceGroup}}')) {
+                console.warn(item.name, 'has {{namespace}} metadata but is not a member of {{debounceGroup}}!')
                 isGood = false;
                 badItems.push(item.name);
               }
@@ -223,9 +216,9 @@ actions:
 
           });
 
-          // Report those Items that are members of Debounce but don't have debounce metadata
-          items.getItem('Debounce').members.filter(item => {!item.getMetadataValue('{{namespace}}')}).forEach(item => {
-            console.warn(item.name, 'is a member of Debounce but lacks {{namespace}} metadata');
+          // Report those Items that are members of {{debounceGroup}} but don't have {{namespace}} metadata
+          items.getItem('{{debounceGroup}}').members.filter(item => {!item.getMetadata()['{{namespace}}'].value}).forEach(item => {
+            console.warn(item.name, 'is a member of {{debounceGroup}} but lacks {{namespace}} metadata');
             isGood = false;
             badItems.push(item.name);
           });
