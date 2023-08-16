@@ -186,6 +186,7 @@ actions:
 
         var initAlertRuleUID = '{{initAlertRule}}';
 
+
         // ~~~~~~~~~~~Functions
 
         /**
@@ -207,6 +208,10 @@ actions:
                 console.debug('Not a Quantity but has a space, leaving as a string: ' + state);
                 return state;
               }
+            }
+            else if(state == '') {
+              console.debug('state is the empty string, no conversion possible');
+              return state;
             }
             else if(!isNaN(state)) {
               console.debug('state is a number: ' + state)
@@ -249,8 +254,9 @@ actions:
           console.debug('Checking if we are in the alerting state: ' + calc);
 
           let rval = record.compare(currState, record.threshold);
-          console.debug('Result is ' + (record.invert) ? !rval : rval);
-          return (record.invert) ? !rval : rval;
+          rval = (record.invert) ? !rval : rval;
+          console.debug('Result is ' + rval);
+          return rval;
         }
 
 
@@ -469,10 +475,13 @@ actions:
           console.debug(record.name + "'s new state is " + state + ' which is no longer in the alerting state, previously alerted = ' + record.alerted);
 
           // Skip if we don't pass hysteresis
-          if(record.alerted && !applyHyst(state, record.threshold, record.hysteresis)) return;
+          if(record.alerted && !applyHyst(state, record.threshold, record.hysteresis)) {
+            console.debug(record.name + ' did not pass hysteresis, remaining in alerting state');
+            return;
+          }
 
-          // Cancel the initAlerTimer
-          if(record.alertTimer !== null) {
+          // Cancel the initAlertTimer
+          if(record.initAlertTimer !== null) {
             console.debug('Cancelling alert timer for ' + record.name);
             record.initAlertTimer.cancel();
             record.initAlertTimer = null;
@@ -504,7 +513,7 @@ actions:
             record.alertState = null;
           }
           else if(!record.alerted) {
-            console.debug('Exiting alerting but alert was never sent, not sending alert for ' + record.name);
+            console.debug('Exiting alerting state but alert was never sent, not sending an end alert for ' + record.name);
           }
           else {
             console.warn('We should not have reached this!');
@@ -606,6 +615,7 @@ actions:
           // Metadata may have changed, update record with latest values
           console.debug('Populating record from Item metadata or rule defauls');
           const md = (items[record.name].getMetadata()[namespace] !== undefined) ? items[record.name].getMetadata()[namespace].configuration : {};
+          console.debug('Converting threshold to value');
           record.threshold = stateToValue(thresholdStr);
           if(md['threshold'] !== undefined) record.threshold = stateToValue(md['threshold']);
           if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].rawState);
@@ -619,6 +629,7 @@ actions:
           record.endRule       = (md['endRuleID'] !== undefined) ? md['endRuleID'] : endAlertUID;
           record.initAlertRule = (md['initAlertRuleID'] !== undefined) ? md['initAlertRuleID'] : initAlertRuleUID
           record.gatekeeper    = (md['gatekeeperDelay'] !== undefined) ? md['gatekeeperDelay'] : gkDelay;
+          console.debug('Converting hysteresis to value');
           record.hysteresis    = stateToValue((md['hysteresis'] !== undefined) ? md['hysteresis'] : hystRange);
           record.rateLimt      = (md['rateLimit'] !== undefined) ? md['rateLimit'] : rateLimitPeriod;
           record.dndStart      = (md['dndStart'] !== undefined) ? md['dndStart'] : dndStart;
@@ -632,7 +643,7 @@ actions:
                         + '  Reminder Period    - ' + record.remPeriod + '\n'
                         + '  Alert Rule ID      - ' + record.alertRule + '\n'
                         + '  End Alert Rule ID  - ' + record.endRule + '\n'
-                        + '  Init Alert Rule ID - ' + record.initAlertRule
+                        + '  Init Alert Rule ID - ' + record.initAlertRule + '\n'
                         + '  Gatekeeper Delay   - ' + record.gatekeeper + '\n'
                         + '  Hystersis          - ' + record.hysteresis + '\n'
                         + '  Rate Limt          - ' + record.rateLimt + '\n'
@@ -650,38 +661,55 @@ actions:
          * @param {string|float|Quantity} state the Item's current state
          */
         var procEvent = (name, state) => {
-          const value = stateToValue(state);
-          console.debug('Processing state ' + value + ' from ' + name);
+
+        //  const value = stateToValue(state);
+          console.debug('Processing state ' + state + ' from ' + name);
           const records = cache.private.get('records', () => { return {}; });
 
             // Initialze the record in timers if one doesn't already exist or it's incomplete
-          if(records[name] === undefined
-             || records[name].alertTimer === undefined
-             || records[name].endAlertTimer === undefined
-             || records[name].initAlertTimer == undefined
-             || records[name].alerted === undefined) {
+        //  if(records[name] === undefined
+
+        //     || records[name].alertTimer === undefined
+
+        //     || records[name].endAlertTimer === undefined
+
+        //     || records[name].initAlertTimer == undefined
+
+        //     || records[name].alerted === undefined) {
+
+        //    console.debug('Initializing record for ' + name);
+
+        //    records[name] = {name:          name,
+
+        //                     alertTimer:    (records[name] === undefined) ? null: records[name].alertTimer,
+
+        //                     endAlertTimer: (records[name] === undefined) ? null: records[name].endAlertTimer,
+
+        //                     initAlertTimer: (records[name] === undefined) ? null: records[name].initAlertTimer,
+
+        //                     alerted:       false};
+
+        //  }
+          // Initialize the record in timers if one doesn't already exist
+          if(records[name] === undefined) {
             console.debug('Initializing record for ' + name);
-            records[name] = {name:          name,
-                             alertTimer:    (records[name] === undefined) ? null: records[name].alertTimer,
-                             endAlertTimer: (records[name] === undefined) ? null: records[name].endAlertTimer,
-                             initAlertTimer: (records[name] === undefined) ? null: records[name].initAlertTimer,
-                             alerted:       false};
+            records[name] = { name: name,
+                              alertTimer: null,
+                              endAlertTimer: null,
+                              initAlertTimer: null,
+                              alerted: false };
           }
           const record = records[name];
 
           refreshRecord(record);
 
           // Alerting state, set up an alert timer
-          if(isAlertingState(value, record)) {
-            alerting(value, record);
+          if(isAlertingState(state, record)) {
+            alerting(state, record);
           }
           // Not alerting, cancel the timer and alert if configured
-          else if(record.endRule !== '' && record.alerted){
-            notAlerting(value, record);
-          }
-          // Ignore the event
           else {
-            console.debug(name + ' is not in an alerting state');
+            notAlerting(state, record);
           }
         }
 
@@ -827,8 +855,8 @@ actions:
           // Error if the Group has more than one type of Item
           const itemTypes = allItems.filter(item => item.rawItem.class.name === allItems[0].rawItem.class.name);
           if(itemTypes.length != allItems.length) {
-            error = true;
-            console.error(group + ' has a mix of Item types');
+            warn = true;
+            console.warn(group + ' has a mix of Item types');
           }
 
           // Warn if thresholdStr is empty string, there are cases where that could be OK but most of
@@ -1084,15 +1112,15 @@ actions:
         else {
           switch(event.type) {
             case 'ItemStateEvent':
-            case 'ItemStateChangedEvent':
             case 'ItemStateUpdatedEvent':
+            case 'ItemStateChangedEvent':
               console.loggerName = loggerBase+'.'+event.itemName;
               console.debug('Processing an Item event');
               procEvent(event.itemName, stateToValue(event.itemState));
               break;
             default:
-              console.debug('Rule triggered without an Item event, checking the rule config');
-              cache.private.clear();
+              console.info('Rule triggered without an Item event, ' + event.type + ' checking the rule config');
+              //cache.private.clear();
               init();
           }
         }
