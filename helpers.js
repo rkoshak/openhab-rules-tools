@@ -42,10 +42,10 @@ const createTimer = (when, func, name, key) => {
  * @returns {boolean} true if validation passes, false if there's a problem
  **/
 const checkGrpAndMetadata = (namespace, grp, validateFunc, usage) => {
-  let isGood = true;
-  let badItems = [];
+  const isGood = true;
+  const badItems = [];
 
-  // Get all the Item with NAMESPACE metadata
+  // Get all the Items with NAMESPACE metadata
   const allItems = items.getItems();
   const filtered = allItems.filter(item => item.getMetadata(namespace));
 
