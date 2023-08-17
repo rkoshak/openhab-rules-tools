@@ -26,7 +26,11 @@ module.exports = {
     return require('./deferred.js');
   },
   get Deferred() { return require('./deferred.js').getDeferred; },
-  get countdownTimer() { return require('./countdownTimer.js') },
+  get countdownTimer() {
+    console.warn('require CountdownTimer instead of countdownTimer and use CountdownTimer() instead of new countdownTimer.CountdownTimer().');
+    return require('./countdownTimer.js');
+  },
+  get CountdownTimer() { return require('./countdownTimer.js').getCountdownTimer; },
   get groupUtils() { return require('./groupUtils.js') },
   get rulesUtils() { return require('./rulesUtils.js') },
   get helpers() { return require('./helpers.js') }
