@@ -131,7 +131,7 @@ actions:
       script: >-
         // Version 0.12
 
-        var {helpers, loopingTimer, gatekeeper, timeUtils, RateLimit} =
+        var {helpers, LoopingTimer, gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
 
         var {DecimalType, QuantityType, PercentType} = require('@runtime');
@@ -407,7 +407,7 @@ actions:
           if(record.alertTimer === null && !record.isAlerting) {
             // Schedule the initAlertTimer first and it will run first
             console.debug('Calling the initial alert rule for ' + record.name);
-            record.initAlertTimer = new loopingTimer.LoopingTimer();
+            record.initAlertTimer = LoopingTimer();
             record.initAlertTimer.loop(() => {
               console.debug('Calling init alert rule for ' + record.name);
               callRule(state, record.alertRule, false, true, record);
@@ -415,7 +415,7 @@ actions:
             }, generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd));
             // Create the alert timer
             console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
-            record.alertTimer = new loopingTimer.LoopingTimer();
+            record.alertTimer = LoopingTimer();
             record.alertTimer.loop(sendAlertGenerator(record), timeout);
           }
           // Reschedule the alert timer
@@ -498,7 +498,7 @@ actions:
           if(record.endRule && record.alerted) {
             console.debug('Sending alert that ' + record.name + ' is no longer in the alerting state');
             // Schedule a timer if in DND, otherwise run now
-            record.endAlertTimer = new loopingTimer.LoopingTimer();
+            record.endAlertTimer = LoopingTimer();
             record.endAlertTimer.loop(() => {
               console.debug('Calling end alert rule for ' + record.name);
               callRule(stateToValue(items[record.name].rawState), record.endRule, false, false, record);

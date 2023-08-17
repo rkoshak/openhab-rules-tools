@@ -1,4 +1,4 @@
-const { loopingTimer } = require('openhab_rules_tools');
+const { LoopingTimer } = require('openhab_rules_tools');
 const { time, items } = require('openhab');
 
 /**
@@ -27,7 +27,7 @@ class CountdownTimer {
 
     // Start the countdown timer
     this.countItem = countItem;
-    this.countdownTimer = new loopingTimer.LoopingTimer();
+    this.countdownTimer = LoopingTimer();
     this.countdownTimer.loop(this._iterateGenerator(this), 0, name); // start now
   }
 

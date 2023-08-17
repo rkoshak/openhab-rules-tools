@@ -67,6 +67,15 @@ class LoopingTimer {
   }
 }
 
+/**
+ * @returns a timer that resheduels itself until the passed in looping function
+ * return null
+ */
+function getLoopingTimer() {
+  return new LoopingTimer();
+}
+
 module.exports = {
-  LoopingTimer
+  LoopingTimer,
+  getLoopingTimer
 }
