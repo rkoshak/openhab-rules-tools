@@ -1,4 +1,4 @@
-const { timerMgr } = require('openhab_rules_tools');
+const { TimerMgr } = require('openhab_rules_tools');
 const { time, items } = require('openhab');
 
 /**
@@ -10,7 +10,7 @@ class Deferred {
    * Constructor
    */
   constructor() {
-    this.timers = new timerMgr.TimerMgr();
+    this.timers = TimerMgr();
   }
 
   /**

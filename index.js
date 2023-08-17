@@ -1,6 +1,10 @@
 module.exports = {
   get timeUtils() { return require('./timeUtils.js') },
-  get timerMgr() { return require('./timerMgr.js') },
+  get timerMgr() {
+    console.warn('require TimerMgr instead of timerMgr and use TimerMgr() instead of new timerMgr.TimerMgr().');
+    return require('./timerMgr.js')
+  },
+  get TimerMgr() { return require('./timerMgr.js').getTimerMgr; },
   get loopingTimer() { return require('./loopingTimer.js') },
   get rateLimit() { return require('./rateLimit.js') },
   get testUtils() { return require('./testUtils.js') },

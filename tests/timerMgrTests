@@ -1,105 +1,132 @@
-var { timerMgr } = require('openhab_rules_tools');
+var { time } = require('openhab');
+var { TimerMgr } = require('openhab_rules_tools');
 
-var tm = new timerMgr.TimerMgr();
+var logger = log('rules_tools.TimerMgr Tests');
 
-console.info('Starting timerMgr Tests...');
+var tm = TimerMgr();
+
+var EXPIRED = '_expired';
+var FLAPPING = '_flapping';
+
+var test = (test, key, exists, expired, flapping) => {
+  var ht = tm.hasTimer(key);
+  var expiredCalled = cache.private.get(key + EXPIRED) || false;
+  var flappingCalled = cache.private.get(key + FLAPPING) || false;
+  var rval = false;
+  logger.debug('{} Expected/Actual - Exists: {}/{}, Expired: {}/{} Flapping: {}/{}', test, exists, ht, expired, expiredCalled, flapping, flappingCalled);
+  if (ht != exists) logger.error('{} Timer exists {}: expected {}', test, key, ht, expired);
+  else if (expiredCalled != expired) logger.error('{}: Expired called on {} expected {}', test, key, expiredCalled, expired);
+  else if (flappingCalled != flapping) logger.error('{}: Flapping called on {} expected {}', test, key, flappingCalled, flapping);
+  else rval = true;
+
+  return rval;
+}
+
+
+var initKeys = (root) => {
+  cache.private.put(root, null);
+  cache.private.put(root + EXPIRED, null);
+  cache.private.put(root + FLAPPING, null);
+}
+
+var expiredCalled = (key) => {
+  return () => {
+    logger.debug('Called expired function for {}', key);
+    cache.private.put(key + EXPIRED, true);
+  }
+}
+
+var flappingCalled = (key) => {
+  return () => {
+    logger.debug('Called flapping function for {}', key);
+    cache.private.put(key + FLAPPING, true);
+  }
+}
+
+logger.info('Starting TimerMgr Tests');
+
+var now = time.toZDT();
 
 var keys = [];
 for (i = 1; i <= 11; i++) {
-  keys.push('timerMgr_Test_' + i);
+  const key = ruleUID + '_test' + i;
+  keys.push(key);
+  initKeys(key);
 }
-keys.forEach((key) => cache.private.put(key, false));
 
 // Test 1: Timer created
-tm.check(keys[0], 100, () => {});
+tm.check(keys[0], 1000, expiredCalled(keys[0]), flappingCalled(keys[0]));
 
-// If timerMgr has a timer stored for the given key, test passes
-if (tm.timers[keys[0]].timer) cache.private.put(keys[0], true);
-
-// Test 2: Is flapping
-// Test 3: Expired not called
-cache.private.put(keys[2], true);
-tm.check(keys[1], 1000, () => {
-  // If expired func is called, test fails
-  cache.private.put(keys[2], false);
-});
-tm.check(keys[1], 1000, undefined, false, () => {
-  // If flappingFunc is called, test passes
-  cache.private.put(keys[1], true);
+actions.ScriptExecution.createTimer(now.plus(510, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[0], test(keys[0], keys[0], true, false, false));
+  tm.check(keys[0], 1000, expiredCalled(keys[0]), true, flappingCalled(keys[0]));
 });
 
-// Test 4: Timer expired
-tm.check(keys[3], 100, () => {});
-setTimeout(() => {
-  // If timer is removed from timerMgr, it expired and test passes
-  if (!tm.timers[keys[3]]) cache.private.put(keys[3], true);
-}, 1100);
-
-// Test 5: No function timer runnning
-// Not sure what this test should test
-cache.private.put(keys[4], true);
-
-// Test 6: Expired without main function
-tm.check(keys[5], 100);
-setTimeout(() => {
-  // If timer was removed from timerMgr, it expired and test passes
-  if (!tm.timers[keys[5]]) cache.private.put(keys[5], true);
-}, 1100);
-
-// Test 7: Timer gets rescheduled and both expired ...
-// Test 8: and flapping are called
-tm.check(keys[6], 1000, () => {
-  // If expired func is called, test passes
-  cache.private.put(keys[6], true);
-});
-// Can be called without func here because this is stored
-tm.check(keys[6], 1000, undefined, true, () => {
-  // If flappingFunc is called, test passes
-  cache.private.put(keys[7], true);
+// Test 2: Flapping
+actions.ScriptExecution.createTimer(now.plus(910, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[1], test(keys[1], keys[0], true, false, true));
 });
 
-// Test 9: Expired called
-tm.check(keys[8], 100, () => {
-  // If expired func is called, test passed
-  cache.private.put(keys[8], true);
+// Test 3: Timer expired
+actions.ScriptExecution.createTimer(now.plus(2110, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[2], test(keys[2], keys[0], false, true, true));
 });
 
-// Test 10: Cancel timer
-tm.check(keys[9], 100, () => {});
-tm.cancel(keys[9]);
-setTimeout(() => {
-  // If timer was removed from timerMgr, it was cancelled and test passes
-  if (!tm.timers[keys[9]]) cache.private.put(keys[9], true);
-}, 1500);
-
-// Test 11: After cancel, both expired ...
-// Test 12: and flappingFunc weren't called
-cache.private.put(keys[9], true);
-cache.private.put(keys[10], true);
-tm.check(keys[9], 100, () => {
-  // If expired func is called, test fails
-  cache.private.get(keys[9], false);
-}, undefined, () => {
-  // If flappingFunc is called, test fails
-  cache.private.get(keys[10], false);
+// Test 4: No function timer runnning
+tm.check(keys[3], 'PT1s', undefined, undefined, () => {
+  cache.private.put(keys[3] + FLAPPING, true);
 });
-tm.cancel(keys[9]);
 
-// Test 12: Cancelling a non-existing timer (doesn't throw an exception)
-tm.cancel('nonExistingTimer');
+actions.ScriptExecution.createTimer(now.plus(500, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[3], test(keys[3], keys[3], true, false, false));
+});
+
+// Test 5: Expired without main function
+actions.ScriptExecution.createTimer(now.plus(1050, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[4], test(keys[4], keys[3], false, false, false));
+});
+
+// Test 6: Timer gets rescheduled and both expired and flapping get called.
+tm.check(keys[5], 'PT1.11s', expiredCalled(keys[5]), true, flappingCalled(keys[5]));
+actions.ScriptExecution.createTimer(now.plus(525, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[5], test(keys[5], keys[5], true, false, false));
+  tm.check(keys[5], 'PT1s', expiredCalled(keys[5]), true, flappingCalled(keys[5]));
+});
+
+// Test 7: See if flapping was called and timer is rescheduled
+actions.ScriptExecution.createTimer(now.plus(1205, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[6], test(keys[6], keys[5], true, false, true));
+});
+
+// Test 8: Expired called
+actions.ScriptExecution.createTimer(now.plus(1710, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[7], test(keys[7], keys[5], false, true, true));
+});
+
+// Test 9: CancelTimer
+tm.check(keys[8], 750, expiredCalled(keys[8]));
+actions.ScriptExecution.createTimer(now.plus(250, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[8], test(keys[8], keys[8], true, false, false));
+  tm.cancel(keys[8]);
+});
+
+// Test 10: After cancel, flapping and expired wasn't called
+actions.ScriptExecution.createTimer(now.plus(1010, time.ChronoUnit.MILLIS), () => {
+  cache.private.put(keys[9], test(keys[9], keys[8], false, false, false));
+});
+
+// Test 11: Cancel a non-existing timer
+tm.cancel(keys[10]);
+cache.private.put(keys[10], test(keys[10], keys[10], false, false, false));
 
 // Check results
-setTimeout(() => {
+actions.ScriptExecution.createTimer(now.plus(3000, time.ChronoUnit.MILLIS), () => {
   const passed = keys.map((key) => cache.private.get(key)).reduce((combine, value) => combine && value);
-  if (passed) {
-    console.info('timerMgr tests passed successfully!');
-  } else {
-    let failed = [];
-    keys.forEach((key) => {
-      if (cache.private.get(key) !== true) failed.push(key);
-    });
-    console.error('timerMgr tests have failed: ' + failed.join(', '));
+  if (passed) logger.info('TimerMgr tests completed successfully!');
+  else {
+    const failed = keys.filter((key) => cache.private.get(key)).join('\n');
+    logger.error('TimerMgr tests have failed:\n{}', failed);
   }
-}, 3000);
+});
 
-console.info('All timerMgr tests have been created. Please wait about 3 seconds for the results.');
+logger.info('All timers have been created');

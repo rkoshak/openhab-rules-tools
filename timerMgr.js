@@ -23,13 +23,13 @@ class TimerMgr {
   /**
    * Function to call when null was passed for the func or flappingFunc.
    */
-  _noop() {
+  #noop() {
     // do nothing
   }
 
   /**
    * If there is no timer associated with key, create one to expire at when and
-   * call func (or _noop if func is null).
+   * call func (or #noop if func is null).
    * If there is a timer already associted with key, if reschedule is not
    * supplied or it's false cancel the timer. If reschedule is true, reschedule
    * the timer using when.
@@ -73,7 +73,7 @@ class TimerMgr {
       this.timers[key] = {
         'timer': timer,
         'flapping': flappingFunc,
-        'notFlapping': (func) ? func : this._noop
+        'notFlapping': (func) ? func : this.#noop
       };
     }
   }
@@ -113,6 +113,15 @@ class TimerMgr {
   }
 }
 
+/**
+ * The TimerMgr handles the book keeping to manage a bunch of timers identified
+ * with a unique key.
+ */
+function getTimerMgr () {
+    return new TimerMgr();
+}
+
 module.exports = {
-  TimerMgr
+  TimerMgr,
+  getTimerMgr
 }
