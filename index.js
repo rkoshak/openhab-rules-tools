@@ -21,7 +21,11 @@ module.exports = {
     return require('./gatekeeper.js');
   },
   get Gatekeeper() { return require('./gatekeeper.js').getGatekeeper; },
-  get deferred() { return require('./deferred.js') },
+  get deferred() {
+    console.warn('require Deferred instead of deferred and use Deferred() instead of new deferred.Deferred().');
+    return require('./deferred.js');
+  },
+  get Deferred() { return require('./deferred.js').getDeferred; },
   get countdownTimer() { return require('./countdownTimer.js') },
   get groupUtils() { return require('./groupUtils.js') },
   get rulesUtils() { return require('./rulesUtils.js') },

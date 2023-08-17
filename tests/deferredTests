@@ -1,8 +1,8 @@
 var { time, items } = require('openhab');
-var { deferred } = require('openhab_rules_tools');
+var { Deferred } = require('openhab_rules_tools');
 var logger = log('rules_tools.Deferred Tests');
 
-var deferred = new deferred.Deferred();
+var deferred = Deferred();
 
 // Change this if you want to run the unit test
 var testItem = items.getItem('TestSwitch');
@@ -11,7 +11,7 @@ logger.info('Starting Deferred tests');
 
 var reset = (testName) => {
   testItem.postUpdate('UNDEF');
-  cache.put(testName, null);
+  cache.private.put(testName, null);
 }
 
 
@@ -21,10 +21,10 @@ function test1() {
   reset(test1);
   deferred.defer(testItem.name, 'ON', 'PT1s');
   actions.ScriptExecution.createTimer(time.toZDT(100), () => {
-    if (!testItem.isUninitialized) cache.put(test1, test1 + ': Deferred updated ' + testItem + ' too soon!');
+    if (!testItem.isUninitialized) cache.private.put(test1, test1 + ': Deferred updated ' + testItem + ' too soon!');
   });
   actions.ScriptExecution.createTimer(time.toZDT(1200), () => {
-    if (testItem.state != 'ON' && !cache.get(test1)) cache.put(test1 + ': Deferred failed to update ' + testItem);
+    if (testItem.state != 'ON' && !cache.private.get(test1)) cache.privvate.put(test1 + ': Deferred failed to update ' + testItem);
     else test2();
   });
 
@@ -36,14 +36,14 @@ function test2() {
   reset(test2);
   deferred.defer(testItem.name, 'OFF', 'PT1s');
   actions.ScriptExecution.createTimer(time.toZDT(100), () => {
-    if (!testItem.isUninitialized) cache.put(test2, test2 + ': Deferred updated ' + testItem + ' too soon!');
+    if (!testItem.isUninitialized) cache.private.put(test2, test2 + ': Deferred updated ' + testItem + ' too soon!');
     else deferred.defer(testItem.name, 'ON', 'PT2s');
   });
   actions.ScriptExecution.createTimer(time.toZDT(1100), () => {
-    if (!testItem.isUninitialized && !cache.get(test2)) cache.put(test2, test2 + ': Failed to reschedule');
+    if (!testItem.isUninitialized && !cache.private.get(test2)) cache.private.put(test2, test2 + ': Failed to reschedule');
   });
   actions.ScriptExecution.createTimer(time.toZDT(2300), () => {
-    if (testItem.state != 'ON' && !cache.get(test2)) cache.put(test2, test2 + ': Did not update after reschedule');
+    if (testItem.state != 'ON' && !cache.private.get(test2)) cache.private.put(test2, test2 + ': Did not update after reschedule');
     else test3();
   });
 }
@@ -56,7 +56,7 @@ function test3() {
     deferred.cancel(testItem.name);
   });
   actions.ScriptExecution.createTimer(time.toZDT(1200), () => {
-    if (!testItem.isUninitialized) cache.put(test3, test3 + ': Deferred was not cancelled');
+    if (!testItem.isUninitialized) cache.private.put(test3, test3 + ': Deferred was not cancelled');
     else test4();
   });
 }
@@ -69,7 +69,7 @@ function test4() {
     deferred.cancelAll();
   });
   actions.ScriptExecution.createTimer(time.toZDT(1200), () => {
-    if (!testItem.isUninitialized) cache.put(test4, test4 + ': Cancel did not cancel all');
+    if (!testItem.isUninitialized) cache.private.put(test4, test4 + ': Cancel did not cancel all');
   });
 }
 
@@ -77,10 +77,10 @@ actions.ScriptExecution.createTimer(time.toZDT(7100), () => {
   let success = true;
   for (let i = 1; i <= 4; i++) {
     let id = ruleUID + '_test' + i;
-    if (cache.get(id)) {
-      logger.error(cache.get(id));
+    if (cache.private.get(id)) {
+      logger.error(cache.private.get(id));
       success = false;
-      cache.put(id, null);
+      cache.private.put(id, null);
     }
   }
   if (success) logger.info('Deferred tests completed successfully');
