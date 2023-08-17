@@ -16,7 +16,11 @@ module.exports = {
   },
   get RateLimit() { return require('./rateLimit.js').getRateLimit; },
   get testUtils() { return require('./testUtils.js') },
-  get gatekeeper() { return require('./gatekeeper.js') },
+  get gatekeeper() {
+    console.warn('require Gatekeeper instead of gatekeeper and use Gatekeeper() instead of new gatekeeper.Gatekeeper().');
+    return require('./gatekeeper.js');
+  },
+  get Gatekeeper() { return require('./gatekeeper.js').getGatekeeper; },
   get deferred() { return require('./deferred.js') },
   get countdownTimer() { return require('./countdownTimer.js') },
   get groupUtils() { return require('./groupUtils.js') },

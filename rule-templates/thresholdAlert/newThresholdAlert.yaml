@@ -131,7 +131,7 @@ actions:
       script: >-
         // Version 0.12
 
-        var {helpers, LoopingTimer, gatekeeper, timeUtils, RateLimit} =
+        var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
 
         var {DecimalType, QuantityType, PercentType} = require('@runtime');
@@ -312,7 +312,7 @@ actions:
           var rl = cache.private.get('rl', () => RateLimit());
 
           const throttle = () => {
-            const gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
+            const gk = cache.private.get('gatekeeper', () => Gatekeeper());
             const records = cache.private.get('records');
             gk.addCommand(record.gatekeeper, () => {
               try {
