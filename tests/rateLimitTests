@@ -1,4 +1,4 @@
-var { rateLimit, testUtils } = require('openhab_rules_tools');
+var { RateLimit, testUtils } = require('openhab_rules_tools');
 
 var logger = log('rules_tools.RateLimit Tests');
 
@@ -6,7 +6,7 @@ var funcCalled = false;
 
 var test = () => funcCalled = true;
 
-var rl = new rateLimit.RateLimit();
+var rl = RateLimit();
 
 logger.info('Starting RateLimit tests');
 

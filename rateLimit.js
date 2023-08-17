@@ -26,6 +26,15 @@ class RateLimit {
   }
 }
 
+/**
+ * The RateLimit class keeps track of when the last `run` was called and throws
+ * away subsequent calls to run that occur before the passed in `when`.
+ */
+function getRateLimit() {
+  return new RateLimit();
+}
+
 module.exports = {
-  RateLimit
+  RateLimit,
+  getRateLimit
 }

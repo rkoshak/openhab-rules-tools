@@ -6,7 +6,11 @@ module.exports = {
   },
   get TimerMgr() { return require('./timerMgr.js').getTimerMgr; },
   get loopingTimer() { return require('./loopingTimer.js') },
-  get rateLimit() { return require('./rateLimit.js') },
+  get rateLimit() {
+    console.warn('require RateLimit instead of rateLimit and use RateLimit() instead of new rateLimit.RateLimit().');
+    return require('./rateLimit.js')
+  },
+  get RateLimit() { return require('./rateLimit.js').getRateLimit; },
   get testUtils() { return require('./testUtils.js') },
   get gatekeeper() { return require('./gatekeeper.js') },
   get deferred() { return require('./deferred.js') },
