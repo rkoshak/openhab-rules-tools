@@ -45,16 +45,16 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        // Version 0.2
+        // Version 0.3
 
-        var {timerMgr, helpers} = require('openhab_rules_tools');
+        var {TimerMgr, helpers} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.TimeStateMachine';
 
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
 
-        helpers.validateLibraries('4.2.0', '2.0.1');
+        helpers.validateLibraries('4.2.0', '2.0.2');
 
 
         console.debug('Starting state machine in ten seconds...');
@@ -316,7 +316,7 @@ actions:
         };
 
 
-        var timers = cache.private.get('timers', () => new timerMgr.TimerMgr());
+        var timers = cache.private.get('timers', () => TimerMgr());
 
 
         // Wait a minute after the last time the rule is triggered to make sure all Items are done changing (e.g.

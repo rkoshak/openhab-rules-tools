@@ -129,9 +129,9 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.10
+        // Version 0.12
 
-        var {helpers, loopingTimer, gatekeeper, timeUtils, rateLimit} =
+        var {helpers, loopingTimer, gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
 
         var {DecimalType, QuantityType, PercentType} = require('@runtime');
@@ -309,7 +309,7 @@ actions:
 
           console.debug('Calling ' + ruleID + ' with alertItem=' + record.name + ', alertState=' + state + ', isAlerting='
                         + isAlerting + ', and initial alert ' + isInitialAlert);
-          var rl = cache.private.get('rl', () => new rateLimit.RateLimit());
+          var rl = cache.private.get('rl', () => RateLimit());
 
           const throttle = () => {
             const gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
