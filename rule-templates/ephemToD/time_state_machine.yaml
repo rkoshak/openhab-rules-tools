@@ -54,7 +54,7 @@ actions:
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
 
-        helpers.validateLibraries('4.2.0', '2.0.2');
+        helpers.validateLibraries('4.2.0', '2.0.3');
 
 
         console.debug('Starting state machine in ten seconds...');
