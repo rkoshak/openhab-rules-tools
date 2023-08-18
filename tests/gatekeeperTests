@@ -1,12 +1,12 @@
 var { time } = require('openhab');
-var { gatekeeper } = require('openhab_rules_tools');
+var { Gatekeeper } = require('openhab_rules_tools');
 var logger = log('rules_tools.Gatekeeper Tests');
 
 var testFunGen = (test, num) => {
   logger.debug('generating function for {} run{}', test, num);
   return () => {
     logger.debug('{}: Test {} ran', test, num);
-    cache.put(test + '_run' + num, time.toZDT());
+    cache.private.put(test + '_run' + num, time.toZDT());
   };
 }
 
@@ -14,20 +14,20 @@ logger.info('Starting Gatekeeper tests');
 
 var reset = (test) => {
   logger.debug('resetting {}');
-  cache.put(test, null);
+  cache.private.put(test, null);
   logger.debug('resetting {}', test + '_start');
-  cache.put(test + '_start', null);
+  cache.private.put(test + '_start', null);
   for (var i = 1; i <= 4; i++) {
     logger.debug('resetting {}', test + '_run' + 1)
-    cache.put(test + '_run' + i, null);
+    cache.private.put(test + '_run' + i, null);
   }
 }
 
 // Test 1: Scheduling
-var gk1 = new gatekeeper.Gatekeeper();
+var gk1 = Gatekeeper();
 var TEST1 = ruleUID + '_test1';
 reset(TEST1);
-cache.put(TEST1 + '_start', time.ZonedDateTime.now());
+cache.private.put(TEST1 + '_start', time.ZonedDateTime.now());
 gk1.addCommand('PT1s', testFunGen(TEST1, 1));
 gk1.addCommand('PT2s', testFunGen(TEST1, 2));
 gk1.addCommand('PT3s', testFunGen(TEST1, 3));
@@ -35,11 +35,11 @@ gk1.addCommand(500, testFunGen(TEST1, 4));
 
 actions.ScriptExecution.createTimer(time.toZDT('PT6.51s'), () => {
   var success = true;
-  const start = cache.get(TEST1 + '_start');
-  const run1 = cache.get(TEST1 + '_run1');
-  const run2 = cache.get(TEST1 + '_run2');
-  const run3 = cache.get(TEST1 + '_run3');
-  const run4 = cache.get(TEST1 + '_run4');
+  const start = cache.private.get(TEST1 + '_start');
+  const run1 = cache.private.get(TEST1 + '_run1');
+  const run2 = cache.private.get(TEST1 + '_run2');
+  const run3 = cache.private.get(TEST1 + '_run3');
+  const run4 = cache.private.get(TEST1 + '_run4');
   if (start === null) {
     logger.error('{} Failed to get starting timestamp', TEST1);
     success = false;
@@ -89,7 +89,7 @@ actions.ScriptExecution.createTimer(time.toZDT('PT6.51s'), () => {
 });
 
 // Test 2: cancelAll
-var gk2 = new gatekeeper.Gatekeeper();
+var gk2 = Gatekeeper();
 var TEST2 = ruleUID + '_test2'
 reset(TEST2);
 gk2.addCommand('PT1.5s', testFunGen(TEST2, 1));
@@ -99,10 +99,10 @@ gk2.addCommand(500, testFunGen(TEST2, 4));
 
 actions.ScriptExecution.createTimer(time.ZonedDateTime.now().plus(2750, time.ChronoUnit.MILLIS), () => {
   var success = true;
-  const run1 = cache.get(TEST2 + '_run1');
-  const run2 = cache.get(TEST2 + '_run2');
-  const run3 = cache.get(TEST2 + '_run3');
-  const run4 = cache.get(TEST2 + '_run4');
+  const run1 = cache.private.get(TEST2 + '_run1');
+  const run2 = cache.private.get(TEST2 + '_run2');
+  const run3 = cache.private.get(TEST2 + '_run3');
+  const run4 = cache.private.get(TEST2 + '_run4');
 
   if (!run1) {
     logger.error('{} failed, run1 did not run', TEST2);
@@ -124,8 +124,8 @@ actions.ScriptExecution.createTimer(time.ZonedDateTime.now().plus(2750, time.Chr
     gk2.cancelAll();
     actions.ScriptExecution.createTimer(time.toZDT('PT4s'), () => {
       var success = true;
-      const run3 = cache.get(TEST2 + '_run3');
-      const run4 = cache.get(TEST2 + '_run4');
+      const run3 = cache.private.get(TEST2 + '_run3');
+      const run4 = cache.private.get(TEST2 + '_run4');
 
       if (run3) {
         logger.error('{} failed, run3 ran after being cancelled');

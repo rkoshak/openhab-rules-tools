@@ -85,7 +85,7 @@ New to OH 3.4 release, a system wide cache has been added where variables can be
 On can pull, and if it doesn't exist instantiate a Object in one line inside your rule.
 
 ```
-var timers = cache.shared.get('timers', () new timerMgr.TimerMgr());
+var timers = cache.shared.get('timers', () TimerMgr());
 ```
 
 It is important to use unique keys across all your rules to avoid collisions.

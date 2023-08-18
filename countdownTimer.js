@@ -1,4 +1,4 @@
-const { loopingTimer } = require('openhab_rules_tools');
+const { LoopingTimer } = require('openhab_rules_tools');
 const { time, items } = require('openhab');
 
 /**
@@ -27,8 +27,8 @@ class CountdownTimer {
 
     // Start the countdown timer
     this.countItem = countItem;
-    this.countdownTimer = new loopingTimer.LoopingTimer();
-    this.countdownTimer.loop(this._iterateGenerator(this), 0, name); // start now
+    this.countdownTimer = LoopingTimer();
+    this.countdownTimer.loop(this.#iterateGenerator(this), 0, name); // start now
   }
 
   /**
@@ -36,7 +36,7 @@ class CountdownTimer {
    * time left is less than a second, 0 is the value posted.
    * @param {CountdownTimer} ctx Context to access the timer information from inside the countdown Timer's lambda
    */
-  _updateItem(ctx) {
+  #updateItem(ctx) {
     let left = (ctx.timeLeft.compareTo(ctx.ONE_SEC) < 0) ? 0 : ctx.timeLeft.seconds();
     items.getItem(ctx.countItem).postUpdate(left);
   }
@@ -46,9 +46,9 @@ class CountdownTimer {
    * the time has run out, calling updateItem each time.
    * @param {CountdownTimer} ctx Context to access the timer information from inside the looping timer
    */
-  _iterateGenerator(ctx) {
+  #iterateGenerator(ctx) {
     return () => {
-      ctx._updateItem(ctx);
+      ctx.#updateItem(ctx);
       if (!ctx.timeLeft.isZero()) {
         let sleepTime = (ctx.timeLeft.compareTo(ctx.ONE_SEC) < 0) ? ctx.timeLeft : ctx.ONE_SEC;
         ctx.timeLeft = ctx.timeLeft.minusDuration(sleepTime);
@@ -73,12 +73,26 @@ class CountdownTimer {
    */
   cancel() {
     this.timeLeft = time.Duration.ofSeconds(0);
-    this._updateItem(this);
+    this.#updateItem(this);
     this.countDownTimer?.cancel();
     return this.timer.cancel();
   }
 }
 
+/**
+ * A countdown timer updates an Item with the number of seconds left in the timer
+ * once a second.
+ * @param {*} when time.toZDT compatible time or duration
+ * @param {function} func function to call at when
+ * @param {string} countItem name of the Item to update with the seconds remaining
+ * @param {string} [name] countdown name displayed in openHAB
+ * @returns a new CountdownTimer
+ */
+function getCountdownTimer(when, func, countItem, name) {
+  return new CountdownTimer(when, func, countItem, name);
+}
+
 module.exports = {
-  CountdownTimer
+  CountdownTimer,
+  getCountdownTimer
 }

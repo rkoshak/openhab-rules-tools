@@ -1,6 +1,6 @@
 {
   "name": "openhab_rules_tools",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Functions and classes to make writing openHAB rules in JS Scripting easier.",
   "private": false,
   "license": "EPL-2.0",
@@ -21,6 +21,6 @@
     "url": "https://github.com/rkoshak/openhab-rules-tools/issues"
   },
   "devDependencies": {
-    "openhab": "^4.1.0"
+    "openhab": "^4.5.1"
   }
 }

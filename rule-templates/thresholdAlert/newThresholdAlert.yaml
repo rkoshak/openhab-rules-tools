@@ -129,9 +129,9 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.10
+        // Version 0.12
 
-        var {helpers, loopingTimer, gatekeeper, timeUtils, rateLimit} =
+        var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
 
         var {DecimalType, QuantityType, PercentType} = require('@runtime');
@@ -144,7 +144,7 @@ actions:
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
 
-        helpers.validateLibraries('4.1.0', '2.0.1');
+        helpers.validateLibraries('4.1.0', '2.0.3');
 
 
         console.debug('Starting threshold alert');
@@ -309,10 +309,10 @@ actions:
 
           console.debug('Calling ' + ruleID + ' with alertItem=' + record.name + ', alertState=' + state + ', isAlerting='
                         + isAlerting + ', and initial alert ' + isInitialAlert);
-          var rl = cache.private.get('rl', () => new rateLimit.RateLimit());
+          var rl = cache.private.get('rl', () => RateLimit());
 
           const throttle = () => {
-            const gk = cache.private.get('gatekeeper', () => new gatekeeper.Gatekeeper());
+            const gk = cache.private.get('gatekeeper', () => Gatekeeper());
             const records = cache.private.get('records');
             gk.addCommand(record.gatekeeper, () => {
               try {
@@ -407,7 +407,7 @@ actions:
           if(record.alertTimer === null && !record.isAlerting) {
             // Schedule the initAlertTimer first and it will run first
             console.debug('Calling the initial alert rule for ' + record.name);
-            record.initAlertTimer = new loopingTimer.LoopingTimer();
+            record.initAlertTimer = LoopingTimer();
             record.initAlertTimer.loop(() => {
               console.debug('Calling init alert rule for ' + record.name);
               callRule(state, record.alertRule, false, true, record);
@@ -415,7 +415,7 @@ actions:
             }, generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd));
             // Create the alert timer
             console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
-            record.alertTimer = new loopingTimer.LoopingTimer();
+            record.alertTimer = LoopingTimer();
             record.alertTimer.loop(sendAlertGenerator(record), timeout);
           }
           // Reschedule the alert timer
@@ -498,7 +498,7 @@ actions:
           if(record.endRule && record.alerted) {
             console.debug('Sending alert that ' + record.name + ' is no longer in the alerting state');
             // Schedule a timer if in DND, otherwise run now
-            record.endAlertTimer = new loopingTimer.LoopingTimer();
+            record.endAlertTimer = LoopingTimer();
             record.endAlertTimer.loop(() => {
               console.debug('Calling end alert rule for ' + record.name);
               callRule(stateToValue(items[record.name].rawState), record.endRule, false, false, record);

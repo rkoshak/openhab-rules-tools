@@ -26,7 +26,7 @@ class Gatekeeper {
    * @parm {*} ctx pointer to the Gatekeeper OPbject.
    * @returns {function} function called by the timer to process the next command.
    */
-  _procCommandGenerator(ctx) {
+  #procCommandGenerator(ctx) {
     return () => {
 
       // no more commands
@@ -38,15 +38,15 @@ class Gatekeeper {
       else {
         const command = ctx.commands.pop();
         const func = command[1];
-        const before = time.ZonedDateTime.now();
+        const before = time.toZDT();
         func();
-        const after = time.ZonedDateTime.now();
+        const after = time.toZDT();
 
         const delta = time.Duration.between(before, after);
         const pause = time.toZDT(command[0]);
         const triggerTime = pause.minus(delta);
 
-        ctx.timer = helpers.createTimer(triggerTime, ctx._procCommandGenerator(ctx), this.name, 'gatekeeper');
+        ctx.timer = helpers.createTimer(triggerTime, ctx.#procCommandGenerator(ctx), this.name, 'gatekeeper');
       }
 
     };
@@ -61,7 +61,7 @@ class Gatekeeper {
   addCommand(pause, command) {
     this.commands.add([pause, command]);
     if (this.timer === null || this.timer.hasTerminated()) {
-      this._procCommandGenerator(this)();
+      this.#procCommandGenerator(this)();
     }
   }
 
@@ -76,6 +76,17 @@ class Gatekeeper {
   }
 }
 
+/**
+ * The Gatekeeper will ensure that a certain amount of time passes between
+ * commands.
+ * @param {String} name optional and used in error messages
+ * @returns a new Gatekeeper instance
+ */
+function getGatekeeper(name) {
+    return new Gatekeeper(name);
+}
+
 module.exports = {
-  Gatekeeper
+  Gatekeeper,
+  getGatekeeper
 }

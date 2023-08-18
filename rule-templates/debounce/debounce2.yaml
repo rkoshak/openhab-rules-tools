@@ -63,16 +63,16 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        // Version 0.2
+        // Version 0.3
 
-        var {timerMgr, helpers} = require('openhab_rules_tools');
+        var {TimerMgr, helpers} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.Debounce';
 
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
 
-        helpers.validateLibraries('4.1.0', '2.0.1');
+        helpers.validateLibraries('4.1.0', '2.0.3');
 
 
         var USAGE = "Debounce metadata should follow this format:\n"
@@ -93,7 +93,7 @@ actions:
          */
         var getConfig = (itemName) => {
 
-          const md = items[itemName].getMetadata()['{{namespace}}'];          
+          const md = items[itemName].getMetadata()['{{namespace}}'];
           if(!md) {
             throw itemName + ' does not have {{namespace}} metadata!\n' + USAGE;
           }
@@ -159,7 +159,7 @@ actions:
           console.debug('Debounce:', event.type, 'item:', event.itemName);
 
           // Initialize the timers, config and end debounce function
-          const timers = cache.private.get('timerMgr', () => new timerMgr.TimerMgr());
+          const timers = cache.private.get('timerMgr', () => TimerMgr());
           const cfg = getConfig(event.itemName);
           const endDebounce = endDebounceGenerator(event.itemName, event.itemState, cfg.proxy, cfg.command);
 

@@ -20,6 +20,7 @@ const generateTriggers = (list, trigger, systemStarted) => {
 
 /**
  * Checks to see if the rule exists
+ * Only works for rules defined in the same file so it's utility is suspect
  * @param {String} uid UID for the rule to look for
  * @returns {Boolean} true when the rule exists
  */
@@ -28,10 +29,13 @@ const ruleExists = (uid) => {
 }
 
 /**
+ * DEPRECATED
+ *
  * Deletes the rule if it exists. Does not work in UI rules.
  * @param {String} uid UID for the rule to remove
  */
 const removeRule = (uid) => {
+  console.warn('rulesUtils.removeRule() is deprecated, use rules.removeRule() instead.');
   if(ruleExists(uid)) {
     ruleRegistry.remove(uid);
     return !ruleExists(uid);
@@ -42,7 +46,7 @@ const removeRule = (uid) => {
 }
 
 /**
- * If a rule with the given UID exists, it's deleted. Then a new rule is created 
+ * If a rule with the given UID exists, it's deleted. Then a new rule is created
  * with the given properties. A DYNAMIC_RULE_TAG will be applied to the rule.
  * @param {string} uid unique identifier for the given rule
  * @param {string} ruleName name for the rule as it will appear in MainUI
@@ -52,6 +56,7 @@ const removeRule = (uid) => {
  * @param {Array<string>} [ts=[]] optional list of tags to apply to the rule
  */
 const recreateRule = (uid, ruleName, ruleDescription, trigs, func, ts = []) => {
+  console.warn('rulesUtils.recreateRule() is known not to work in all cases');
   console.log('Removing the rule if necessary');
   // Remove the existing rule if it exists, only works for rules created in the same file
   if(ruleExists(uid)) if(removeRule(uid)) return null;
@@ -84,7 +89,7 @@ const recreateRule = (uid, ruleName, ruleDescription, trigs, func, ts = []) => {
 /**
  * Creates a rule that is triggered when any Item with valid metadata in the passed in
  * namespace using the passed in trigger type. In addition to the passed in tags,
- * a DYNAMIC_RULE_TAG will also be applied. 
+ * a DYNAMIC_RULE_TAG will also be applied.
  * @param {string} namespace Item metadata namespace used to identify those Items to trigger
  * @param {function(itemName)} checkConfig function that returns true if the metadata on the Item is valid
  * @param {triggers.ItemStateChangeTrigger|triggers.ItemStateUpdateTrigger|triggers.ItemChangeTrigger} event the Item trigger type to create for each Item
@@ -96,7 +101,7 @@ const recreateRule = (uid, ruleName, ruleDescription, trigs, func, ts = []) => {
  * @param {int} systemStarted optional when true a runlevel 40 trigger will be added to the rule.
  * @returns {HostRule} the created rule, or null if there was a problem
  */
-const createRuleWithMetadata = (namespace, checkConfig, trigger, ruleName, func, 
+const createRuleWithMetadata = (namespace, checkConfig, trigger, ruleName, func,
                                 description, uid, systemStarted, tags) => {
   // Get the Items
   let triggeringItems = utils.javaSetToJsArray(itemRegistry.getAll())
@@ -109,8 +114,8 @@ const createRuleWithMetadata = (namespace, checkConfig, trigger, ruleName, func,
 }
 
 /**
- * Creates a rule that is triggered when any Item with a given tag trigger type. 
- * In addition to the passed in tags, a DYNAMIC_RULE_TAG will also be applied. 
+ * Creates a rule that is triggered when any Item with a given tag trigger type.
+ * In addition to the passed in tags, a DYNAMIC_RULE_TAG will also be applied.
  * @param {string} tag Item tag used to identify those Items to trigger
  * @param {triggers.ItemStateChangeTrigger|triggers.ItemStateUpdateTrigger|triggers.ItemChangeTrigger} event the Item trigger type to create for each Item
  * @param {string} ruleName name of the rule generated
@@ -130,6 +135,8 @@ const createRuleWithTags = (tag, trigger, ruleName, func, description,
 }
 
 /**
+ * DEPRECATED
+ *
  * Calls another rule based on UID or rule name. TODO remove when added to openhab-js
  * @param {string} nameOrUid Rule UID or name to run
  * @param {dict} argsDict optional dict of data to pass to the called rule
@@ -137,6 +144,8 @@ const createRuleWithTags = (tag, trigger, ruleName, func, description,
  * @returns {boolean} true when the rule is found and successfully called
  */
 const runRule = (nameOrUid, argsDict, cond = false) => {
+  console.warn('rulesUtils.runRule() is deprecated, use rules.runRule() instead');
+
   // If it's not a UID, try to find it by name
   if(!RuleManager.getStatusInfo(nameOrUid)) {
     const { ruleRegistry } = require('@runtime/RuleSupport');

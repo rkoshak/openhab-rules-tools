@@ -1,4 +1,4 @@
-const { timerMgr } = require('openhab_rules_tools');
+const { TimerMgr } = require('openhab_rules_tools');
 const { time, items } = require('openhab');
 
 /**
@@ -10,7 +10,7 @@ class Deferred {
    * Constructor
    */
   constructor() {
-    this.timers = new timerMgr.TimerMgr();
+    this.timers = TimerMgr();
   }
 
   /**
@@ -19,7 +19,7 @@ class Deferred {
    * @param {string} value command or update to send
    * @param {boolean} isCommand when true, value will be sent as a command, otherwise posted as an update
    */
-  _timerBodyGenerator(target, value, isCommand) {
+  #timerBodyGenerator(target, value, isCommand) {
     const item = items.getItem(target);
     return () => (isCommand) ? item.sendCommand(value) : item.postUpdate(value);
   }
@@ -34,11 +34,11 @@ class Deferred {
    */
   defer(target, value, when, isCommand) {
     const triggerTime = time.toZDT(when);
-    if (triggerTime.isBefore(time.ZonedDateTime.now())) {
-      triggerTime = time.ZonedDateTime.now();
+    if (triggerTime.isBefore(time.toZDT())) {
+      triggerTime = time.toZDT();
     }
     this.timers.cancel(target);
-    this.timers.check(target, triggerTime, this._timerBodyGenerator(target, value, isCommand, when), false);
+    this.timers.check(target, triggerTime, this.#timerBodyGenerator(target, value, isCommand, when), false);
   }
 
   /**
@@ -57,6 +57,16 @@ class Deferred {
   }
 }
 
+/**
+ * Deferred is a way to schedule a simple command sometime in the future.
+ *
+ * @returns a new instance of Deferred
+ */
+function getDeferred() {
+  return new Deferred();
+}
+
 module.exports = {
-  Deferred
+  Deferred,
+  getDeferred
 }

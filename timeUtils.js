@@ -25,6 +25,7 @@ const QuantityType = Java.type('org.openhab.core.library.types.QuantityType');
  * @returns {time.Duration} null if the string is not parsable
  */
 const parseDuration = (durationStr) => {
+  console.warn('timeUtils.parseDuration() is deprecated. Use time.Duration.parse() instead.');
   var regex = new RegExp(/[\d]+[d|h|m|s|z]/gi);
   var numMatches = 0;
   var part = null;
@@ -55,6 +56,7 @@ const parseDuration = (durationStr) => {
  * @returns {time.ZonedDateTime} the duration added to now, null if not a usable duration
  */
 const durationToDateTime = (duration) => {
+  console.warn('timeUtils.durationToDateTime() is deprecated, use time.toZDT() instead.');
   if (duration instanceof time.Duration) {
     return time.ZonedDateTime.now().plus(duration);
   }
@@ -108,6 +110,7 @@ const is12Hr = (dtStr) => {
  * @returns {time.ZonedDateTime} null if it cannot be converted
  */
 const toDateTime = (when) => {
+  console.warn('timeUtils.toDateTime() is deprecated. Use time.toZDT() instead.');
   var dt = null;
 
   if (!when) {
@@ -183,6 +186,7 @@ const toDateTime = (when) => {
  * @returns time.ZonedDateTime with today's date
  */
 const toToday = (when) => {
+  console.warn('timeUtils.toToday() is deprecated. Use time.toZDT() instead.');
   var now = time.ZonedDateTime.now();
   var dt = toDateTime(when);
   return dt.withYear(now.year())
@@ -197,8 +201,8 @@ const toToday = (when) => {
  * @returns time.ZonedDateTime with tomorrow's date
  */
 const toTomorrow = (when) => {
-  var tomorrow = time.ZonedDateTime.now().plusDays(1);
-  var dt = toDateTime(when);
+  var tomorrow = time.toZDT('P1D');
+  var dt = time.toZDT(when);
   return dt.withYear(tomorrow.year())
     .withMonth(tomorrow.month())
     .withDayOfMonth(tomorrow.dayOfMonth());
@@ -211,8 +215,8 @@ const toTomorrow = (when) => {
  * @returns time.ZonedDateTime with yesterday's date
  */
 const toYesterday = (when) => {
-  var yesterday = time.ZonedDateTime.now().minusDays(1);
-  var dt = toDateTime(when);
+  var yesterday = time.toZDT('P-1D');
+  var dt = time.toZDT(when);
   return dt.withYear(yesterday.year())
     .withMonth(yesterday.month())
     .withDayOfMonth(yesterday.dayOfMonth());
@@ -229,6 +233,7 @@ const toYesterday = (when) => {
  * @returns {boolean} true if now is between the times (ignoring dates) of the passed in start and end
  */
 const betweenTimes = (start, end, test = time.ZonedDateTime.now()) => {
+  console.warn('timeUtils.betweenTimes() is deprecated. Use time.ZonedDateTime.isBetweenTimes() instead.');
   var startTime = toDateTime(start);
   var endTime = toDateTime(end);
   const testTime = toDateTime(test);

@@ -1,12 +1,12 @@
 var { time } = require('openhab');
-var { loopingTimer } = require('openhab_rules_tools');
+var { LoopingTimer } = require('openhab_rules_tools');
 var logger = log('rules_tools.LoopingTimer Tests');
 var ID = ruleUID + '_count';
 
 var func = () => {
-  var count = cache.get(ID);
+  var count = cache.private.get(ID);
   logger.debug('Incrementing count {}', count);
-  cache.put(ID, ++count);
+  cache.private.put(ID, ++count);
   if (count < 5) return 'PT1s';
   else {
     logger.debug('Reached a count of 5, exiting');
@@ -14,13 +14,13 @@ var func = () => {
   }
 }
 
-var lt = new loopingTimer.LoopingTimer();
-cache.put(ID, 0);
+var lt = LoopingTimer();
+cache.private.put(ID, 0);
 lt.loop(func, 'PT0s');
 
 actions.ScriptExecution.createTimer(time.toZDT('PT6s'), () => {
-  if (cache.get(ID) != 5) {
-    logger.error('Count is not 5: {}', cache.get(ID));
+  if (cache.private.get(ID) != 5) {
+    logger.error('Count is not 5: {}', cache.private.get(ID));
   }
   else {
     logger.info('Looping timer tests completed successfully!');
