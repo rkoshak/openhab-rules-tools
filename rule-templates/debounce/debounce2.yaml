@@ -242,6 +242,7 @@ actions:
 
         else {
           switch(event.type) {
+            case 'GroupItemStateChangedEvent':
             case 'ItemStateEvent':
             case 'ItemStateChangedEvent':
             case 'ItemCommandEvent':
