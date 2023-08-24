@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.12
+        // Version 0.13
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -286,7 +286,7 @@ actions:
               rval = timeUtils.toTomorrow(dndEnd);
             }
           }
-          return rval;
+          return rval.toString();
         }
 
 
