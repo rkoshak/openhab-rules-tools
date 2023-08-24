@@ -41,7 +41,7 @@ class LoopingTimer {
     if (when) {
       const nextRun = time.toZDT(when);
       if (nextRun.isAfter(time.toZDT())) {
-        this.timer = helpers.createTimer(nextRun, () => this.expired(),
+        this.timer = helpers.createTimer(nextRun.toString(), () => this.expired(),
           this.name, 'loopingTimer');
       }
       else {
