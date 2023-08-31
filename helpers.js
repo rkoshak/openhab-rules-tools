@@ -42,7 +42,7 @@ const createTimer = (when, func, name, key) => {
  * @returns {boolean} true if validation passes, false if there's a problem
  **/
 const checkGrpAndMetadata = (namespace, grp, validateFunc, usage) => {
-  const isGood = true;
+  let isGood = true;
   const badItems = [];
 
   // Get all the Items with NAMESPACE metadata
@@ -76,7 +76,7 @@ const checkGrpAndMetadata = (namespace, grp, validateFunc, usage) => {
     isGood = false;
   }
   else {
-    items[grp].members.filter(item => { !item.getMetadata(namespace) }).forEach(item => {
+    items[grp].members.filter(item => item.getMetadata(namespace) === null).forEach(item => {
       console.warn(item.name + ' is a member of ' + grp + ' but lacks ' + namespace + ' metadata!');
       isGood = false;
       badItems.push(item.name);
