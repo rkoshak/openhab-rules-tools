@@ -161,7 +161,7 @@ actions:
 
           // Check that all members of the Group have metadata
           const itemsWithMD = items[DT_GROUP].members.filter(item => item.getMetadata(NAMESPACE)).length;
-          if(itemsWithMD.length != items[DT_GROUP].members.length) {
+          if(itemsWithMD != items[DT_GROUP].members.length) {
             const noMdItems = items[DT_GROUP].members.filter(item => !item.getMetadata(NAMESPACE));
             console.warn('The following Items do not have required ' + NAMESPACE + ' metadata: ' + noMdItems.map(item => item.name).join(', '));
             return false; // no sense on performing any additional tests
