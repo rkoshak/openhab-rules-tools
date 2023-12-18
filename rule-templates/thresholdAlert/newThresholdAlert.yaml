@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.13
+        // Version 0.14
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -275,7 +275,7 @@ actions:
             return null;
           }
 
-          let rval = time.toZDT(timeout);
+          let rval = time.toZDT(timeout.toString());
           let start = time.toZDT(dndStart);
           let end = time.toZDT(dndEnd);
           if(rval.isBetweenTimes(dndStart, dndEnd)) {
@@ -410,7 +410,7 @@ actions:
             record.initAlertTimer = LoopingTimer();
             record.initAlertTimer.loop(() => {
               console.debug('Calling init alert rule for ' + record.name);
-              callRule(state, record.alertRule, false, true, record);
+              callRule(state, record.initAlertRule, false, true, record);
               record.initAlertTimer = null;
             }, generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd));
             // Create the alert timer
@@ -816,11 +816,11 @@ actions:
           console.info('Cancelling any running timers');
           const records = cache.private.get('records');
           if(records !== null) {
-            Object.keys(records).forEach(record => {
+            Object.values(records).forEach(record => {
               if(record.alertTimer !== null && record.alertTimer !== undefined){
                 console.info(record.name + ' has an alert timer scheduled, cancelling now.');
-                record.alertTimer = null;
                 record.alertTimer.cancel();
+                record.alertTimer = null;
               }
               if(record.endAlertTimer !== null && record.endAlertTimer !== undefined) {
                 console.info(record.name + ' has an end alert timer scheduled, cancelling now.');
@@ -882,7 +882,7 @@ actions:
 
           // Inform that there is no default reminder period configured, there will be no repreated alerts
           if(defaultRemPeriod == '') {
-            console.info('Items without ' + namespace + ' remPeriod metadata will not repeate alerts');
+            console.info('Items without ' + namespace + ' remPeriod metadata will not repeat alerts');
           } else if(!validateDuration(defaultRemPeriod)){
             error = true;
             console.error('The default reminder period ' + defaultRemPeriod + ' is not a parsable ISO8601 duration string');
