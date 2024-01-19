@@ -107,7 +107,7 @@ actions:
          */
         var pubEvent = () => {
           console.debug('Publishing an event bus event');
-          var retained = (event.type == 'ItemStateEvent');
+          var retained = (event.type == 'ItemStateEvent' || event.type == 'ItemStateUpdatedEvent');
           var topic = '{{topicRoot}}/out/' + event.itemName + ((retained) ? '/state' : '/command');
           var msg = ((retained) ? event.itemState : event.itemCommand).toString();
           console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
