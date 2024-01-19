@@ -124,12 +124,13 @@ actions:
               break;
             // Publish state updates and commands on local Items
             case 'ItemStateEvent':
+            case 'ItemStateUpdatedEvent':
             case 'ItemCommandEvent':
               pubEvent();
               break;
             // Warn if we received an unknown event.
             default:
-              console.warn('MQTT Event Bus rule triggered without an event we can process, ignoring');
+              console.warn('MQTT Event Bus rule triggered without an event we can process: ' + event.type + ', ignoring');
           }
         }
 
