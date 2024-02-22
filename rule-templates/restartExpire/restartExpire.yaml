@@ -1,3 +1,6 @@
+uid: rules_tools:restartExpire
+label: Restart Expire
+description: On OH boot updates or commands Items with Expire metadata to restart the timers.
 configDescriptions:
   - name: expireState
     label: Use Expire State
