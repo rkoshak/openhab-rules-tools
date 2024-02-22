@@ -48,7 +48,7 @@ actions:
           }
           else {
             const mdValue = i.getMetadata('expire').value.split(',');
-            const expireState = (mdValue.length == 2) ? mdValue[1] : 'UNDEF';
+            const expireState = (mdValue.length == 2) ? mdValue[1].replace('command=', '') : 'UNDEF';
             const state = (useExpireState) ? expireState : i.state;
             console.debug('Updating Item ' + i.name + ' to ' + state + ' with use Expire State ' + useExpireState);
             i.postUpdate(state);
