@@ -1,7 +1,12 @@
-uid: rules_tools:restartExpire
-label: Restart Expire
-description: At system start resets the Expire timers by updating the Items to their current state. Note, does not work with Expire configs that ignore updates.
-configDescriptions: []
+configDescriptions:
+  - name: expireState
+    label: Use Expire State
+    description: When checked the expire state is used to update/command the Item instead of 
+      the Item's current state. If checked and there is no state defined in the expire metadata
+      UNDEF is used.
+    type: BOOLEAN
+    required: false
+    defaultValue: false
 triggers:
   - id: "1"
     configuration:
@@ -14,7 +19,7 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        // Version 0.1
+        // Version 1.0
 
         var {helpers} = require('openhab_rules_tools');
 
@@ -22,6 +27,9 @@ actions:
         console.loggerName = 'org.openhab.automation.rules_tools.Restart Expire.'+ruleUID;
 
         //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+
+        var useExpireState = {{expireState}};
 
 
         helpers.validateLibraries('4.1.0', '2.0.1');
@@ -32,12 +40,15 @@ actions:
 
         var expireItems = items.getItems().filter(i => i.getMetadata('expire') !== null).forEach( i => {
           if(i.getMetadata('expire').configuration['ignoreStateUpdates'] == 'true' && !i.isUninitialized) {
-            console.debug('Commanding Item ' + i.name + ' Expire by command');
+            console.debug('Commanding Item ' + i.name + ' to ' + i.state);
             i.sendCommand(i.state);
           }
           else {
-            console.debug('Resetting Item ' + i.name + ' Expire by update');
-            i.postUpdate(i.state);
+            const mdValue = i.getMetadata('expire').value.split(',');
+            const expireState = (mdValue.length == 2) ? mdValue[1] : 'UNDEF';
+            const state = (useExpireState) ? expireState : i.state;
+            console.debug('Updating Item ' + i.name + ' to ' + state + ' with use Expire State ' + useExpireState);
+            i.postUpdate(state);
           }
         });
     type: script.ScriptAction
