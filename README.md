@@ -160,3 +160,8 @@ this.timers.check(event.itemName, 1000, runmeGenerator(foo, bar, baz));
 # TODOs
 
 - generate docs from comments
+ 
+# Sponsorship
+
+If you want to send a tip my way or sponsor my work you can through [Sponsor @rkoshak on GitHub](https://github.com/sponsors/rkoshak) or [PayPal](https://paypal.me/rlkoshak?country.x=US&locale.x=en_US). 
+It won't change what I contribute to OH but it might keep me in coffee or let me buy hardware to test out new things.
