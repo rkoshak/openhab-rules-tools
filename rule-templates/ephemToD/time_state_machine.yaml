@@ -45,7 +45,7 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        // Version 0.5
+        // Version 1.0
 
         var {TimerMgr, helpers} = require('openhab_rules_tools');
 
