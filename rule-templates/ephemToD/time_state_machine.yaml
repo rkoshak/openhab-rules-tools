@@ -114,7 +114,7 @@ actions:
             throw itemName + ' has malformed ' + NAMESPACE + ' metadata, type is "custom" but required "file" property is not found!';
           }
 
-          if(items[itemName].type != 'DateTimeItem') {
+          if(!items[itemName].type.startsWith('DateTime')) {
             throw itemName + ' is not a DateTime Item!';
           }
 
@@ -175,8 +175,8 @@ actions:
             console.warn('The state Item ' + STATE_ITEM + ' does not exist!');
             isGood = false;
           }
-          const StringItem = Java.type('org.openhab.core.library.items.StringItem');
-          if(items[STATE_ITEM].type != 'StringItem') {
+
+          if(!items[STATE_ITEM].type.startsWith('String')) {
             console.warn('The state Item ' + STATE_ITEM + ' is not a String Item!');
             isGood = false;
           }
