@@ -514,6 +514,7 @@ actions:
             else {
               record.endAlertTimer.reschedule(scheduleTime);
             }
+          }
           else if(!record.endRule && record.alerted) {
             console.debug('No end alert rule is configured, exiting alerting for ' + record.name);
             record.alerted = false;
