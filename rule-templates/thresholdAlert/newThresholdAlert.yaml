@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.14
+        // Version 1.0
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -412,6 +412,7 @@ actions:
               console.debug('Calling init alert rule for ' + record.name);
               callRule(state, record.initAlertRule, false, true, record);
               record.initAlertTimer = null;
+              return null;
             }, generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd));
             // Create the alert timer
             console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
@@ -498,15 +499,21 @@ actions:
           if(record.endRule && record.alerted) {
             console.debug('Sending alert that ' + record.name + ' is no longer in the alerting state');
             // Schedule a timer if in DND, otherwise run now
-            record.endAlertTimer = LoopingTimer();
-            record.endAlertTimer.loop(() => {
-              console.debug('Calling end alert rule for ' + record.name);
-              callRule(stateToValue(items[record.name].rawState), record.endRule, false, false, record);
-              record.alerted = false;
-              record.alertState = null;
-              record.endAlertTimer = null;
-            }, generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd));
-          }
+            const scheduleTime =  generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd);
+            if(record.endAlertTimer === undefined || record.endAlertTimer === null) {
+              record.endAlertTimer = LoopingTimer();
+              record.endAlertTimer.loop(() => {
+                console.debug('Calling end alert rule for ' + record.name);
+                callRule(stateToValue(items[record.name].rawState), record.endRule, false, false, record);
+                record.alerted = false;
+                record.alertState = null;
+                record.endAlertTimer = null;
+                return null;
+              },scheduleTime);
+            }
+            else {
+              record.endAlertTimer.reschedule(scheduleTime);
+            }
           else if(!record.endRule && record.alerted) {
             console.debug('No end alert rule is configured, exiting alerting for ' + record.name);
             record.alerted = false;
