@@ -512,7 +512,7 @@ actions:
               },scheduleTime);
             }
             else {
-              record.endAlertTimer.reschedule(scheduleTime);
+              record.endAlertTimer.timer.reschedule(scheduleTime);
             }
           }
           else if(!record.endRule && record.alerted) {
