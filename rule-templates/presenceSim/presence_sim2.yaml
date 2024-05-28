@@ -53,7 +53,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.2
+        // Version 1.0
 
         var {helpers} = require('openhab_rules_tools');
 
@@ -61,24 +61,21 @@ actions:
 
         // osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
-
         helpers.validateLibraries('4.1.0', '2.0.1');
 
 
+        var when = time.toZDT().minusDays({{days}});
+
         items.{{simItems}}.members.forEach((i) => {
 
-          const hState = i.history.historicState(time.toZDT().minusDays({{days}}));
+          const hState = (helpers.compareVersions(utils.OPENHAB_JS_VERSION, '5.0.0') < 0) ? i.history.historicState(when) : i.persistence.persistedState(when);
+
           if(hState === undefined || hState === null) {
             console.warn(i.name + ' does not have a historic state for ' + '{{days}}' + ' days ago');
           }
           else {
             console.debug('Commanding ' + i.name + ' to ' + hState.state);
-            if(i.state != hState.state) {
-              i.sendCommand(hState.state.toString());
-            }
-            else {
-              console.debug(i.name + ' is already ' + hState.state);
-            }
+            i.sendCommandIfDifferent(hState.state.toString());
           }
         });
     type: script.ScriptAction
