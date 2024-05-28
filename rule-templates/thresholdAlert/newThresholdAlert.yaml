@@ -286,7 +286,7 @@ actions:
               rval = timeUtils.toTomorrow(dndEnd);
             }
           }
-          return rval.toString();
+          return rval;
         }
 
 
