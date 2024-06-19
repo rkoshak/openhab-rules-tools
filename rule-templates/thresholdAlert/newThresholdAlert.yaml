@@ -278,12 +278,12 @@ actions:
           let rval = time.toZDT(timeout.toString());
           let start = time.toZDT(dndStart);
           let end = time.toZDT(dndEnd);
-          if(rval.isBetweenTimes(dndStart, dndEnd)) {
+          if(rval.isBetweenTimes(start, end)) {
             console.debug('Alert is scheduled during do not distrub time, moving to ' + dndEnd);
-            rval = dndEnd;
+            rval = end;
             if(time.toZDT(rval).isBefore(time.toZDT())) {
               console.debug('Moving alert time to tomorrow');
-              rval = timeUtils.toTomorrow(dndEnd);
+              rval = timeUtils.toTomorrow(end);
             }
           }
           return rval;
