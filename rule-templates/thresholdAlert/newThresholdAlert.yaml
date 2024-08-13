@@ -441,13 +441,13 @@ actions:
          * @return {boolean} true if curr is different from alert by hyst or more, or if the arguments are incompatable.
          */
         var applyHyst = (curr, alert, hyst) => {
-          console.debug('Applying hysteresis with: ' + curr + ', ' + alert + ', ' + hyst);
+          console.debug('Applying hysteresis with: curr = ' + curr + ', alert = ' + alert + ', hyst = ' + hyst);
 
           // Quantity
-          if(curr.unit !== undefined && alert.unit && hyst.unit !== undefined) {
+          if(curr.unit !== undefined && alert.unit != undefined && hyst.unit !== undefined) {
             try {
               const delta = (curr.lessThan(alert)) ? alert.subtract(curr) : curr.subtract(alert);
-              console.debug('Applying hysteresis, delta = ' + delta + ' hystRange = ' + hyst);
+              console.debug('Applying hysteresis using Quantities, delta = ' + delta + ' hystRange = ' + hyst);
               return delta.greaterThan(hyst);
             } catch(e) {
               console.error('Attempting to apply hysteresis with Quantities of incompatable units. Not applying hysteresis');
@@ -456,8 +456,11 @@ actions:
           }
           // Number
           else if(typeof curr !== 'string' && typeof alert !== 'string' && typeof hyst !== 'string') {
+            curr = (curr.unit !== undefined) ? curr.float : curr;
+            alert = (alert.unit !== undefined) ? alert.float : alert;
+            hyst = (hyst.unit !== undefined) ? hyst.float : float;
             const delta = Math.abs(curr - alert);
-            console.debug('Applying hysteresis, delta = ' + delta + ' hystRange = ' + hyst);
+            console.debug('Applying hysteresis using numbers, delta = ' + delta + ' hystRange = ' + hyst);
             return delta > hyst;
           }
           else {
