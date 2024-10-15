@@ -1071,7 +1071,7 @@ actions:
             }
             else if(md['hysteresis'] && item.quantityState !== null && stateToValue(md['hysteresis']).unit !== undefined) {
               try {
-                item.quantityState.equals(stateToValue(md['hysteresis']));
+                item.quantityState.equal(stateToValue(md['hysteresis']));
               } catch(e) {
                 error = true;
                 console.error('Item ' + item.name + ' has a hysteresis ' + md['hysteresis'] + ' with units incompatible with ' + item.quantityState.unit);
