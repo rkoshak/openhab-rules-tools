@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 1.2
+        // Version 1.3
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -346,32 +346,33 @@ actions:
          * function returns how long to wait for the next call (adjusted for DND) or null when it's
          * time to exit.
          *
-         * @param {Object} Object containing alertTimer, endAlertTimer, alerted, alertState
+         * @param {String} name of the Item this alert is for
          * @return {function} function that takes no arguments called by the looping timer
          */
-        var sendAlertGenerator = (record) => {
+        var sendAlertGenerator = (name) => {
           return () => {
-            const item = items[record.name];
-            const currState = stateToValue(items[record.name].rawState);
+            console.loggerName = loggerBase+"."+name;
+            const record = cache.private.get('records')[name];
+            const item = items[name];
+            const currState = stateToValue(items[name].rawState);
             refreshRecord(record);
 
-            // We can still get Multithreaded exceptions when calling another rule, this should reduce the occurance of that
             console.debug('Alert timer expired for ' + record.name + ' with dnd between ' + record.dndStart + ' and ' + record.dndEnd + ' and reminder period ' + record.remPeriod);
             let repeatTime = generateAlertTime(record.remPeriod, record.dndStart, record.dndEnd); // returns null if remPeriod is '', which cancels the loop
 
             // Call alert rule if still alerting
             if(isAlertingState(currState, record)) {
-              console.debug(record.name + ' is still in an alerting state.');
+              console.debug(name + ' is still in an alerting state.');
               callRule(currState, record.alertRule, true, false, record);
               if(!record.alerted) record.alertState = currState;
               record.alerted = true;
               if(repeatTime === null) record.alertTimer = null; // clean up if no longer looping
-              console.debug('Waiting until ' + repeatTime + ' to send reminder for ' + record.name);
+              console.debug('Waiting until ' + repeatTime + ' to send reminder for ' + name);
               return repeatTime;
             }
             // no longer alerting, cancel the repeat, send an alert if configured
             else {
-              console.debug(record.name + ' is no longer in an alerting state but timer was not cancelled, this should not happen');
+              console.debug(name + ' is no longer in an alerting state but timer was not cancelled, this should not happen');
               record.alertTimer = null;
               return null;
             }
@@ -417,7 +418,7 @@ actions:
             // Create the alert timer
             console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
             record.alertTimer = LoopingTimer();
-            record.alertTimer.loop(sendAlertGenerator(record), timeout);
+            record.alertTimer.loop(sendAlertGenerator(record.name), timeout);
           }
           // Reschedule the alert timer
           else if(record.alertTimer !== null && record.reschedule) {
