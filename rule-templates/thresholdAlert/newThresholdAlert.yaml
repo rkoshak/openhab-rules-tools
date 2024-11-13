@@ -98,7 +98,8 @@ configDescriptions:
     context: time
     defaultValue: ''
     required: false
-  - name: dndEnd
+  - 
+  name: dndEnd
     label: Do Not Distrub End Time
     description: End of the do not disturb period. If this time is before the start time, the period is assumed to span midnight.
     type: TEXT
@@ -129,7 +130,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 1.3
+        // Version 1.4
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -186,7 +187,6 @@ actions:
 
         var initAlertRuleUID = '{{initAlertRule}}';
 
-
         // ~~~~~~~~~~~Functions
 
         /**
@@ -197,44 +197,37 @@ actions:
          */
         var stateToValue = (state) => {
           console.debug('Processing state ' + state + ' of type ' + typeof state);
-          if(typeof state === 'string') {
-            console.debug('state is a string: ' + state);
-            if(state.includes(' ')) {
-              try {
-                console.debug('state is a Quantity: ' + state);
-                return Quantity(state)
-              } catch(e) {
-                // do nothing, leave it as a String
-                console.debug('Not a Quantity but has a space, leaving as a string: ' + state);
-                return state;
-              }
-            }
-            else if(state == '') {
-              console.debug('state is the empty string, no conversion possible');
+          if(typeof state !== 'string') {
+            console.debug('state is not a String, converting to a String.');
+            state = state.toString();
+          }
+
+          console.debug('state is a string: ' + state);
+          if(state.includes(' ')) {
+            try {
+              console.debug('state is a Quantity: ' + state);
+              return Quantity(state)
+            } catch(e) {
+              // do nothing, leave it as a String
+              console.debug('Not a Quantity but has a space, leaving as a string: ' + state);
               return state;
             }
-            else if(!isNaN(state)) {
-              console.debug('state is a number: ' + state)
-              return Number.parseFloat(state);
-            }
-            else if(state == 'UnDefType' || state == 'NULL' || state == 'UNDEF') {
-              console.debug('state is an undef type, normalizing to UnDefType');
-              return 'UnDefType';
-            }
-            console.debug('Leaving state as a string');
+          }
+          else if(state == '') {
+            console.debug('state is the empty string, no conversion possible');
             return state;
           }
-          else if(state instanceof DecimalType || state instanceof PercentType) {
-            console.debug('state is a DecimalType or PercentType: ' + state);
-            return state.floatValue();
+          else if(!isNaN(state)) {
+            console.debug('state is a number: ' + state)
+            return Number.parseFloat(state);
           }
-          else if(state instanceof QuantityType) {
-            console.debug('state is a QuantityType, converting to Quantity: ' + state);
-            return Quantity(state);
+          else if(state == 'UnDefType' || state == 'NULL' || state == 'UNDEF') {
+            console.debug('state is an undef type, normalizing to UnDefType');
+            return 'UnDefType';
           }
           else {
-            console.debug('Not numeric, leaving as a string: ' + state);
-            return state.toString();
+            console.debug('Leaving state as a string');
+            return state;
           }
         }
 
@@ -354,7 +347,7 @@ actions:
             console.loggerName = loggerBase+"."+name;
             const record = cache.private.get('records')[name];
             const item = items[name];
-            const currState = stateToValue(items[name].rawState);
+            const currState = stateToValue(items[name].state);
             refreshRecord(record);
 
             console.debug('Alert timer expired for ' + record.name + ' with dnd between ' + record.dndStart + ' and ' + record.dndEnd + ' and reminder period ' + record.remPeriod);
@@ -508,7 +501,7 @@ actions:
               record.endAlertTimer = LoopingTimer();
               record.endAlertTimer.loop(() => {
                 console.debug('Calling end alert rule for ' + record.name);
-                callRule(stateToValue(items[record.name].rawState), record.endRule, false, false, record);
+                callRule(stateToValue(items[record.name].state), record.endRule, false, false, record);
                 record.alerted = false;
                 record.alertState = null;
                 record.endAlertTimer = null;
@@ -630,7 +623,7 @@ actions:
           console.debug('Converting threshold to value');
           record.threshold = stateToValue(thresholdStr);
           if(md['threshold'] !== undefined) record.threshold = stateToValue(md['threshold']);
-          if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].rawState);
+          if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].state);
           record.operator      = (md['operator'] !== undefined) ? md['operator'] : operator;
           record.invert        = (md['invert'] !== undefined) ? md['invert'] === true : invert;
           record.reschedule    = (md['reschedule'] !== undefined) ? md['reschedule'] === true : reschedule;
@@ -1128,7 +1121,7 @@ actions:
             case 'ItemStateChangedEvent':
               console.loggerName = loggerBase+'.'+event.itemName;
               console.debug('Processing an Item event');
-              procEvent(event.itemName, stateToValue(event.itemState));
+              procEvent(event.itemName, stateToValue(event.itemState.toString()));
               break;
             default:
               console.info('Rule triggered without an Item event, ' + event.type + ' checking the rule config');
