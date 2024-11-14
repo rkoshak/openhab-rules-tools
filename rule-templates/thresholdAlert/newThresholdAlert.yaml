@@ -98,8 +98,7 @@ configDescriptions:
     context: time
     defaultValue: ''
     required: false
-  - 
-  name: dndEnd
+  - name: dndEnd
     label: Do Not Distrub End Time
     description: End of the do not disturb period. If this time is before the start time, the period is assumed to span midnight.
     type: TEXT
