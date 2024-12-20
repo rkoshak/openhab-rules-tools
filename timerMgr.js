@@ -74,7 +74,7 @@ class TimerMgr {
         'timer': timer,
         'flapping': flappingFunc,
         'notFlapping': (func) ? func : this.#noop,
-		'when': timeout,
+        'when': timeout,
       };
     }
   }
@@ -89,14 +89,14 @@ class TimerMgr {
 	
   /**
    * @param {*} key name of the timer
-   * @returns {number} of seconds left in the timer function
+   * @returns {Duration} of time left in the timer function
    */
   currentTimerLength(key) {
     if (key in this.timers) {
-		return this.timers[key]['when'].toEpochSecond() - time.toZDT().toEpochSecond();
-	}
-	  
-    return 0;
+      return time.Duration.between(time.toZDT(), this.timers[key]['when']);
+    }
+
+    return time.Duration.ofSeconds(0);
   }
 
   /**
