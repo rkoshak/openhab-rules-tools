@@ -49,6 +49,15 @@ class LoopingTimer {
       }
     }
   }
+  
+  /**
+   * @returns {Duration} of time left in the current loop of the timer
+   */
+  getDuration() {
+    if (this.timer && !this.hasTerminated()) {
+      return this.timer.getExecutionTime();
+    }
+  }
 
   /**
    * Cancels the timer if it exists and hasn't already terminated.
