@@ -85,6 +85,19 @@ class TimerMgr {
   hasTimer(key) {
     return key in this.timers;
   }
+	
+  /**
+   * @param {*} key name of the timer
+   * @returns {Duration} of time left in the timer function
+   * or null if timer does not exist
+   */
+  getTimerDuration(key) {
+    if (key in this.timers) {
+      return time.Duration.between(time.toZDT(), this.timers[key].getExecutionTime());
+    }
+
+    return null;
+  }
 
   /**
    * If there is a timer assocaited with key, cancel it.
