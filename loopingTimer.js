@@ -55,8 +55,10 @@ class LoopingTimer {
    */
   getDuration() {
     if (this.timer && !this.hasTerminated()) {
-      return this.timer.getExecutionTime();
+      return time.Duration.between(time.toZDT(), this.timer.getExecutionTime());
     }
+    
+    return time.Duration.ofSeconds(0);
   }
 
   /**
