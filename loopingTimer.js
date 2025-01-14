@@ -49,6 +49,20 @@ class LoopingTimer {
       }
     }
   }
+  
+  /**
+   * @returns {Duration} of time left in the current loop of the timer
+   * if it returns null LoopingTimer hasn't been started yet
+   * if it returns a positive duration the next iteration of the loop is scheduled
+   * if it returns a negative duration the loop has exited and the duration is how long ago it exited the loop.
+   */
+  getDuration() {
+    if (this.timer) {
+      return time.Duration.between(time.toZDT(), this.timer.getExecutionTime());
+    }
+    
+    return null;
+  }
 
   /**
    * Cancels the timer if it exists and hasn't already terminated.
