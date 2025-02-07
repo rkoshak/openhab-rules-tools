@@ -93,7 +93,7 @@ class TimerMgr {
    */
   getTimerDuration(key) {
     if (key in this.timers) {
-      return time.Duration.between(time.toZDT(), this.timers[key].getExecutionTime());
+      return time.Duration.between(time.toZDT(), time.toZDT(this.timers[key].timer.getExecutionTime()));
     }
 
     return null;
