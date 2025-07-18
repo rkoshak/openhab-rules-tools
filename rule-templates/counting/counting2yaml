@@ -1,0 +1,92 @@
+uid: rules_tools:meter
+label: Meter Reading
+description: Keeps a sum from a counting meter Item that can randomly be reset back to zero.
+configDescriptions:
+  - name: meter
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Number
+    label: Meter Item
+    required: true
+    description: Item that holds the meter readings.
+  - name: total
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Number
+    label: Total Item
+    required: true
+    description: Item that holds the running total.
+triggers:
+  - id: "2"
+    configuration:
+      itemName: "{{meter}}"
+    type: core.ItemStateChangeTrigger    
+conditions:
+  - inputs: {}
+    id: "3"
+    configuration:
+      type: application/javascript
+      script: >-
+        var meterType = items['{{meter}}'].type;
+
+        var totalType = items['{{total}}'].type;
+
+        if(!meterType.startsWith('Number') || !totalType.startsWith('Number')) {
+          console.error('The counting rule template only works with Number Items: {{meter}}=' + meterType + ' {{total}}=' + totalType);
+          false;
+        }
+
+        else {
+          (event.itemState.toString() != 'NULL' && event.itemState.toString() != 'UNDEF');
+        }
+    type: script.ScriptCondition  
+actions:
+  - inputs: {}
+    id: "1"
+    configuration:
+      type: application/javascript
+      script: >-
+        // Version 1.0
+        var totalItem = items.getItem('{{total}}');
+
+        var meterItem = items.getItem('{{meter}}');
+
+        var rawReading = event.itemState;
+
+        var rawLastReading = (event.oldItemState.toString() == 'NULL' ||
+        event.oldItemState.toString() == 'UNDEF') ? rawReading :
+        event.oldItemState;
+
+
+        var total = 'UNDEF';
+
+
+        // Quantity Types
+
+        if(items.TestMeter.type.includes(':')){
+          const unit = Quantity(rawReading).toString().split(' ')[1];
+          const currTotal = (totalItem.isUninitialized) ? Quantity('0 ' + unit) : totalItem.quantityState;
+          const reading = Quantity(rawReading.toString());
+          const lastReading = Quantity(rawLastReading.toString());
+          const delta = (reading.lessThanOrEqual(lastReading)) ? reading : (reading.subtract(lastReading));
+          total = currTotal.add(delta);
+        }
+
+
+        // Plain Numbers
+
+        else {
+          const currTotal = (totalItem.isUnitialized) ? 0 : totalItem.numericState;
+          const reading = rawReading.floatValue();
+          const lastReading = rawLastReading.floatValue();
+          const delta = (reading <= lastReading) ? reading : (reading - lastReading);
+          total = currTotal + delta;
+        }
+
+
+        totalItem.postUpdate(total);
+    type: script.ScriptAction
