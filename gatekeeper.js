@@ -74,6 +74,14 @@ class Gatekeeper {
     }
     this.commands.clear();
   }
+
+  /**
+   * Cancels all queued commands. Redundant with cancelAll() to make it easier
+   * to use with Blockly.
+   */
+  cancel() {
+    this.cancelAll();
+  }
 }
 
 /**

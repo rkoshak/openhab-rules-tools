@@ -41,8 +41,9 @@ class TimerMgr {
    * @param {boolean} [reschedule=false] optional flag, when present and true rescheudle the timer if it already exists
    * @param {function} [flappingFunc] optional function to call when the timer already exists
    * @param {string} [name] timer name displayed in openHAB
+   * @param {boolean}[recreate=false] optional flag, when present and true the timer will be recreated with the new values instead of cancelled, evaluated after reschedule
    */
-  check(key, when, func, reschedule, flappingFunc, name) {
+  check(key, when, func, reschedule, flappingFunc, name, recreate) {
     const timeout = time.toZDT(when);
 
     // timer exists
@@ -55,6 +56,9 @@ class TimerMgr {
       }
       if (flappingFunc) {
         flappingFunc();
+      }
+      if (recreate) {
+        this.check(key, when, func, reschedule, flappingFunc, name, false);
       }
     }
 
