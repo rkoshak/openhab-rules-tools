@@ -1,0 +1,43 @@
+uid: rules_tools:getLastShutdownTimestamp
+label: Get Last Shutdown Timestamp
+description: Only works on a POSIX enviornment with bash. Pulls the last timestamp from the most recent events.log archive as the shutdown timestamp.
+configDescriptions:
+  - name: path
+    type: TEXT
+    label: Logs folder.
+    required: true
+    description: Path to the folder containing events.log and it's archives.
+  - name: item
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: DateTime
+    label: Shutdown Timestamp Item
+    required: true
+    description: Item that holds the timetstamp of the last shutdown.
+triggers:
+  - id: "1"
+    configuration:
+      startlevel: 50
+    type: core.SystemStartlevelTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: >-
+        var epochStr =
+        actions.Exec.executeCommandLine(time.Duration.ofSeconds(5), "bash",
+        "-c", 
+                               "find {{path}} -type f -name events.log.* -exec ls -t1 {} + | head -1 | { read f ; zcat $f ; } | tail -1 | cut -d ' ' -f 1-2 | { read dt ; date -d \"$dt\" +%s ; }");
+        var epoch = parseInt(epochStr);
+
+        var instant = time.Instant.ofEpochSecond(epoch);
+
+        var timestamp = time.ZonedDateTime.ofInstant(instant,
+        time.ZoneId.systemDefault());
+
+        items.{{item}}.postUpdate(timestamp);
+    type: script.ScriptAction

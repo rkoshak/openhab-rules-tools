@@ -21,6 +21,6 @@
     "url": "https://github.com/rkoshak/openhab-rules-tools/issues"
   },
   "devDependencies": {
-    "openhab": "^4.5.1"
+    "openhab": "^5.11.1"
   }
 }
