@@ -27,17 +27,66 @@ actions:
     id: "2"
     configuration:
       type: application/javascript
-      script: >-
-        var epochStr =
-        actions.Exec.executeCommandLine(time.Duration.ofSeconds(5), "bash",
-        "-c", 
-                               "find {{path}} -type f -name events.log.* -exec ls -t1 {} + | head -1 | { read f ; zcat $f ; } | tail -1 | cut -d ' ' -f 1-2 | { read dt ; date -d \"$dt\" +%s ; }");
-        var epoch = parseInt(epochStr);
+      script: >+
+        // Version 0.2
 
-        var instant = time.Instant.ofEpochSecond(epoch);
 
-        var timestamp = time.ZonedDateTime.ofInstant(instant,
-        time.ZoneId.systemDefault());
+        // Imports
 
-        items.{{item}}.postUpdate(timestamp);
+        var File = Java.type('java.io.File');
+
+        var FileInputStream = Java.type('java.io.FileInputStream')
+
+        var GZipInputStream = Java.type('java.util.zip.GZIPInputStream');
+
+        var InputStreamReader = Java.type('java.io.InputStreamReader');
+
+        var BufferedReader = Java.type('java.io.BufferedReader');
+
+
+        // Properties
+
+        var srcDirectory = new File('{{path}}');
+
+        var timestampItem = '{{item}}';
+
+
+
+        // Get all the events.log.X.gz files
+
+        var listFiles = srcDirectory.listFiles();
+
+        var file = epoch = listFiles.filter(f =>
+        f.getName().startsWith("events.log."))
+                                    .sort(( a,b) => b.lastModified() - a.lastModified())[0]
+        console.debug(file);
+
+
+        try {
+          // Open the file for reading
+          const fis = new FileInputStream(file);
+          const gzis = new GZipInputStream(fis);
+          const reader = new InputStreamReader(gzis);
+          const breader = new BufferedReader(reader);
+          
+          // Get the last line
+          let currLine = breader.readLine();
+          let lastLine = null;
+          while(currLine != null) {
+            lastLine = currLine;
+            currLine = breader.readLine();
+          }
+
+          // Extract the timestamp and convert it to an ISO8601
+          let timestamp = time.toZDT(lastLine.substring(0, 22).replace(' ', 'T'));
+          
+          // Log a message and update the Item
+          console.info('openHAB last shutdown at ' + timestamp);
+          items[timestampItem].postUpdate(timestamp);
+        } 
+
+        catch(e) {
+          console.error(e);
+        }
+
     type: script.ScriptAction
