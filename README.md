@@ -26,6 +26,15 @@ If not, it can be installed using `openhabian-config` menu option `47 | Install 
 ### Manual Installation
 From the `$OH_CONF/automation/js` folder run `npm install openhab_rules_tools`.
 
+### Rule Template Installation
+The template requires `wget` in the path of the user running OH and the ability to run a shell script.
+It therefore it likely to only work on a POSIX type system.
+It has been tested and does work with Docker instances of OH.
+
+1. From MainUI -> Add-on Store -> Automation add the "Install openHAB Rules Tools" template.
+2. Instantiate a rule based on this template.
+3. Maunally run the rule, watching openhab.log for progress and errors. If there are errors, you likely need to install the library manually.
+
 ## Rule Templates
 Rule templates are written in various languages.
 Sometimes they will have dependencies that must be separately installed (other templates, libraries, add-ons).
