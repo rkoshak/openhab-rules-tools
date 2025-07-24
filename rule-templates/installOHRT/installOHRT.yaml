@@ -1,0 +1,87 @@
+uid: rules_tools:installOHRT
+label: Install OHRT
+description: Checks for npm, installs node if it's missing, then uses npm to install openhab_rules_tools
+configDescriptions:
+  - name: path
+    type: TEXT
+    label: Fully qualified path to the $OH_CONF/automation/js folder.
+    required: true
+    description: Path to the folder containing events.log and it's archives.
+    defaultValue: /etc/openhab
+triggers: []
+conditions: []
+actions:
+  - inputs: {}
+    id: "1"
+    configuration:
+      type: application/javascript
+      script: >-
+        // Version 0.1
+
+
+        var ecl = actions.Exec.executeCommandLine;
+
+        var timeout = time.Duration.ofSeconds(10);
+
+
+        // run and log the output
+
+        var logOutput = (action) => {
+          const output = action();
+          console.info(output);
+          return output;
+        }
+
+
+        // append the stuff needed to run npm
+
+        var eclNode = (cmd) => {
+          console.info(cmd);
+          return logOutput(() => ecl(timeout, 'bash', '-c', '\. $HOME/.nvm/nvm.sh && ' + cmd));
+        }
+
+
+        // See if npm is installed
+
+        console.info("Checking to see if npm is available");
+
+        var npmVersion = eclNode('npm --version');
+
+
+        // Install npm using nvm
+
+        if(npmVersion === null) {
+          console.info('npm is not installed or not in the path, attempting to install it to user\'s home');
+
+          console.info('Downloading the nvm.sh script...');
+          logOutput(() => ecl(timeout, 'wget', 'https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh'));
+
+          console.info('Fixing permissions on installation script...')
+          logOutput(() => ecl(timeout, 'chmod', 'a+x', 'install.sh'));
+
+          console.info('Installing node using nvm script...');
+          logOutput(() => ecl(timeout, './install.sh'));
+          
+          console.info('Installing node 22...');
+          eclNode('nvm install 22');
+          
+          console.info('Verifying npm is now available...');
+          npmVersion = eclNode('npm --version');
+        }
+
+
+        // Still no npm, log an error
+
+        if(npmVersion === null) {
+          console.error('Installation of node failed. This script is unlikely to work for you and you will need to install manually.');
+        }
+
+
+        // Attempt to install openhab_rules_tools
+
+        else {
+          console.info('Installing openhab_rules_tools...');
+          eclNode('cd {{path}}/automation/js && npm install openhab_rules_tools');
+          console.info('Done, check the output above for errors');
+        }
+    type: script.ScriptAction
