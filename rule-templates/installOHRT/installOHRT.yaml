@@ -4,9 +4,9 @@ description: Checks for npm, installs node if it's missing, then uses npm to ins
 configDescriptions:
   - name: path
     type: TEXT
-    label: Fully qualified path to the $OH_CONF/automation/js folder.
+    label: Path to openHAB's conf folder.
     required: true
-    description: Path to the folder containing events.log and it's archives.
+    description: Fully qualified path to the openHAB conf folder as seen from the openHAB process.
     defaultValue: /etc/openhab
 triggers: []
 conditions: []
