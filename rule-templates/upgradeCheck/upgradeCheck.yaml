@@ -1,0 +1,59 @@
+uid: rules_tools:threshold_alert
+label: Threshold Alert
+description: Triggers on a change to a member of a Group. If the new state meets a user defined criteria, an alert rule is called. When exiting an alert state, an end alert rule is called. Running this rule manually will validate the configuration.
+configDescriptions:
+  - name: curr
+    label: Current Version Item
+    description: String Item to hold the current version of OH.
+    context: item
+    filterCriteria:
+      - name: type
+        value: String
+  - name: latest 
+    label: Latest Version Item
+    description: String Item to hold the latest release version of OH.
+    context: item
+    filterCriteria:
+      - name: type
+        value: String
+  - name: up
+    label: Upgrade available Item
+    description: Switch Item to hold whether an update is available.
+    contest: item
+    filterCriteria:
+      - name: type
+        value: Switch
+triggers:
+  - id: "1"
+    configuration:
+      time: 00:01
+    type: timer.TimeOfDayTrigger
+conditions: []
+actions:
+  - inputs: {}
+    id: "2"
+    configuration:
+      type: application/javascript
+      script: >-
+        // Current Version
+
+        var currVersion = org.openhab.core.OpenHAB.version;
+
+
+        // Latest Release
+
+        var releasePage =
+        actions.HTTP.sendHttpGetRequest('https://api.github.com/repos/openhab/openhab-distro/releases/latest');
+
+        var parsed = JSON.parse(releasePage);
+
+        var latestVersion = parsed.tag_name;
+
+
+        items['{{curr}}'].postUpdate(currVersion);
+
+        items['{{latest}}'].postUpdate(latestVersion);
+
+        items['{{up}}'].postUpdate((currVersion == latestVersion) ?
+        "OFF" : "ON");
+    type: script.ScriptAction
