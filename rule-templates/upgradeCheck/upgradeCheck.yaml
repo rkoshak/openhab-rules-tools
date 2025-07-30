@@ -1,6 +1,6 @@
-uid: rules_tools:threshold_alert
-label: Threshold Alert
-description: Triggers on a change to a member of a Group. If the new state meets a user defined criteria, an alert rule is called. When exiting an alert state, an end alert rule is called. Running this rule manually will validate the configuration.
+uid: rules_tools:upgradeCheck
+label: Upgrade Check
+description: Runs at midnight and checks to see if the current version of OH differes from the latest release
 configDescriptions:
   - name: curr
     label: Current Version Item
