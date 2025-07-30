@@ -19,7 +19,7 @@ configDescriptions:
   - name: up
     label: Upgrade available Item
     description: Switch Item to hold whether an update is available.
-    contest: item
+    context: item
     filterCriteria:
       - name: type
         value: Switch
