@@ -1,28 +1,34 @@
-uid: rules_tools:threshold_alert
-label: Threshold Alert
-description: Triggers on a change to a member of a Group. If the new state meets a user defined criteria, an alert rule is called. When exiting an alert state, an end alert rule is called. Running this rule manually will validate the configuration.
+uid: rules_tools:upgradeCheck
+label: Upgrade Check
+description: Runs at midnight and checks to see if the current version of OH differes from the latest release
 configDescriptions:
   - name: curr
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: String
     label: Current Version Item
-    description: String Item to hold the current version of OH.
+    required: true
+    description: Item that holds the current running version of OH.
+  - name: latest
+    type: TEXT
     context: item
     filterCriteria:
       - name: type
         value: String
-  - name: latest 
     label: Latest Version Item
-    description: String Item to hold the latest release version of OH.
-    context: item
-    filterCriteria:
-      - name: type
-        value: String
+    required: true
+    description: Item that holds the latest published version of OH.
   - name: up
-    label: Upgrade available Item
-    description: Switch Item to hold whether an update is available.
-    contest: item
+    type: TEXT
+    context: item
     filterCriteria:
       - name: type
         value: Switch
+    label: Upgrade Available Item
+    required: true
+    description: Item that will be set to ON when an upgrade is available
 triggers:
   - id: "1"
     configuration:
@@ -57,3 +63,4 @@ actions:
         items['{{up}}'].postUpdate((currVersion == latestVersion) ?
         "OFF" : "ON");
     type: script.ScriptAction
+    
