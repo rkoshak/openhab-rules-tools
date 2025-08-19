@@ -63,7 +63,7 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        // Version 0.4
+        // Version 0.5
 
         var {TimerMgr, helpers} = require('openhab_rules_tools');
 
@@ -140,8 +140,8 @@ actions:
          */
         var endDebounceGenerator = (name, state, proxy, isCommand) => {
           return function(){
-            console.debug('End debounce for', name, "state", state, 'with proxy', proxy, 'and isCommand', isCommand);
-            const isCurrState = (items.getItem(name).state == state);
+            console.debug('End debounce for', name, "state", state, 'with proxy', proxy, 'whose state is', state, 'and isCommand', isCommand);
+            const isCurrState = (items.getItem(proxy).state == state);
             if(isCommand && !isCurrState) {
               console.trace('Commanding');
               items.getItem(proxy).sendCommand(state);
