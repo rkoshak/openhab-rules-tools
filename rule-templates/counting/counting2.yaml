@@ -67,7 +67,7 @@ actions:
 
         // Quantity Types
 
-        if(items.TestMeter.type.includes(':')){
+        if(meterItem.type.includes(':')){
           const unit = Quantity(rawReading).toString().split(' ')[1];
           const currTotal = (totalItem.isUninitialized) ? Quantity('0 ' + unit) : totalItem.quantityState;
           const reading = Quantity(rawReading.toString());
