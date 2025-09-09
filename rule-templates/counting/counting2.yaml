@@ -51,6 +51,7 @@ actions:
       type: application/javascript
       script: >-
         // Version 1.0
+        
         var totalItem = items.getItem('{{total}}');
 
         var meterItem = items.getItem('{{meter}}');
