@@ -16,7 +16,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 0.1
+        // Version 0.2
 
 
         var ecl = actions.Exec.executeCommandLine;
@@ -50,7 +50,7 @@ actions:
 
         // Install npm using nvm
 
-        if(npmVersion === null) {
+        if(npmVersion === null || npmVersion.contains('No such file or directory')) {
           console.info('npm is not installed or not in the path, attempting to install it to user\'s home');
 
           console.info('Downloading the nvm.sh script...');
