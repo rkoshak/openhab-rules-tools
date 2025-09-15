@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 1.4
+        // Version 1.5
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -840,7 +840,13 @@ actions:
           }
 
           // Error if the Group has QuantityTypes but thresholdStr is not
-          const quantityTypes = allItems.filter(item => item.quantityState !== null);
+          const quantityTypes = allItems.filter(item => {
+            try {
+              item.quantityState !== null;
+            } catch(e) {
+              false;
+            }
+          });
           if(quantityTypes.length > 0 && thresholdStr !== 'UnDefType') {
             try {
               if(!thresholdStr.includes(' ')) {
