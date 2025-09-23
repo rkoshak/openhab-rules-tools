@@ -62,16 +62,43 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Verison 0.3
+        // Verison 1.0
 
         var {helpers} = require('openhab_rules_tools');
 
         console.loggerName = 'org.openhab.automation.rules_tools.MQTTEventBus';
 
-        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+        //
+        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName,
+        'DEBUG');
 
 
         helpers.validateLibraries('4.1.0', '2.0.1');
+
+
+
+        var receivedEvent = null;
+
+        var itemState = null;
+
+        var itemCommand = null;
+
+        if(this.event !== undefined) {
+          if(helpers.compareVersions(utils.OPENHAB_JS_VERSION, '5.14.0') < 0){
+            console.debug('Running on version before 5.14.0');
+            receivedEvent = event.event.toString();
+            triggerType = event.type.toString();
+            itemState = event.itemState.toString();
+            itemCommand = event.itemCommand.toString();
+          } 
+          else {
+            console.debug('Running on 5.14.0 or greater');
+            receivedEvent = event.receivedEvent;
+            triggerType = event.triggerType;
+            itemState = event.receivedState;
+            itemCommand = event.receivedCommand;
+          }
+        }
 
 
         /**
@@ -81,12 +108,12 @@ actions:
          * This expects the event to be topic#message where the Item's name is the third level
          * of the topic and the event type is the fourth. For example:
          *
-         * {{topicRoot}}/in/MyLight/command#ON
-         * {{topicRoot}}/in/MyLight/state#ON
+         * openhab/in/MyLight/command#ON
+         * openhab/in/MyLight/state#ON
          */
         var procEvent = () => {
           console.debug('Processing an event bus event');
-          var parts = event.event.split('#');
+          var parts = receivedEvent.split('#');
           const topic = parts[0];
           const state = parts[1];
           parts = topic.split('/');
@@ -107,19 +134,19 @@ actions:
          */
         var pubEvent = () => {
           console.debug('Publishing an event bus event');
-          var retained = (event.type == 'ItemStateEvent' || event.type == 'ItemStateUpdatedEvent');
-          var topic = '{{topicRoot}}/out/' + event.itemName + ((retained) ? '/state' : '/command');
-          var msg = ((retained) ? event.itemState : event.itemCommand).toString();
+          var retained = (triggertype == 'ItemStateEvent' || triggerType == 'ItemStateUpdatedEvent');
+          var topic = 'openhab/out/' + event.itemName + ((retained) ? '/state' : '/command');
+          var msg = ((retained) ? itemState : itemCommand);
           console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
-          actions.get('mqtt', '{{broker}}').publishMQTT(topic, msg, retained);
+          actions.get('mqtt', 'mqtt:broker:broker').publishMQTT(topic, msg, retained);
         }
 
 
         if(this.event !== undefined) {
-          console.debug('Processing an MQTT Event Bus event: ' + event.type);
-          switch(event.type) {
+          console.debug('Processing an MQTT Event Bus event: ' + triggerType);
+          switch(triggerType) {
             // Process an incoming message on the MQTT Channel Trigger, updating/commanding the corresponding Item
-            case 'ChannelTriggeredEvent':
+            case 'ChannelEventTrigger':
               procEvent();
               break;
             // Publish state updates and commands on local Items
@@ -130,7 +157,7 @@ actions:
               break;
             // Warn if we received an unknown event.
             default:
-              console.warn('MQTT Event Bus rule triggered without an event we can process: ' + event.type + ', ignoring');
+              console.warn('MQTT Event Bus rule triggered without an event we can process: ' + triggerType + ', ignoring');
           }
         }
 
@@ -138,3 +165,4 @@ actions:
           console.warn('MQTT Event Bus rule triggered without event, ignoring');
         }
     type: script.ScriptAction
+ 
