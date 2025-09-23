@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 1.5
+        // Version 1.6
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -185,6 +185,8 @@ actions:
         var reschedule = {{reschedule}};
 
         var initAlertRuleUID = '{{initAlertRule}}';
+
+
 
         // ~~~~~~~~~~~Functions
 
@@ -685,11 +687,14 @@ actions:
 
         //    records[name] = {name:          name,
 
-        //                     alertTimer:    (records[name] === undefined) ? null: records[name].alertTimer,
+        //                     alertTimer:    (records[name] === undefined) ?
+        null: records[name].alertTimer,
 
-        //                     endAlertTimer: (records[name] === undefined) ? null: records[name].endAlertTimer,
+        //                     endAlertTimer: (records[name] === undefined) ?
+        null: records[name].endAlertTimer,
 
-        //                     initAlertTimer: (records[name] === undefined) ? null: records[name].initAlertTimer,
+        //                     initAlertTimer: (records[name] === undefined) ?
+        null: records[name].initAlertTimer,
 
         //                     alerted:       false};
 
@@ -1120,17 +1125,29 @@ actions:
         }
 
         else {
-          switch(event.type) {
+          let name = event.itemName;
+          let type;
+          let state;
+          if(helpers.compareVersions(utils.OPENHAB_JS_VERSION, '5.14.0') < 0){
+            console.debug('Running on version before 5.14.0');
+            type = event.type.toString();
+            state = event.itemState.toString();
+          } 
+          else {
+            console.debug('Running on 5.14.0 or greater');
+            type = event.eventName;
+            state = (event.newState !== undefined) ? event.newState : event.receivedState;
+          }
+          switch(type) {
             case 'ItemStateEvent':
             case 'ItemStateUpdatedEvent':
             case 'ItemStateChangedEvent':
-              console.loggerName = loggerBase+'.'+event.itemName;
+              console.loggerName = loggerBase+'.'+name;
               console.debug('Processing an Item event');
-              procEvent(event.itemName, stateToValue(event.itemState.toString()));
+              procEvent(name, stateToValue(state));
               break;
             default:
-              console.info('Rule triggered without an Item event, ' + event.type + ' checking the rule config');
-              //cache.private.clear();
+              console.info('Rule triggered without an Item event, ' + type + ' checking the rule config');
               init();
           }
         }
