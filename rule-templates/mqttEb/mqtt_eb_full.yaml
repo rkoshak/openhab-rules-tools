@@ -83,6 +83,8 @@ actions:
 
         var itemCommand = null;
 
+        var triggerType = null;
+
         if(this.event !== undefined) {
           if(helpers.compareVersions(utils.OPENHAB_JS_VERSION, '5.14.0') < 0){
             console.debug('Running on version before 5.14.0');
