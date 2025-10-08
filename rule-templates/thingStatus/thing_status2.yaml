@@ -25,13 +25,19 @@ actions:
     configuration:
       type: application/javascript
       script: |
-        // Version 0.2
+        // Version 0.3
+
 
         var {helpers} = require('openhab_rules_tools');
 
+
         console.loggerName = 'org.openhab.automation.rules_tools.Thing Status';
 
-        // osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+        //
+        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName,
+        'DEBUG');
+
 
 
         helpers.validateLibraries('4.1.0', '2.0.1');
@@ -39,12 +45,20 @@ actions:
 
         console.debug('ThingStatusInfoChangedEvent:' + event.toString());
 
-        var parsed = JSON.parse(event.payload);
+
+        // Get the payload and the topic, the event Object might or might not be
+        wrapped in JS
+
+        var parsed = (event.raw.get === undefined)? JSON.parse(event.payload) :
+        event.payload;
+
+        var topic = (event.topic !== undefined) ? event.topic :
+        event.raw.get('event').getTopic().toString();
 
 
         var data = {};
 
-        data['thingID'] = event.topic.split('/')[2];
+        data['thingID'] = topic.split('/')[2];
 
         data['thing'] = things.getThing(data['thingID']);
 
