@@ -37,8 +37,7 @@ actions:
 
 
 
-        //
-        osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName,
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName,
         'DEBUG');
 
 
