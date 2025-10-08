@@ -28,10 +28,13 @@ actions:
         // Version 0.3
 
 
+
         var {helpers} = require('openhab_rules_tools');
 
 
+
         console.loggerName = 'org.openhab.automation.rules_tools.Thing Status';
+
 
 
         //
@@ -40,35 +43,51 @@ actions:
 
 
 
+
         helpers.validateLibraries('4.1.0', '2.0.1');
+
 
 
         console.debug('ThingStatusInfoChangedEvent:' + event.toString());
 
 
+
         // Get the payload and the topic, the event Object might or might not be
-        wrapped in JS
+
+        // wrapped in JS
+
 
         var parsed = (event.raw.get === undefined)? JSON.parse(event.payload) :
+
         event.payload;
 
+
         var topic = (event.topic !== undefined) ? event.topic :
+
         event.raw.get('event').getTopic().toString();
+
 
 
         var data = {};
 
+
         data['thingID'] = topic.split('/')[2];
+
 
         data['thing'] = things.getThing(data['thingID']);
 
+
         data['oldStatus'] = parsed[1].status;
+
 
         data['oldDetail'] = parsed[1].statusDetail;
 
+
         data['newStatus'] = parsed[0].status;
 
+
         data['newDetail'] = parsed[0].statusDetail;
+
 
 
         rules.runRule("{{script}}", data, true);
