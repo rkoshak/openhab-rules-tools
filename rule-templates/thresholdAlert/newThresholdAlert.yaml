@@ -129,7 +129,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 1.6
+        // Version 1.7
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -1119,7 +1119,7 @@ actions:
 
         // Otherwise process the event to see if alerting is required
 
-        if(this.event === undefined) {
+        if(this.event === undefined || event.eventName == "ExecutionEvent") {
           console.debug('Rule triggered without an event, checking config.');
           init();
         }
@@ -1128,13 +1128,13 @@ actions:
           let name = event.itemName;
           let type;
           let state;
-          if(helpers.compareVersions(utils.OPENHAB_JS_VERSION, '5.14.0') < 0){
-            console.debug('Running on version before 5.14.0');
+          if(event.newState === undefined && event.receivedState === undefined){
+            console.debug('Running without event wrapper');
             type = event.type.toString();
             state = event.itemState.toString();
           } 
           else {
-            console.debug('Running on 5.14.0 or greater');
+            console.debug('Running with event wrapper');
             type = event.eventName;
             state = (event.newState !== undefined) ? event.newState : event.receivedState;
           }
