@@ -62,7 +62,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Verison 1.1
+        // Verison 1.2
 
         var {helpers} = require('openhab_rules_tools');
 
@@ -121,7 +121,7 @@ actions:
          */
         var pubEvent = () => {
           console.debug('Publishing an event bus event');
-          var retained = (triggertype == 'ItemStateEvent' || triggerType == 'ItemStateUpdatedEvent');
+          var retained = (triggerType == 'ItemStateEvent' || triggerType == 'ItemStateUpdatedEvent');
           var topic = 'openhab/out/' + event.itemName + ((retained) ? '/state' : '/command');
           var msg = ((retained) ? itemState : itemCommand);
           console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
