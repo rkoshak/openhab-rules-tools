@@ -125,7 +125,7 @@ actions:
           var topic = 'openhab/out/' + event.itemName + ((retained) ? '/state' : '/command');
           var msg = ((retained) ? itemState : itemCommand);
           console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
-          actions.get('mqtt', 'mqtt:broker:broker').publishMQTT(topic, msg, retained);
+          actions.get('mqtt', '{{broker}}').publishMQTT(topic, msg, retained);
         }
 
 
