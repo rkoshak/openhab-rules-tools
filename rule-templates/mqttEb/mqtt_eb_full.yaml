@@ -62,7 +62,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Verison 1.0
+        // Verison 1.1
 
         var {helpers} = require('openhab_rules_tools');
 
@@ -77,6 +77,8 @@ actions:
 
 
 
+        // These get populated below after we determine the type of the rule trigger
+
         var receivedEvent = null;
 
         var itemState = null;
@@ -84,23 +86,6 @@ actions:
         var itemCommand = null;
 
         var triggerType = null;
-
-        if(this.event !== undefined) {
-          if(helpers.compareVersions(utils.OPENHAB_JS_VERSION, '5.14.0') < 0){
-            console.debug('Running on version before 5.14.0');
-            receivedEvent = event.event.toString();
-            triggerType = event.type.toString();
-            itemState = event.itemState.toString();
-            itemCommand = event.itemCommand.toString();
-          } 
-          else {
-            console.debug('Running on 5.14.0 or greater');
-            receivedEvent = event.receivedEvent;
-            triggerType = event.triggerType;
-            itemState = event.receivedState;
-            itemCommand = event.receivedCommand;
-          }
-        }
 
 
         /**
@@ -144,17 +129,26 @@ actions:
         }
 
 
+        // Trigger processing
+
         if(this.event !== undefined) {
+          triggerType = (event.triggerType !== undefined) ? event.triggerType : event.type.toString();
           console.debug('Processing an MQTT Event Bus event: ' + triggerType);
+          
           switch(triggerType) {
             // Process an incoming message on the MQTT Channel Trigger, updating/commanding the corresponding Item
             case 'ChannelEventTrigger':
+              receivedEvent = (event.receivedEvent !== undefined) ? event.receivedEvent : event.event.toString();
               procEvent();
               break;
             // Publish state updates and commands on local Items
             case 'ItemStateEvent':
             case 'ItemStateUpdatedEvent':
+              itemState = (event.receivedState !== undefined) ? event.receivedState : event.itemState.toString();
             case 'ItemCommandEvent':
+              if(event.receivedCommand !== undefined || event.itemCommand !== undefined) {
+                itemCommand = (event.receivedCommand !== undefined) ? event.receivedCommand : event.itemCommand.toString();
+              }
               pubEvent();
               break;
             // Warn if we received an unknown event.
@@ -167,4 +161,4 @@ actions:
           console.warn('MQTT Event Bus rule triggered without event, ignoring');
         }
     type: script.ScriptAction
- 
+
