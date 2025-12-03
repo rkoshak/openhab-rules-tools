@@ -1,0 +1,149 @@
+uid: rules_tools:drive_time
+label: Driving Time
+description: When run it calculates the time and distance to drive between two fixed points.
+configDescriptions:
+  - description: Which Waze routing server to use. You will get an "Internal Error" if you choose the wrong one. Defaults to "US".
+    label: Region
+    name: region
+    required: false
+    defaultValue: US
+    type: TEXT
+    options:
+      - label: 'US'
+        value: 'am'
+      - label: 'EU'
+        value: 'row'
+      - label: 'IL'
+        value: 'il'
+      - label: 'AU'
+        value: 'row'
+    limitToOptions: true
+  - description: Starting point latitude,longitude 
+    label: Start
+    name: startPoint
+    required: true
+    type: TEXT
+    context: location
+  - description: Ending point latitude,longitude 
+    label: Destination
+    name: destPoint
+    required: true  
+    type: TEXT
+    context: location
+  - name: timeItem
+    label: Travel Time Item
+    description: Item that stores the travel time.
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Number:Time
+    required: true
+  - name: distanceItem
+    label: Travel Distance Item
+    description: Item that stores the travel distance.
+    type: TEXT
+    context: item
+    filterCriteria:
+      - name: type
+        value: Number:Length
+    required: true
+triggers: []
+conditions: []
+actions:
+  - inputs: {}
+    id: "1"
+    configuration:
+      type: application/javascript
+      script: >
+        // Version 0.3
+
+        var loggerBase =
+        'org.openhab.automation.rules_tools.DrivingTime.'+ruleUID;
+
+        console.loggerName = loggerBase;
+
+        //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName,
+        'DEBUG');
+
+
+        // Rule Properties
+
+        var FROM_COORD = "{{startPoint}}".split(',');
+
+        var TO_COORD = "{{destPoint}}".split(',');
+
+        var timeItem = items.{{timeItem}};
+
+        var distanceItem = items.{{distanceItem}};
+
+        var region = "{{region}}";
+
+
+        // Locationms
+
+        var FROM_LON = FROM_COORD[1].trim();
+
+        var FROM_LAT = FROM_COORD[0].trim();
+
+        var TO_LON = TO_COORD[1].trim();
+
+        var TO_LAT = TO_COORD[0].trim();
+
+
+        // URL
+
+        var WAZE_URL = "https://routing-livemap-"+region+".waze.com/RoutingManager/routingRequest?";
+
+        // var WAZE_URL = "https://www.waze.com/"
+
+        // var BASE_URL = "RoutingManager/routingRequest?"
+
+        // if(region == "EU" || region == "AU") BASE_URL = "row-"+BASE_URL;
+
+        // if(region == "IL") BASE_URL = "il-"+BASE_URL;
+
+        // var URL = WAZE_URL+BASE_URL
+
+        var URL = WAZE_URL
+                  +"from=x%3A"+FROM_LON+"+y%3A"+FROM_LAT+"+bd%3Atrue"
+                  +"&to=x%3A"+TO_LON+"+y%3A"+TO_LAT+"+bd%3Atrue"
+                  +"&returnJSON=true&returnGeometries=true&returnInstructions=true&timeout=60000&nPaths=1"
+
+        // Headers
+
+        var headers = new Map();
+
+        headers.set("User-Agent", "Mozilla/5.0");
+
+        headers.set("referer", WAZE_URL);
+
+
+        console.debug("Getting the distance and time to travel between " +
+        FROM_COORD + " to " + TO_COORD + " using URL " + URL);
+
+
+
+        var rawJSON = actions.HTTP.sendHttpGetRequest(URL, headers, 60000);
+
+        console.trace("Results: \n" + rawJSON);
+
+
+        var parsed = JSON.parse(rawJSON);
+
+
+        if(parsed.response === undefined) {
+          console.error('Failed to retrieve a parsable response from Waze. "Internal Error" may mean you selected the wrong region. Response:\n' + rawJSON);
+        }
+
+        else {
+          // Calculate time and distance
+          var time = parsed.response.results.map( r => Quantity(r.crossTime + ' s') ).reduce( (total, curr) => total.add(curr), Quantity('0 s') );
+          var distance = parsed.response.results.map( d => Quantity( d['length'] + ' m' ) ).reduce( (total, curr) => total.add(curr), Quantity('0 m') );
+
+          console.debug("Time is " + time.toUnit("min") + " and distance is " + distance.toUnit("mi"));
+          timeItem.postUpdate(time);
+          distanceItem.postUpdate(distance);
+        }
+    type: script.ScriptAction
+
