@@ -95,16 +95,6 @@ actions:
 
         var WAZE_URL = "https://routing-livemap-"+region+".waze.com/RoutingManager/routingRequest?";
 
-        // var WAZE_URL = "https://www.waze.com/"
-
-        // var BASE_URL = "RoutingManager/routingRequest?"
-
-        // if(region == "EU" || region == "AU") BASE_URL = "row-"+BASE_URL;
-
-        // if(region == "IL") BASE_URL = "il-"+BASE_URL;
-
-        // var URL = WAZE_URL+BASE_URL
-
         var URL = WAZE_URL
                   +"from=x%3A"+FROM_LON+"+y%3A"+FROM_LAT+"+bd%3Atrue"
                   +"&to=x%3A"+TO_LON+"+y%3A"+TO_LAT+"+bd%3Atrue"
