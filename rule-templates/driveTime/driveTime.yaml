@@ -9,14 +9,12 @@ configDescriptions:
     defaultValue: US
     type: TEXT
     options:
-      - label: 'US'
-        value: 'am'
-      - label: 'EU'
+      - label: 'AU or EU'
         value: 'row'
       - label: 'IL'
         value: 'il'
-      - label: 'AU'
-        value: 'row'
+      - label: 'US'
+        value: 'am'
     limitToOptions: true
   - description: Starting point latitude,longitude 
     label: Start
@@ -56,7 +54,7 @@ actions:
     configuration:
       type: application/javascript
       script: >
-        // Version 0.3
+        // Version 0.4
 
         var loggerBase =
         'org.openhab.automation.rules_tools.DrivingTime.'+ruleUID;
