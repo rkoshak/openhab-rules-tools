@@ -62,7 +62,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Verison 1.2
+        // Verison 1.3
 
         var {helpers} = require('openhab_rules_tools');
 
@@ -86,6 +86,10 @@ actions:
         var itemCommand = null;
 
         var triggerType = null;
+
+        var updateEvents = ['ItemStateEvent', 'ItemStateUpdatedEvent', 'ItemStateUpdateTrigger', 'update'];
+
+        var commandEvents = ['ItemCommandEvent', 'ItemCommandTrigger', 'command'];
 
 
         /**
@@ -121,8 +125,8 @@ actions:
          */
         var pubEvent = () => {
           console.debug('Publishing an event bus event');
-          var retained = (triggerType == 'ItemStateEvent' || triggerType == 'ItemStateUpdatedEvent');
-          var topic = 'openhab/out/' + event.itemName + ((retained) ? '/state' : '/command');
+          var retained = (updateEvents.includes(triggerType));
+          var topic = '{{topicRoot}}/out/' + event.itemName + ((retained) ? '/state' : '/command');
           var msg = ((retained) ? itemState : itemCommand);
           console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
           actions.get('mqtt', '{{broker}}').publishMQTT(topic, msg, retained);
@@ -138,14 +142,19 @@ actions:
           switch(triggerType) {
             // Process an incoming message on the MQTT Channel Trigger, updating/commanding the corresponding Item
             case 'ChannelEventTrigger':
+            case: 'triggered':
               receivedEvent = (event.receivedEvent !== undefined) ? event.receivedEvent : event.event.toString();
               procEvent();
               break;
             // Publish state updates and commands on local Items
             case 'ItemStateEvent':
             case 'ItemStateUpdatedEvent':
+            case 'ItemStateUpdateTrigger':
+            case: 'update':
               itemState = (event.receivedState !== undefined) ? event.receivedState : event.itemState.toString();
             case 'ItemCommandEvent':
+            case 'ItemCommandTrigger':
+            case 'command':
               if(event.receivedCommand !== undefined || event.itemCommand !== undefined) {
                 itemCommand = (event.receivedCommand !== undefined) ? event.receivedCommand : event.itemCommand.toString();
               }
