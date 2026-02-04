@@ -142,7 +142,7 @@ actions:
           switch(triggerType) {
             // Process an incoming message on the MQTT Channel Trigger, updating/commanding the corresponding Item
             case 'ChannelEventTrigger':
-            case: 'triggered':
+            case 'triggered':
               receivedEvent = (event.receivedEvent !== undefined) ? event.receivedEvent : event.event.toString();
               procEvent();
               break;
@@ -150,7 +150,7 @@ actions:
             case 'ItemStateEvent':
             case 'ItemStateUpdatedEvent':
             case 'ItemStateUpdateTrigger':
-            case: 'update':
+            case 'update':
               itemState = (event.receivedState !== undefined) ? event.receivedState : event.itemState.toString();
             case 'ItemCommandEvent':
             case 'ItemCommandTrigger':
