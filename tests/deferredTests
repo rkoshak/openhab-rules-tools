@@ -24,7 +24,7 @@ function test1() {
     if (!testItem.isUninitialized) cache.private.put(test1, test1 + ': Deferred updated ' + testItem + ' too soon!');
   });
   actions.ScriptExecution.createTimer(time.toZDT(1200), () => {
-    if (testItem.state != 'ON' && !cache.private.get(test1)) cache.privvate.put(test1 + ': Deferred failed to update ' + testItem);
+    if (testItem.state != 'ON' && !cache.private.get(test1)) cache.private.put(test1, test1 + ': Deferred failed to update ' + testItem);
     else test2();
   });
 
