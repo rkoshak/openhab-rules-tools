@@ -122,6 +122,10 @@ triggers:
     configuration:
       groupName: "{{group}}"
     type: core.GroupStateChangeTrigger
+  - id: "3"
+    configuration:
+      startlevel: 100
+    type: core.SystemStartlevelTrigger
 conditions: []
 actions:
   - inputs: {}
@@ -129,7 +133,7 @@ actions:
     configuration:
       type: application/javascript
       script: >-
-        // Version 1.7
+        // Version 1.8
 
         var {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} =
         require('openhab_rules_tools');
@@ -360,6 +364,7 @@ actions:
               callRule(currState, record.alertRule, true, false, record);
               if(!record.alerted) record.alertState = currState;
               record.alerted = true;
+              saveRecord(record);
               if(repeatTime === null) record.alertTimer = null; // clean up if no longer looping
               console.debug('Waiting until ' + repeatTime + ' to send reminder for ' + name);
               return repeatTime;
@@ -505,6 +510,7 @@ actions:
                 callRule(stateToValue(items[record.name].state), record.endRule, false, false, record);
                 record.alerted = false;
                 record.alertState = null;
+                saveRecord(record);
                 record.endAlertTimer = null;
                 return null;
               },scheduleTime);
@@ -517,6 +523,7 @@ actions:
             console.debug('No end alert rule is configured, exiting alerting for ' + record.name);
             record.alerted = false;
             record.alertState = null;
+            saveRecord(record);
           }
           else if(!record.alerted) {
             console.debug('Exiting alerting state but alert was never sent, not sending an end alert for ' + record.name);
@@ -1113,6 +1120,87 @@ actions:
           else console.info('Threshold Alert configs check out as OK')
         }
 
+
+
+        // --- v1.8: persist alert state across restarts via Item metadata ---
+
+        var stateNamespace = 'thresholdAlertState';
+
+        var saveRecord = (record) => {
+
+          try {
+
+            items[record.name].replaceMetadata(stateNamespace, 'state', {
+
+              alerted:    record.alerted === true,
+
+              alertState: (record.alertState === undefined || record.alertState === null)
+
+                            ? '' : '' + record.alertState
+
+            });
+
+          } catch(e) { console.warn('Could not persist alert state for ' + record.name + ': ' + e); }
+
+        };
+
+        var loadRecord = (record) => {
+
+          try {
+
+            const md = items[record.name].getMetadata()[stateNamespace];
+
+            if(md !== undefined && md !== null) {
+
+              record.alerted    = md.configuration.alerted === true;
+
+              record.alertState = (md.configuration.alertState === '') ? null
+
+                                                                       : md.configuration.alertState;
+
+            }
+
+          } catch(e) { console.warn('Could not load alert state for ' + record.name + ': ' + e); }
+
+        };
+
+        var restoreAndReconcile = () => {
+
+          console.info('Restart detected: restoring persisted alert state and reconciling current states');
+
+          const records = cache.private.get('records', () => { return {}; });
+
+          items[group].members.forEach(item => {
+
+            const name = item.name;
+
+            if(records[name] === undefined) {
+
+              records[name] = { name: name, alertTimer: null, endAlertTimer: null,
+
+                                initAlertTimer: null, alerted: false };
+
+            }
+
+            loadRecord(records[name]);
+
+            const raw = '' + items[name].state;
+
+            if(raw !== 'NULL' && raw !== 'UNDEF') {
+
+              procEvent(name, stateToValue(items[name].state));
+
+            } else {
+
+              console.info(name + ' has no usable state yet; deferring to its next event.');
+
+            }
+
+          });
+
+        };
+
+        // --- end v1.8 ---
         //~~~~~~~~~~~~~ Body
 
         // If triggered by anything other than an Item event, check the config
@@ -1122,6 +1210,12 @@ actions:
         if(this.event === undefined || event.eventName == "ExecutionEvent") {
           console.debug('Rule triggered without an event, checking config.');
           init();
+        }
+
+        else if(event.itemName === undefined || event.itemName === null) {
+          console.info('Startup trigger detected, running restore and reconcile.');
+          init();
+          restoreAndReconcile();
         }
 
         else {
