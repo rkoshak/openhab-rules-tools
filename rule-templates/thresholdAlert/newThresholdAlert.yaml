@@ -1126,78 +1126,65 @@ actions:
 
         var stateNamespace = 'thresholdAlertState';
 
+        /**
+         * Persists the alert state for an Item to its metadata so it survives a restart.
+         *
+         * @param {Object} record contains the Item name, alerted flag, and alertState
+         */
         var saveRecord = (record) => {
-
           try {
-
             items[record.name].replaceMetadata(stateNamespace, 'state', {
-
               alerted:    record.alerted === true,
-
-              alertState: (record.alertState === undefined || record.alertState === null)
-
-                            ? '' : '' + record.alertState
-
+              alertState: (record.alertState === undefined || record.alertState === null) ? '' : '' + record.alertState
             });
-
-          } catch(e) { console.warn('Could not persist alert state for ' + record.name + ': ' + e); }
-
+          } catch(e) {
+            console.warn('Could not persist alert state for ' + record.name + ': ' + e);
+          }
         };
 
+        /**
+         * Loads the persisted alert state for an Item from its metadata.
+         *
+         * @param {Object} record contains the Item name; alerted and alertState will be populated
+         */
         var loadRecord = (record) => {
-
           try {
-
             const md = items[record.name].getMetadata()[stateNamespace];
-
             if(md !== undefined && md !== null) {
-
               record.alerted    = md.configuration.alerted === true;
-
-              record.alertState = (md.configuration.alertState === '') ? null
-
-                                                                       : md.configuration.alertState;
-
+              record.alertState = md.configuration.alertState !== '' ? md.configuration.alertState : null;
             }
-
-          } catch(e) { console.warn('Could not load alert state for ' + record.name + ': ' + e); }
-
+          } catch(e) {
+            console.warn('Could not load alert state for ' + record.name + ': ' + e);
+          }
         };
 
+        /**
+         * Called on startup to restore persisted alert state and reconcile the current
+         * Item states against it. Items still alerting re-arm their timers; items that
+         * exited alert during downtime fire the end-alert rule once.
+         */
         var restoreAndReconcile = () => {
-
           console.info('Restart detected: restoring persisted alert state and reconciling current states');
-
           const records = cache.private.get('records', () => { return {}; });
-
           items[group].members.forEach(item => {
-
             const name = item.name;
-
             if(records[name] === undefined) {
-
-              records[name] = { name: name, alertTimer: null, endAlertTimer: null,
-
-                                initAlertTimer: null, alerted: false };
-
+              records[name] = { name: name,
+                                alertTimer: null,
+                                endAlertTimer: null,
+                                initAlertTimer: null,
+                                alerted: false };
             }
-
             loadRecord(records[name]);
-
             const raw = '' + items[name].state;
-
             if(raw !== 'NULL' && raw !== 'UNDEF') {
-
               procEvent(name, stateToValue(items[name].state));
-
-            } else {
-
-              console.info(name + ' has no usable state yet; deferring to its next event.');
-
             }
-
+            else {
+              console.info(name + ' has no usable state yet; deferring to its next event.');
+            }
           });
-
         };
 
         // --- end v1.8 ---
