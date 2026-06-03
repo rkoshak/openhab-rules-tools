@@ -124,7 +124,7 @@ triggers:
     type: core.GroupStateChangeTrigger
   - id: "3"
     configuration:
-      startlevel: 100
+      startlevel: 40
     type: core.SystemStartlevelTrigger
 conditions: []
 actions:
@@ -189,6 +189,8 @@ actions:
         var reschedule = {{reschedule}};
 
         var initAlertRuleUID = '{{initAlertRule}}';
+
+        var stateNamespace = namespace + 'State';
 
 
 
@@ -846,6 +848,11 @@ actions:
             });
           }
 
+          console.info('Clearing persisted alert state metadata for all group members');
+          items[group].members.forEach(item => {
+            items[item.name].removeMetadata(stateNamespace);
+          });
+
           // Inform if the threshold is UnDefType
           if(thresholdStr === 'UnDefType') {
             console.info('Threshold is UnDefType, this will cause Item states of NULL and UNDEF to be converted to UnDefType for comparisons.');
@@ -1124,22 +1131,16 @@ actions:
 
         // --- v1.8: persist alert state across restarts via Item metadata ---
 
-        var stateNamespace = 'thresholdAlertState';
-
         /**
          * Persists the alert state for an Item to its metadata so it survives a restart.
          *
          * @param {Object} record contains the Item name, alerted flag, and alertState
          */
         var saveRecord = (record) => {
-          try {
-            items[record.name].replaceMetadata(stateNamespace, 'state', {
-              alerted:    record.alerted === true,
-              alertState: (record.alertState === undefined || record.alertState === null) ? '' : '' + record.alertState
-            });
-          } catch(e) {
-            console.warn('Could not persist alert state for ' + record.name + ': ' + e);
-          }
+          items[record.name].replaceMetadata(stateNamespace, 'state', {
+            alerted:    record.alerted === true,
+            alertState: (record.alertState === undefined || record.alertState === null) ? '' : '' + record.alertState
+          });
         };
 
         /**
@@ -1148,14 +1149,10 @@ actions:
          * @param {Object} record contains the Item name; alerted and alertState will be populated
          */
         var loadRecord = (record) => {
-          try {
-            const md = items[record.name].getMetadata()[stateNamespace];
-            if(md !== undefined && md !== null) {
-              record.alerted    = md.configuration.alerted === true;
-              record.alertState = md.configuration.alertState !== '' ? md.configuration.alertState : null;
-            }
-          } catch(e) {
-            console.warn('Could not load alert state for ' + record.name + ': ' + e);
+          const md = items[record.name].getMetadata()[stateNamespace];
+          if(md !== undefined && md !== null) {
+            record.alerted    = md.configuration.alerted === true;
+            record.alertState = md.configuration.alertState !== '' ? md.configuration.alertState : null;
           }
         };
 
@@ -1199,7 +1196,7 @@ actions:
           init();
         }
 
-        else if(event.itemName === undefined || event.itemName === null) {
+        else if(event.eventName == "SystemStartlevelTrigger") {
           console.info('Startup trigger detected, running restore and reconcile.');
           init();
           restoreAndReconcile();
