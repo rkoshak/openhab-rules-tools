@@ -10,7 +10,8 @@ mv openhab-rules-tools templates
 cd templates
 
 # Enable sparse checkout
-git sparse-checkout init --cone
+git sparse-checkout set --no-cone
+git sparse-checkout set "templates/*"
 
 # Define your target subfolder
 git sparse-checkout set templates
