@@ -50,7 +50,7 @@ ruleTemplates:
         config:
           type: javascript
           script: |
-            var loggerBase = 'org.openhab.automation.ohrt-upgradeCheck'+ruleUID;
+            var loggerBase = 'org.openhab.automation.ohrt-upgradeCheck.'+ruleUID;
             console.loggerName = loggerBase;
             //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
