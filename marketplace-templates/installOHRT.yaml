@@ -1,0 +1,67 @@
+version: 1
+
+ruleTemplates:
+  ohrt-upgradeCheck:
+    label: openHAB Upgrade Check
+    description: Runs at midnight and checks to see if the current version of OH differes from the latest release
+    tags:
+      - OHRT
+      - Version_1.0
+    configDescriptions:
+      curr:
+        label: Currrrent Version Item
+        description: Item that holds the current running verison of OH.
+        context: item
+        required: true
+        type: TEXT
+        filterCriteria:
+          - name: type
+            value: String
+      latest:
+        label: Latest Version Item
+        description: Item that holds the latest published version of OH.
+        context: item
+        required: true
+        type: TEXT
+        filterCriteria:
+          - name: type
+            value: String
+      up:
+        label: Upgrade Available Item
+        description: Item that will be set to ON when the upgrade is available
+        context: item
+        required: true
+        type: TEXT
+        filterCriteria:
+          - name: type
+            value: Switch
+    triggers:
+      - id: "midnight_trigger"
+        label: Midnight
+        description: Three minutes after midnight to avoid conflicts with other rules
+        type: timer.TimeOfDayTrigger
+        config:
+          time: 00:03
+    actions:
+      - id: "update_check_action"
+        label: "Update Check"
+        description: Checks GitHub for the latest release and compares to running version
+        type: Script
+        config:
+          type: javascript
+          script: |
+            // Current Version
+            var currVersion = Java.type('org.openhab.core.OpenHAB').version;
+
+            // Latest Release
+            var releasePage =
+            actions.HTTP.sendHttpGetRequest('https://api.github.com/repos/openhab/openhab-distro/releases/latest');
+            var parsed = JSON.parse(releasePage);
+            var latestVersion = parsed.tag_name;
+
+            items['{{curr}}'].postUpdate(currVersion);
+            items['{{latest}}'].postUpdate(latestVersion);
+            var upgradeAvail = (currVersion == latestVersion) ? "OFF" : "ON"
+            items['{{up}}'].postUpdate(upgradeAvail);
+            if(upgradeAvail == "ON") console.info( 'A new version of openHAB is available! Curr Version: ' + currVersion + ' Latest Release: ' + latestVersion );
+            else console.debug( 'You are on the latest version: ' + latestVersion );
