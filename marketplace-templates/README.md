@@ -13,8 +13,8 @@ cd templates
 git sparse-checkout set --no-cone
 git sparse-checkout set "marketplace-templates/*"
 
-# Define your target subfolder
-git sparse-checkout set templates
+# Define your target 
+git sparse-checkout set marketplace-templates
 
 # Download the contents
 git checkout main
