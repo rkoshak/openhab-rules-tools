@@ -4,6 +4,8 @@ All the templates are in their own file.
 For development, this folder can be checked out over the $OH_CONF/automation/templates folder.
 
 ```
+cd $OH_CONF/yaml
+
 # Clone the repository without downloading files
 git clone --no-checkout git@github.com:rkoshak/openhab-rules-tools.git
 mv openhab-rules-tools templates
