@@ -1,0 +1,151 @@
+version: 1
+
+ruleTemplates:
+  ohrt-mqttEvenBus:
+    label: MQTT Event Bus
+    description: Publishes and subscribes to MQTT to synchronize Items between openHAB instances.
+    tags:
+      - OHRT
+      - Version_1.3
+    configDescriptions:
+      broker:
+        label: MQTT Broker Thing
+        description: Select the MQTT Broker Thing used for the MQTT Event Bus
+        type: TEXT
+        context: thing
+        required: true
+      topicRoot:
+        label: "openHAB Instance Name"
+        description: Name of this openHAB instance, used as the root fo the topic structure.
+        type: TEXT
+        required: true
+      cmd:
+        label: Command Group
+        description: Group Item whose member's commands are to be published.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Group
+        required: true
+      upd:
+        label: Update Group
+        description: Group Item whose member's updates are to be published.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Group
+        required: true
+      channel:
+        label: MQTT Event Channel
+        description: The MQTT trigger channel that subscribes to the MQTT Event Bus.
+        type: TEXT
+        context: channel
+        filterCriteria:
+          - name: kind
+            value: TRIGGER
+        required: true
+    triggers:
+      - id: publish_command_trigger
+        label: Command Trigger
+        description: Item commanded that needs to be published.
+        config:
+          groupName: "{{cmd}}"
+        type: core.GroupCommandTrigger
+      - id: publish_updates_trigger
+        label: Update Trigger
+        description: Item received an update that needs to be published.
+        config:
+          groupName: "{{upd}}"
+        type: core.GroupStateUpdateTrigger
+      - id: received_eb_message_trigger
+        label: EB Subscription
+        description: Message was received on an MQTT Even Bus topic
+        config:
+          thingUID: "{{broker}}"
+          channelUID: "{{channel}}"
+        type: core.ChannelEventTrigger
+    actions:
+      - id: process_eb_event
+        label: Process Event Bus Event
+        description: Publishes commands or updates, or updates or commands local Items based on trigger.
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-mqttEventBus.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            const {helpers} = require('openhab_rules_tools');
+
+            helpers.validateLibraries('5.18.2', '2.1.0');
+
+            // These get populated below after we determine the type of the rule trigger
+            let receivedEvent = null;
+            let itemState = null;
+            let itemCommand = null;
+
+            /**
+            * Parses the event received and extracts the Item, event type, and state/command
+            * to update/command the Item.
+            *
+            * This expects the event to be topic#message where the Item's name is the third level
+            * of the topic and the event type is the fourth. For example:
+            *
+            * openhab/in/MyLight/command#ON
+            * openhab/in/MyLight/state#ON
+            */
+            function procEvent() {
+              console.debug('Processing an event bus event');
+              let parts = receivedEvent.split('#');
+              const topic = parts[0];
+              const state = parts[1];
+              parts = topic.split('/');
+              const itemName = parts[2];
+              const eventType = parts[3];
+              console.debug('Received MQTT EB message: type = ' + eventType + ' item = ' + itemName + ' state/cmd = ' + state);
+              if(items[itemName] === null) {
+                console.warn('Received an event bus message for ' + itemName + ' which does not exist!');
+              }
+              else {
+                (eventType == 'command') ? items[itemName].sendCommand(state) : items[itemName].postUpdate(state);
+              }
+            }
+
+
+            /**
+            * Publishes commands and updates to the configured topic.
+            */
+            function pubEvent() {
+              console.debug('Publishing an event bus event');
+              const retained = event.eventType == 'update';
+              const topic = '{{topicRoot}}/out/' + event.itemName + ((retained) ? '/state' : '/command');
+              const msg = ((retained) ? itemState : itemCommand);
+              console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
+              actions.get('mqtt', '{{broker}}').publishMQTT(topic, msg, retained);
+            }
+
+
+            // Trigger processing
+            console.debug('Processing an MQTT Event Bus event: ' + event.eventType);
+              
+            switch(event.eventType) {
+              // Process an incoming message on the MQTT Channel Trigger, updating/commanding the corresponding Item
+              case 'triggered':
+                receivedEvent = event.receivedEvent;
+                procEvent();
+                break;
+              // Publish state updates and commands on local Items
+              case 'update':
+                itemState = event.receivedState;
+              case 'command':
+                itemCommand = event.receivedCommand;
+                pubEvent();
+                break;
+              // Warn if we received an unknown event.
+              default:
+                console.warn('MQTT Event Bus rule triggered without an event we can not process: ' + event.eventName + ', ignoring');
+            }
