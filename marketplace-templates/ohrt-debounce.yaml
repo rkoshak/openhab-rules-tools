@@ -231,10 +231,9 @@ ruleTemplates:
             };
 
             switch(event.eventType) {
-              case 'GroupItemStateChangedEvent':
-              case 'ItemStateEvent':
-              case 'ItemStateChangedEvent':
-              case 'ItemCommandEvent':
+              case: 'change':
+              case: 'update':
+              case: 'command':
                 debounce();
                 break;
               default:
