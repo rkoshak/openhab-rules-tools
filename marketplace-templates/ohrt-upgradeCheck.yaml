@@ -9,7 +9,7 @@ ruleTemplates:
       - Version_1.0
     configDescriptions:
       curr:
-        label: Currrrent Version Item
+        label: Current Version Item
         description: Item that holds the current running verison of OH.
         context: item
         required: true
@@ -67,5 +67,6 @@ ruleTemplates:
             items['{{latest}}'].postUpdate(latestVersion);
             var upgradeAvail = (currVersion == latestVersion) ? "OFF" : "ON"
             items['{{up}}'].postUpdate(upgradeAvail);
+            
             if(upgradeAvail == "ON") console.info( 'A new version of openHAB is available! Curr Version: ' + currVersion + ' Latest Release: ' + latestVersion );
             else console.debug( 'You are on the latest version: ' + latestVersion );
