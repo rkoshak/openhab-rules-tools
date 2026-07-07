@@ -22,29 +22,30 @@ ruleTemplates:
         config:
           type: javascript
           script: |
-            var loggerBase = 'org.openhab.automation.ohrt-installOHRT.'+ruleUID;
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-installOHRT.'+ruleUID;
             console.loggerName = loggerBase;
             //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
-            var ecl = actions.Exec.executeCommandLine;
-            var timeout = time.Duration.ofSeconds(10);
+            const ecl = actions.Exec.executeCommandLine;
+            const timeout = time.Duration.ofSeconds(10);
 
             // run and log the output
-            var logOutput = (action) => {
+            const logOutput = (action) => {
               const output = action();
               console.info(output);
               return output;
             }
 
             // append the stuff needed to run npm
-            var eclNode = (cmd) => {
+            const eclNode = (cmd) => {
               console.info(cmd);
               return logOutput(() => ecl(timeout, 'bash', '-c', '\. $HOME/.nvm/nvm.sh && ' + cmd));
             }
 
             // See if npm is installed
             console.info("Checking to see if npm is available");
-            var npmVersion = eclNode('npm --version');
+            const npmVersion = eclNode('npm --version');
 
             // Install npm using nvm
             if(npmVersion === null || npmVersion.contains('No such file or directory')) {

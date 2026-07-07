@@ -50,22 +50,23 @@ ruleTemplates:
         config:
           type: javascript
           script: |
-            var loggerBase = 'org.openhab.automation.ohrt-upgradeCheck.'+ruleUID;
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-upgradeCheck.'+ruleUID;
             console.loggerName = loggerBase;
             //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
             // Current Version
-            var currVersion = Java.type('org.openhab.core.OpenHAB').version;
+            const currVersion = Java.type('org.openhab.core.OpenHAB').version;
 
             // Latest Release
-            var releasePage =
+            const releasePage =
             actions.HTTP.sendHttpGetRequest('https://api.github.com/repos/openhab/openhab-distro/releases/latest');
-            var parsed = JSON.parse(releasePage);
-            var latestVersion = parsed.tag_name;
+            const parsed = JSON.parse(releasePage);
+            const latestVersion = parsed.tag_name;
 
             items['{{curr}}'].postUpdate(currVersion);
             items['{{latest}}'].postUpdate(latestVersion);
-            var upgradeAvail = (currVersion == latestVersion) ? "OFF" : "ON"
+            const upgradeAvail = (currVersion == latestVersion) ? "OFF" : "ON"
             items['{{up}}'].postUpdate(upgradeAvail);
             
             if(upgradeAvail == "ON") console.info( 'A new version of openHAB is available! Curr Version: ' + currVersion + ' Latest Release: ' + latestVersion );

@@ -23,11 +23,11 @@ ruleTemplates:
             value: DateTime
         required: true
     triggers:
-      - id: startlevel_30_trigger
-        label: Start level 30
-        description: Start Level 30 is reached, the rule engine has started.
+      - id: startlevel_50_trigger
+        label: Start level 50
+        description: Start Level 50 is reached, the rule engine has started.
         type: core.SystemStartlevelTrigger
-        configuration:
+        config:
           startlevel: 50
     actions:
       - id: "pull_timestamp_action"
@@ -36,24 +36,25 @@ ruleTemplates:
         type: Script
         config:
           script: |
-            var loggerBase = 'org.openhab.automation.ohrt-lastShutdown.'+ruleUID;
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-lastShutdown.'+ruleUID;
             console.loggerName = loggerBase;
             //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
 
             // Imports
-            var File = Java.type('java.io.File');
-            var FileInputStream = Java.type('java.io.FileInputStream')
-            var GZipInputStream = Java.type('java.util.zip.GZIPInputStream');
-            var InputStreamReader = Java.type('java.io.InputStreamReader');
-            var BufferedReader = Java.type('java.io.BufferedReader');
+            const File = Java.type('java.io.File');
+            const FileInputStream = Java.type('java.io.FileInputStream')
+            const GZipInputStream = Java.type('java.util.zip.GZIPInputStream');
+            const InputStreamReader = Java.type('java.io.InputStreamReader');
+            const BufferedReader = Java.type('java.io.BufferedReader');
 
             // Properties
-            var srcDirectory = new File('{{path}}');
-            var timestampItem = '{{item}}';
+            const srcDirectory = new File('{{path}}');
+            const timestampItem = '{{item}}';
 
             // Get all the events.log.X.gz files
-            var listFiles = srcDirectory.listFiles();
-            var file = listFiles.filter(f =>
+            const listFiles = srcDirectory.listFiles();
+            const file = listFiles.filter(f =>
             f.getName().startsWith("events.log."))
                        .sort(( a,b) => b.lastModified() - a.lastModified())[0]
             console.debug(file);
