@@ -1,7 +1,7 @@
 version: 1
 
 ruleTemplates:
-  ohrt-restartExpire-local:
+  ohrt-restartExpire:
     label: Restart Expire
     description: On OH boot updates or commands Items with Expire metadata to restart the timers.
     tags:
