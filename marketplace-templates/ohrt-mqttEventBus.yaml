@@ -115,7 +115,6 @@ ruleTemplates:
               }
             }
 
-
             /**
             * Publishes commands and updates to the configured topic.
             */
@@ -127,7 +126,6 @@ ruleTemplates:
               console.debug('Publish - Topic: ' + topic + ' Message: ' + msg + ' Retained: ' + retained);
               actions.get('mqtt', '{{broker}}').publishMQTT(topic, msg, retained);
             }
-
 
             // Trigger processing
             console.debug('Processing an MQTT Event Bus event: ' + event.eventType);
