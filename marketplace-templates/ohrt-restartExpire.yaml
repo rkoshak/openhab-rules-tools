@@ -1,0 +1,60 @@
+version: 1
+
+ruleTemplates:
+  ohrt-restartExpire-local:
+    label: Restart Expire
+    description: On OH boot updates or commands Items with Expire metadata to restart the timers.
+    tags:
+      - OHRT
+      - Version_1.0
+    configDescriptions:
+      expireState:
+        label: Use Expire State
+        description: When checked the expire state is used to update/command the Item instead of 
+          the Item's current state. If checked and there is no state defined in the expire metadata
+          UNDEF is used.
+        type: BOOLEAN
+        required: false
+        defaultValue: false    
+    triggers:
+      - id: system_start_50
+        label: Start Level 50
+        description: Trigger at start level 50, rule engine started.
+        type: core.SystemStartlevelTrigger
+        config:
+          startlevel: 50
+    actions:
+      - id: update_expire_items
+        label: Update Expire Items
+        description: Updates expire Items with their restored states or expired states.
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-restartExpire.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            const {helpers} = require('openhab_rules_tools');
+            const useExpireState = {{expireState}};
+
+            helpers.validateLibraries('5.18.2', '2.1.0');
+
+            console.info('Restarting Expire timers');
+
+            const expireItems = items.getItems()
+                                     .filter(i => i.getMetadata('expire') !== null)
+                                     .forEach( i => {
+                                        if(i.getMetadata('expire').configuration['ignoreStateUpdates'] == 'true' && !i.isUninitialized) {
+                                          console.debug('Commanding Item ' + i.name + ' to ' + i.state);
+                                          i.sendCommand(i.state);
+                                        }
+                                        else {
+                                          const mdValue = i.getMetadata('expire').value.split(',');
+                                          const expireState = (mdValue.length == 2) ? mdValue[1].replace('command=', '') : 'UNDEF';
+                                          const state = (useExpireState) ? expireState : i.state;
+                                          console.debug('Updating Item ' + i.name + ' to ' + state + ' with use Expire State ' + useExpireState);
+                                          i.postUpdate(state);
+                                        }
+                                      });
