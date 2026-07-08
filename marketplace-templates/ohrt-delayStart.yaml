@@ -71,4 +71,3 @@ ruleTemplates:
                 console.error('Failed to disable/enable rule ' + rule + ': ' + e);
               }
             }), 'delayedStart');
-
