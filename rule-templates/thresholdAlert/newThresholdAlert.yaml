@@ -1210,9 +1210,9 @@ actions:
           let state;
           if(event.newState === undefined && event.receivedState === undefined){
             console.debug('Running without event wrapper');
-            type = event.type.toString();
-            state = event.itemState.toString();
-          } 
+            type = event.type?.toString() ?? event.eventName ?? '';
+            state = event.itemState?.toString() ?? null;
+          }
           else {
             console.debug('Running with event wrapper');
             type = event.eventName;
@@ -1222,9 +1222,16 @@ actions:
             case 'ItemStateEvent':
             case 'ItemStateUpdatedEvent':
             case 'ItemStateChangedEvent':
-              console.loggerName = loggerBase+'.'+name;
-              console.debug('Processing an Item event');
-              procEvent(name, stateToValue(state));
+              if(name !== undefined && state !== null) {
+                console.loggerName = loggerBase+'.'+name;
+                console.debug('Processing an Item event');
+                procEvent(name, stateToValue(state));
+              }
+              break;
+            case 'SystemStartlevelTrigger':
+              console.info('Startup trigger in item-event path; running restore and reconcile.');
+              init(true);
+              restoreAndReconcile();
               break;
             default:
               console.info('Rule triggered without an Item event, ' + type + ' checking the rule config');
