@@ -1,0 +1,74 @@
+version: 1
+
+ruleTemplates:
+  ohrt-delayStart:
+    label: Delay Rules at Start
+    description: Disables rules at the earliest opportunity and reenables them once OH has started with a delay.
+    tags:
+      - OHRT
+      - Version_1.0
+    configDescriptions:
+      rules:
+        label: Rules
+        description: Rules to disable during startup.
+        type: TEXT
+        context: rule
+        required: true
+        multiple: true
+      pause:
+        label: Reenable Delay
+        description: How long after the second trigger to wait before reenabling the rules, ISO8601 duration format. Defaults to reenable them immediately.
+        type: TEXT
+        defaultValue: ''
+        required: false
+    triggers:
+      - id: start_level_40
+        label: Start Level 40
+        description: Start Level 40 is reached, rules loaded.
+        configuration:
+          startlevel: 40
+        type: core.SystemStartlevelTrigger
+      - id: start_level_100
+        label: Start Level 100
+        description: Start Level 100, startup complete.
+        configuration:
+          startlevel: 100
+        type: core.SystemStartlevelTrigger
+    actions:
+      - id: delay_rules
+        label: Delay Rules
+        description: Disable rules until startup completes
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-delayStart.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            const {helpers} = require('openhab_rules_tools');
+
+            helpers.validateLibraries('5.18.2', '2.1.0');
+
+            // Props
+            const disabledRules = '{{rules}}'.replace('[','').replace(']', '').split(', ');
+            const delay = '{{pause}}';
+
+            const alreadyCalled = event.payload.startlevel == 100;
+            const timerTime = (alreadyCalled) ? delay : 0; // run immediately at start level 40 the rule, delay for 100.
+            const activity = (alreadyCalled) ? 'enabling' : 'disabling'; // disable at start level 40 and enable at start level 100.
+            const when = (alreadyCalled) ? 'after ' + delay : 'immediately'; // disable immediately at start level 40, delay enabling at start level 100.
+
+            console.info('Delayed Start triggered, ' + activity + ' rules ' + when);
+
+            helpers.createTimer(timerTime, () => disabledRules.forEach(rule => {
+              console.info(activity, rule);
+              try {
+                rules.setEnabled(rule, alreadyCalled);
+              }
+              catch(e) {
+                console.error('Failed to disable/enable rule ' + rule + ': ' + e);
+              }
+            }), 'delayedStart');
+
