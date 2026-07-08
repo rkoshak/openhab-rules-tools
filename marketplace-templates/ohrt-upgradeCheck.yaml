@@ -6,7 +6,7 @@ ruleTemplates:
     description: Runs at midnight and checks to see if the current version of OH differes from the latest release
     tags:
       - OHRT
-      - Version_1.0
+      - Version_1.1
     configDescriptions:
       curr:
         label: Current Version Item

@@ -6,7 +6,7 @@ ruleTemplates:
     description: Installs a local copy of NPM and uses that to install OHRT
     tags:
       - OHRT
-      - Version_0.2
+      - Version_1.0
     configDescriptions:
       path: 
         label: Path to openHAB's conf folder.

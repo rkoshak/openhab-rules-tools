@@ -6,7 +6,7 @@ ruleTemplates:
     description: On OH boot updates or commands Items with Expire metadata to restart the timers.
     tags:
       - OHRT
-      - Version_1.0
+      - Version_1.1
     configDescriptions:
       expireState:
         label: Use Expire State

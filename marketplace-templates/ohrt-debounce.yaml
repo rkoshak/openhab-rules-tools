@@ -6,7 +6,7 @@ ruleTemplates:
     description: Waits a configured amount of time before forwarding an Item's state change to a proxy Item.
     tags:
       - OHRT
-      - Version_0.5
+      - Version_1.0
     configDescriptions:
       debounceGroup:
         label: Debounce Group

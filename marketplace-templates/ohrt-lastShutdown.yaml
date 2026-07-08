@@ -6,7 +6,7 @@ ruleTemplates:
     description: Only works on a POSIX enviornment with bash. Pulls the last timestamp from the most recent events.log archive as the shutdown timestamp.
     tags:
       - OHRT
-      - Version_0.2
+      - Version_1.0
     configDescriptions:
       path:
         label: Logs folder

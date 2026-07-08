@@ -6,7 +6,7 @@ ruleTemplates:
     description: Publishes and subscribes to MQTT to synchronize Items between openHAB instances.
     tags:
       - OHRT
-      - Version_1.3
+      - Version_1.4
     configDescriptions:
       broker:
         label: MQTT Broker Thing
