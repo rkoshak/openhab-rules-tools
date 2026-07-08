@@ -160,20 +160,20 @@ ruleTemplates:
               // Initialize the timers, config and end debounce function
               const timers = cache.private.get('timerMgr', () => TimerMgr());
               const cfg = getConfig(event.itemName);
-              const endDebounce = endDebounceGenerator(event.itemName, event.itemState, cfg.proxy, cfg.command);
+              const endDebounce = endDebounceGenerator(event.itemName, event.newState, cfg.proxy, cfg.command);
 
               // If there are no states in the debounce metadata or if the new state is in the list of debounce states
               // set a timer based on the timeout parameter
               if(cfg.states.length == 0
-                || cfg.states.includes(event.itemState.toString())) {
-                console.debug('Debouncing ', event.itemName, "'s state", event.itemState,
+                || cfg.states.includes(event.newState)) {
+                console.debug('Debouncing ', event.itemName, "'s state", event.newState,
                             'using proxy', cfg.proxy, 'timeout', cfg.timeout,
                             'command ', cfg.command, 'and states ', cfg.states);
                 timers.check(event.itemName, cfg.timeout, endDebounce);
               }
               // If this is not a debounced state, immediately forward it to the proxy Item
               else {
-                console.debug(event.itemName, 'changed to', event.itemState, 'which is not among the debounce states:', cfg.states);
+                console.debug(event.itemName, 'changed to', event.newState, 'which is not among the debounce states:', cfg.states);
                 timers.cancel(event.itemName);
                 endDebounce();
               }
