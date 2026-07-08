@@ -808,7 +808,7 @@ actions:
         /**
          * Analyzes the rule properties and Items to verify that the config will work.
          */
-        var init = () => {
+        var init = (isStartup = false) => {
 
           console.debug( 'Rule config defaults:\n'
                        + '  Group                     - ' + group + '\n'
@@ -848,10 +848,12 @@ actions:
             });
           }
 
-          console.info('Clearing persisted alert state metadata for all group members');
-          items[group].members.forEach(item => {
-            items[item.name].removeMetadata(stateNamespace);
-          });
+          if(!isStartup) {
+            console.info('Clearing persisted alert state metadata for all group members');
+            items[group].members.forEach(item => {
+              items[item.name].removeMetadata(stateNamespace);
+            });
+          }
 
           // Inform if the threshold is UnDefType
           if(thresholdStr === 'UnDefType') {
@@ -1198,7 +1200,7 @@ actions:
 
         else if(event.eventName == "SystemStartlevelTrigger") {
           console.info('Startup trigger detected, running restore and reconcile.');
-          init();
+          init(true);
           restoreAndReconcile();
         }
 
