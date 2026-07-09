@@ -1,0 +1,111 @@
+version: 1
+
+ruleTemplates:
+  ohrt-driveTime:
+    label: Driving Time
+    description: When run it calculates the time and distance to drive between two fixed points.
+    tags:
+      - OHRT
+      - Version_1.0
+    configDescriptions:
+      region:
+        label: Region
+        description: Which Waze routing server to use. You will get an "Internal Error" if you choose the wrong one. Defaults to "US".
+        required: false
+        defaultValue: US
+        type: TEXT
+        options:
+          - label: 'AU or EU'
+            value: 'row'
+          - label: 'IL'
+            value: 'il'
+          - label: 'US'
+            value: 'am'
+        limitToOptions: true
+      startPoint:
+        label: Start
+        description: Starting point latitude,longitude 
+        required: true
+        type: TEXT
+        context: location
+      destPoint:
+        label: Destination
+        description: Ending point latitude,longitude 
+        required: true  
+        type: TEXT
+        context: location
+      timeItem:
+        label: Travel Time Item
+        description: Item that stores the travel time.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Number:Time
+        required: true
+      distanceItem:
+        label: Travel Distance Item
+        description: Item that stores the travel distance.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Number:Length
+        required: true
+    actions:
+      - id: calc_drivetime
+        label: Calculate Drive Time
+        description: Uses the Waze API to calculate the current drive time between two points.
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-driveTime.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            // Rule Properties
+            const FROM_COORD = "{{startPoint}}".split(',');
+            const TO_COORD = "{{destPoint}}".split(',');
+            const timeItem = items.{{timeItem}};
+            const distanceItem = items.{{distanceItem}};
+            const region = "{{region}}";
+
+            // Locationms
+            const FROM_LON = FROM_COORD[1].trim();
+            const FROM_LAT = FROM_COORD[0].trim();
+            const TO_LON = TO_COORD[1].trim();
+            const TO_LAT = TO_COORD[0].trim();
+
+            // URL
+            const WAZE_URL = "https://routing-livemap-"+region+".waze.com/RoutingManager/routingRequest?";
+            const URL = WAZE_URL
+                        +"from=x%3A"+FROM_LON+"+y%3A"+FROM_LAT+"+bd%3Atrue"
+                        +"&to=x%3A"+TO_LON+"+y%3A"+TO_LAT+"+bd%3Atrue"
+                        +"&returnJSON=true&returnGeometries=true&returnInstructions=true&timeout=60000&nPaths=1"
+
+            // Headers
+            const headers = new Map();
+            headers.set("User-Agent", "Mozilla/5.0");
+            headers.set("referer", WAZE_URL);
+
+            console.debug("Getting the distance and time to travel between " +
+                          FROM_COORD + " to " + TO_COORD + " using URL " + URL);
+
+            const rawJSON = actions.HTTP.sendHttpGetRequest(URL, headers, 60000);
+            console.trace("Results: \n" + rawJSON);
+
+            const parsed = JSON.parse(rawJSON);
+            if(parsed.response === undefined) {
+              console.error('Failed to retrieve a parsable response from Waze. "Internal Error" may mean you selected the wrong region. Response:\n' + rawJSON);
+            }
+            else {
+              // Calculate time and distance
+              const time = parsed.response.results.map( r => Quantity(r.crossTime + ' s') ).reduce( (total, curr) => total.add(curr), Quantity('0 s') );
+              const distance = parsed.response.results.map( d => Quantity( d['length'] + ' m' ) ).reduce( (total, curr) => total.add(curr), Quantity('0 m') );
+
+              console.debug("Time is " + time.toUnit("min") + " and distance is " + distance.toUnit("mi"));
+              timeItem.postUpdate(time);
+              distanceItem.postUpdate(distance);
+            }
