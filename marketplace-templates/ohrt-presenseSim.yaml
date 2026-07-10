@@ -7,7 +7,7 @@ ruleTemplates:
     tags:
       - OHRT
       - Version_1.1
-    configurationDescriptions:
+    configDescriptions:
       enableSim:
         label: Enable Simulation
         description: When not ON, the simulation rule will run (e.g. when Presence is OFF presence simulation will run).
@@ -42,7 +42,7 @@ ruleTemplates:
         min: 0
     triggers:
       - id: every_x_minutes
-        lable: Every X Minutes
+        label: Every X Minutes
         description: Triggers the rule every configured number of minutes. 
         config:
           cronExpression: "0 0/{{minutes}} * * * ? *"
