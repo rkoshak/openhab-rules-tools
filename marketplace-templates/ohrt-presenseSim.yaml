@@ -1,0 +1,85 @@
+version: 1
+
+ruleTemplates:
+  ohrt-presenseSim:
+    label: Presense Simulation
+    description: Triggers periodically when a given Item is ON and plays back the states of Items stored in persistence.
+    tags:
+      - OHRT
+      - Version_1.1
+    configurationDescriptions:
+      enableSim:
+        label: Enable Simulation
+        description: When not ON, the simulation rule will run (e.g. when Presence is OFF presence simulation will run).
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Switch
+        required: true
+      simItems:
+        label: Simulation Items Group
+        description: The Group whose members are to have their behaviors simulated.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Group
+        required: true
+      days:
+        label: Num Days
+        description: The number of days to look back for playback (recommend multiples of 7).
+        type: INTEGER
+        required: false
+        defaultValue: 7
+        min: 0
+      minutes:
+        label: Minutes
+        description: How frequently to run the simulation rule in minutes.
+        type: INTEGER
+        required: false
+        defaultValue: 5
+        min: 0
+    triggers:
+      - id: every_x_minutes
+        lable: Every X Minutes
+        description: Triggers the rule every configured number of minutes. 
+        config:
+          cronExpression: "0 0/{{minutes}} * * * ? *"
+        type: timer.GenericCronTrigger
+    conditions:
+      - id: sim_enabled
+        label: Simulation Enabled
+        description: Only run when the enableS simulation Item is ON
+        config:
+          itemName: "{{enableSim}}"
+          state: "ON"
+          operator: "!="
+        type: core.ItemStateCondition
+    actions:
+      - id: presence_playback
+        label: Presence Playback
+        description: Plays back the states of the members of the presence simulation group from N days ago
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-presenceSim.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            const {helpers} = require('openhab_rules_tools');
+            helpers.validateLibraries('5.18.2', '2.1.0');
+
+            const when = time.toZDT().minusDays({{days}});
+            items.{{simItems}}.members.forEach((i) => {
+              const hState = i.persistence.persistedState(when);
+              if(hState === undefined || hState === null) {
+                console.warn(i.name + ' does not have a historic state for ' + '{{days}}' + ' days ago');
+              }
+              else {
+                console.debug('Commanding ' + i.name + ' to ' + hState.state);
+                i.sendCommandIfDifferent(hState.state);
+              }
+            });
