@@ -1,7 +1,7 @@
 version: 1
 
 ruleTemplates:
-  ohrt-presenseSim:
+  ohrt-presenceSim:
     label: Presense Simulation
     description: Triggers periodically when a given Item is ON and plays back the states of Items stored in persistence.
     tags:
