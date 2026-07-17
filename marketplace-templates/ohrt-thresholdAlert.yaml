@@ -1,0 +1,1155 @@
+version: 1
+
+ruleTemplates:
+  ohrt-threaholdAlert:
+    label: Threshold Alert
+    description: Triggers on a change to a member of a Group. If the new state meets a user defined criteria, an alert rule is called. When exiting an alert state, an end alert rule is called. Running this rule manually will validate the configuration.
+    tags:
+      - OHRT
+      - Version_1.9
+    configDescriptions:
+      group:
+        label: Triggering Group
+        description: Group whose members should trigger this rule
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Group
+        required: true
+      thresholdState:
+        label: Threshold State
+        description: The state compared to to determine if the Item is alerting or not. This supports units.
+        type: TEXT
+        required: true
+      operator:
+        label: Comparison Operator
+        description: Comparison used with Threshold State to determine if the current state is alerting.
+        type: TEXT
+        required: true
+        options:
+          - label: '= equals'
+            value: '=='
+          - label: '!= not equal to'
+            value: '!='
+          - label: '< less than'
+            value: '<'
+          - label: '<= less than or equal'
+            value: '<='
+          - label: '> greater than'
+            value: '>'
+          - label: '>= greater than or equal'
+            value: '>='
+        limitToOptions: true
+      invert:
+        label: Invert Comparison
+        description: Inverts the comparison to mean the opposite (e.g. if true and operator == will mean !=)
+        type: BOOLEAN
+        defaultValue: false
+        required: false
+      reschedule:
+        label: Reschedule
+        description: If an alert timer already exists from a previous run of the rule, when true reschedule it. Otherwise the alert is ignored and the alert rule is called based on the previous event.
+        type: BOOLEAN
+        defaultValue: false
+        required: false
+      hysteresis:
+        label: Hysteresis
+        description: Optional value above/below the threshold the state must achieve before it is considered to nolonger alerting.
+        type: TEXT
+        defaultValue: ''
+        required: false
+      defaultAlertDelay:
+        label: Alert Delay
+        description: How long to wait before calling the rule when the Item meets the threshold comparison, ISO8061 duration format. Can be overridden by Item metadata.
+        type: TEXT
+        defaultValue: ''
+        required: false
+      defaultRemPeriod:
+        label: Reminder Period
+        description: How long to wait between repeated calls to the threshold rule, ISO8601 duration format. Can be overridden by Item metadata.
+        type: TEXT
+        defaultValue: ''
+        required: false
+      namespace:
+        label: Metadata Namespace
+        description: The Item metadata namespace where per Item alert delay and reminder periods can be defined
+        type: TEXT
+        defaultValue: thresholdAlert
+        required: false
+      alertRule:
+        label: Alert Rule
+        description: The rule called when the Item meets the threshold criteria for at least as long as alert delay. This rule will be called repeatedly if reminder period is defined.
+        type: TEXT
+        context: rule
+        required: true
+      endAlertRule:
+        label: End Alert Rule
+        description: The rule called when the Item was previously alerted but no longer meets the threshold criteria. This is optional, will only be called once, and can be the same as the alert rule.
+        type: TEXT
+        context: rule
+        defaultValue: ''
+        required: false
+      initAlertRule:
+        label: Initial Alert Rule
+        description: The rule called when the Item immediately enters the alert state regardless of what the alert delay is set to.
+        type: TEXT
+        context: rule
+        defaultValue: ''
+        required: false
+      dndStart:
+        label: Do Not Disturb Start Time
+        description: Start of an optional do not disturb period. Calls to either the alert rule or the end alert rule will be suppressed during this period with the latest call made at the end of the period.
+        type: TEXT
+        context: time
+        defaultValue: ''
+        required: false
+      dndEnd:
+        label: Do Not Distrub End Time
+        description: End of the do not disturb period. If this time is before the start time, the period is assumed to span midnight.
+        type: TEXT
+        context: time
+        defaultValue: ''
+        required: false
+      gkDelay:
+        label: Gatekeeper Delay
+        description: Sometimes a delay is needed between calls to the rules to avoid multithreaded exceptions. The delay is in milliseconds.
+        type: INTEGER
+        defaultValue: 0
+        required: false
+      rateLimit:
+        label: Rate Limit
+        description: Only allow the alert rule to be called this often. Events that occur before that time are dropped. Use ISO8601 duration formatting. If used with a Gatekeeper Delay it should be significantly longer.
+        type: TEXT
+        defaultValue: ''
+        required: false
+    triggers:
+      - id: member_of_group_changed
+        label: Member of selected Group changed
+        description: Triggers the rule when a member of the group changes state.
+        config:
+          groupName: "{{group}}"
+        type: core.GroupStateChangeTrigger
+      - id: system_startlevel_40
+        label: System Start Level 40 reached
+        description: Runs during startup to restart timers based on Item's restored states.
+        config:
+          startlevel: 40
+        type: core.SystemStartlevelTrigger
+    actions:
+      - id: determine_threaholds_and_alert
+        label: Calculate threasholds and alert
+        description: On Item change  determine if the Item violates the alerting threshold. If so alert and schedule repeated alerts.
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-threasholdAlert.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            const {helpers, LoopingTimer, Gatekeeper, timeUtils, RateLimit} = require('openhab_rules_tools');
+            const {DecimalType, QuantityType, PercentType} = require('@runtime');
+
+            helpers.validateLibraries('5.20.0', '2.1.0');
+
+            console.debug('Starting threshold alert');
+
+            // Properties
+            const group = '{{group}}';
+            const thresholdStr = '{{thresholdState}}';
+            const operator = '{{operator}}';
+            const comparison = (currState, threshold) => { return currState {{operator}} threshold; };
+            const invert = {{invert}};
+            const defaultAlertDelay = '{{defaultAlertDelay}}';
+            const defaultRemPeriod = '{{defaultRemPeriod}}';
+            const namespace = '{{namespace}}';
+            const alertRuleUID = '{{alertRule}}';
+            const endAlertUID = '{{endAlertRule}}';
+            const dndStart = '{{dndStart}}';
+            const dndEnd = '{{dndEnd}}';
+            const gkDelay = {{gkDelay}};
+            const hystRange = '{{hysteresis}}';
+            const rateLimitPeriod = '{{rateLimit}}';
+            const reschedule = {{reschedule}};
+            const initAlertRuleUID = '{{initAlertRule}}';
+            const stateNamespace = namespace + 'State';
+
+            // ~~~~~~~~~~~Functions
+
+            /**
+            * Converts an Item's state to a value we can compare in this rule.
+            *
+            * @param {State|string} an Item's state
+            * @return {String|float|Quantity} the state converted to a usable type
+            */
+            function stateToValue(state) {
+              console.debug('Processing state ' + state + ' of type ' + typeof state);
+              if(typeof state !== 'string') {
+                console.debug('state is not a String, converting to a String.');
+                state = state.toString();
+              }
+
+              console.debug('state is a string: ' + state);
+              if(state.includes(' ')) {
+                try {
+                  console.debug('state is a Quantity: ' + state);
+                  return Quantity(state)
+                } catch(e) {
+                  // do nothing, leave it as a String
+                  console.debug('Not a Quantity but has a space, leaving as a string: ' + state);
+                  return state;
+                }
+              }
+              else if(state == '') {
+                console.debug('state is the empty string, no conversion possible');
+                return state;
+              }
+              else if(!isNaN(state)) {
+                console.debug('state is a number: ' + state)
+                return Number.parseFloat(state);
+              }
+              else if(state == 'UnDefType' || state == 'NULL' || state == 'UNDEF') {
+                console.debug('state is an undef type, normalizing to UnDefType');
+                return 'UnDefType';
+              }
+              else {
+                console.debug('Leaving state as a string');
+                return state;
+              }
+            }
+
+            /**
+            * Determines if the Item is in an alerting state based on the configured comparison.apply
+            *
+            * @param {string|float|Quantity} current state of the Item
+            * @param {Object} record the Item's record of properties and timers
+            * @param {function(a,b)} operator the comparison operator to use
+            * @return {boolean} true if current is an alerting state
+            */
+            function isAlertingState(currState, record) {
+              let calc = currState + ' ' + record.operator + ' ' + record.threshold;
+              if(record.invert) calc = '!(' + calc + ')';
+              console.debug('Checking if we are in the alerting state: ' + calc);
+
+              let rval = record.compare(currState, record.threshold);
+              rval = (record.invert) ? !rval : rval;
+              console.debug('Result is ' + rval);
+              return rval;
+            }
+
+            /**
+            * Checks the proposed alerting time and adjusts it to occur at the end of the DND
+            * if the proposed time falls in the DND time.
+            *
+            * @param {anything supported by time.toZDT()} timeout proposed time to send the alert
+            * @param {String} dndStart time the DND starts
+            * @param {String} dndEnd time the DND ends
+            * @return {time.ZonedDateTime} adjusted time to send the alert or null if there is a problem
+            */
+            function generateAlertTime(timeout, dndStart, dndEnd) {
+              if(timeout === '' || (!(timeout instanceof time.ZonedDateTime) && !validateDuration(timeout))){
+                console.debug('Timeout ' + timeout + ' is not valid, using null');
+                return null;
+              }
+
+              let rval = time.toZDT(timeout.toString());
+              let start = time.toZDT(dndStart);
+              let end = time.toZDT(dndEnd);
+              if(rval.isBetweenTimes(start, end)) {
+                console.debug('Alert is scheduled during do not distrub time, moving to ' + dndEnd);
+                rval = end;
+                if(time.toZDT(rval).isBefore(time.toZDT())) {
+                  console.debug('Moving alert time to tomorrow');
+                  rval = timeUtils.toTomorrow(end);
+                }
+              }
+              return rval;
+            }
+
+            /**
+            * Calls the rule with the alert info, using the gatekeeper to prevent overloading the
+            * rule. The rule is called to inforce conditions.
+            *
+            * @param {string|float|Quantity} state Item state that is generating the alert
+            * @param {string} ruleID rule to call
+            * @param {boolean} isAlerting indicates if the Item is alerting or not
+            * @param {boolean} isInitialAlert indicates if the Item is just detected as alerting but not yet alerted
+            * @param {Object} record all the information related to the Item the rule is being called on behalf of
+            */
+            function callRule(state, ruleID, isAlerting, isInitialAlert, record) {
+
+              if(ruleID == '') {
+                console.debug('No rule ID passed, ignoring');
+                return;
+              }
+
+              console.debug('Calling ' + ruleID + ' with alertItem=' + record.name + ', alertState=' + state + ', isAlerting='
+                            + isAlerting + ', and initial alert ' + isInitialAlert);
+              var rl = cache.private.get('rl', () => RateLimit());
+
+              function throttle() {
+                const gk = cache.private.get('gatekeeper', () => Gatekeeper());
+                const records = cache.private.get('records');
+                gk.addCommand(record.gatekeeper, () => {
+                  try {
+                    // If the Item hasn't triggered this rule yet and therefore doesn't have a record, skip it
+                    const allAlerting = items[group].members.filter(item => records[item.name] !== undefined && isAlertingState(stateToValue(item.state), records[item.name]));
+                    const alertingNames = allAlerting.map(item => item.name);
+                    const nullItems = items[group].members.filter(item => item.isUninitialized);
+                    const nullItemNames = nullItems.map(item => item.name);
+                    rules.runRule(ruleID, {'alertItem':       record.name,
+                                          'alertState':       ''+state,
+                                          'isAlerting':       isAlerting,
+                                          'isInitialAlert':   isInitialAlert,
+                                          'threshItems':      alertingNames,
+                                          'nullItems':        nullItemNames,}, true);
+                  } catch(e) {
+                    console.error('Error running rule ' + ruleID + '\n' + e);
+                  }
+                  console.debug('Rule ' + ruleID + ' has been called for ' + record.name);
+                });
+              }
+              // Only rate limit the alert, always make the end alert call
+              (isAlerting && record.rateLimit !== '') ? rl.run(throttle, record.rateLimit) : throttle();
+
+            }
+
+            /**
+            * Creates the function that gets called by the loopingTimer for a given Item. The generated
+            * function returns how long to wait for the next call (adjusted for DND) or null when it's
+            * time to exit.
+            *
+            * @param {String} name of the Item this alert is for
+            * @return {function} function that takes no arguments called by the looping timer
+            */
+            function sendAlertGenerator(name) {
+              return () => {
+                console.loggerName = loggerBase+"."+name;
+                const record = cache.private.get('records')[name];
+                const item = items[name];
+                const currState = stateToValue(items[name].state);
+                refreshRecord(record);
+
+                console.debug('Alert timer expired for ' + record.name + ' with dnd between ' + record.dndStart + ' and ' + record.dndEnd + ' and reminder period ' + record.remPeriod);
+                let repeatTime = generateAlertTime(record.remPeriod, record.dndStart, record.dndEnd); // returns null if remPeriod is '', which cancels the loop
+
+                // Call alert rule if still alerting
+                if(isAlertingState(currState, record)) {
+                  console.debug(name + ' is still in an alerting state.');
+                  callRule(currState, record.alertRule, true, false, record);
+                  if(!record.alerted) record.alertState = currState;
+                  record.alerted = true;
+                  saveRecord(record);
+                  if(repeatTime === null) record.alertTimer = null; // clean up if no longer looping
+                  console.debug('Waiting until ' + repeatTime + ' to send reminder for ' + name);
+                  return repeatTime;
+                }
+                // no longer alerting, cancel the repeat, send an alert if configured
+                else {
+                  console.debug(name + ' is no longer in an alerting state but timer was not cancelled, this should not happen');
+                  record.alertTimer = null;
+                  return null;
+                }
+              }
+            }
+
+            /**
+            * Called when the Item event indicates that it's in an alerting state. If there isn't
+            * already a looping timer running, create one to initially run at alertTime (adjusted
+            * for DND) and repeat according to remPeriod. If dndStart is after dndEnd, the DND is
+            * assumed to span midnight.
+            *
+            * @param {State|String} state state of the Item that generated the event
+            * @param {Object} record contains alertTimer, endAlertTimer, and alerted flag
+            */
+            function alerting(state, record) {
+              console.debug(record.name + ' is in the alert state of ' + state);
+
+              // Cancel the endAlertTimer if there is one
+              if(record.endAlertTimer !== null) {
+                console.debug('Cancelling endAlertTimer for ' + record.name);
+                record.endAlertTimer.cancel();
+                record.endAlertTimer = null;
+              }
+
+              // Set a timer for how long the Item needs to be in the alerting state before alerting.
+              // If one is already set, ignore it
+              let timeout = generateAlertTime(record.alertDelay, record.dndStart, record.dndEnd);
+              if(timeout === null) timeout = 'PT0S'; // run now
+
+              // First time the Item entered the alert state
+              if(record.alertTimer === null && !record.isAlerting) {
+                // Schedule the initAlertTimer first and it will run first
+                console.debug('Calling the initial alert rule for ' + record.name);
+                record.initAlertTimer = LoopingTimer();
+                record.initAlertTimer.loop(() => {
+                  console.debug('Calling init alert rule for ' + record.name);
+                  callRule(state, record.initAlertRule, false, true, record);
+                  record.initAlertTimer = null;
+                  return null;
+                }, generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd));
+                // Create the alert timer
+                console.debug('Creating looping alert timer for ' + record.name + ' at ' + timeout);
+                record.alertTimer = LoopingTimer();
+                record.alertTimer.loop(sendAlertGenerator(record.name), timeout);
+              }
+              // Reschedule the alert timer
+              else if(record.alertTimer !== null && record.reschedule) {
+                console.debug('Rescheduling the timer for ' + record.name + ' at ' + timeout);
+                record.alertTimer.timer.reschedule(time.toZDT(timeout));
+              }
+              // Do nothing
+              else {
+                console.debug(record.name + ' already has an alert timer or has already alerted, ignoring event.');
+              }
+            }
+
+            /**
+            * Applies the hysteresis and returns true if the curr value is different enough from the
+            * alert value or if the calculation cannot be done because the three arguments are not
+            * compatible.
+            * @param {string|float|Quantity} curr current state
+            * @param {string|float|Quantity} alert the state that was alerted
+            * @param {string|float|hyst} hyst the hysteresis range
+            * @return {boolean} true if curr is different from alert by hyst or more, or if the arguments are incompatable.
+            */
+            function applyHyst(curr, alert, hyst) {
+              console.debug('Applying hysteresis with: curr = ' + curr + ', alert = ' + alert + ', hyst = ' + hyst);
+
+              // Quantity
+              if(curr.unit !== undefined && alert.unit != undefined && hyst.unit !== undefined) {
+                try {
+                  const delta = (curr.lessThan(alert)) ? alert.subtract(curr) : curr.subtract(alert);
+                  console.debug('Applying hysteresis using Quantities, delta = ' + delta + ' hystRange = ' + hyst);
+                  return delta.greaterThan(hyst);
+                } catch(e) {
+                  console.error('Attempting to apply hysteresis with Quantities of incompatable units. Not applying hysteresis');
+                  return true;
+                }
+              }
+              // Number
+              else if(typeof curr !== 'string' && typeof alert !== 'string' && typeof hyst !== 'string') {
+                curr = (curr.unit !== undefined) ? curr.float : curr;
+                alert = (alert.unit !== undefined) ? alert.float : alert;
+                hyst = (hyst.unit !== undefined) ? hyst.float : hyst;
+                const delta = Math.abs(curr - alert);
+                console.debug('Applying hysteresis using numbers, delta = ' + delta + ' hystRange = ' + hyst);
+                return delta > hyst;
+              }
+              else {
+                console.debug('Not all values are compatible, skipping hysteresis');
+                return true;
+              }
+            }
+
+            /**
+            * Called when the Item event indicates that it is not in an alerting state.
+            * Clean up the record a
+            * @param {string|float|Quantity} state state that generated the event
+            * @param {Object} record contains alertTimer, endAlertTimer, and alerted flag
+            */
+            function notAlerting(state, record) {
+              console.debug(record.name + "'s new state is " + state + ' which is no longer in the alerting state, previously alerted = ' + record.alerted);
+
+              // Skip if we don't pass hysteresis
+              if(record.alerted && !applyHyst(state, record.threshold, record.hysteresis)) {
+                console.debug(record.name + ' did not pass hysteresis, remaining in alerting state');
+                return;
+              }
+
+              // Cancel the initAlertTimer
+              if(record.initAlertTimer !== null) {
+                console.debug('Cancelling alert timer for ' + record.name);
+                record.initAlertTimer.cancel();
+                record.initAlertTimer = null;
+              }
+
+              // Cancel the alertTimer
+              if(record.alertTimer !== null) {
+                console.debug('Cancelling alertTimer for ' + record.name);
+                record.alertTimer.cancel();
+                record.alertTimer = null;
+              }
+
+              // Send alert if required
+              if(record.endRule && record.alerted) {
+                console.debug('Sending alert that ' + record.name + ' is no longer in the alerting state');
+                // Schedule a timer if in DND, otherwise run now
+                const scheduleTime =  generateAlertTime(time.toZDT(), record.dndStart, record.dndEnd);
+                if(record.endAlertTimer === undefined || record.endAlertTimer === null) {
+                  record.endAlertTimer = LoopingTimer();
+                  record.endAlertTimer.loop(() => {
+                    console.debug('Calling end alert rule for ' + record.name);
+                    callRule(stateToValue(items[record.name].state), record.endRule, false, false, record);
+                    record.alerted = false;
+                    record.alertState = null;
+                    saveRecord(record);
+                    record.endAlertTimer = null;
+                    return null;
+                  },scheduleTime);
+                }
+                else {
+                  record.endAlertTimer.timer.reschedule(scheduleTime);
+                }
+              }
+              else if(!record.endRule && record.alerted) {
+                console.debug('No end alert rule is configured, exiting alerting for ' + record.name);
+                record.alerted = false;
+                record.alertState = null;
+                saveRecord(record);
+              }
+              else if(!record.alerted) {
+                console.debug('Exiting alerting state but alert was never sent, not sending an end alert for ' + record.name);
+              }
+              else {
+                console.warn('We should not have reached this!');
+              }
+            }
+
+            /**
+            * Returns a function that executes the passed in comparison on two operands. If
+            * both are numbers a numerical comparison is executed. Otherwise the operands are
+            * converted to strings and a string comparison is done.
+            *
+            * @param {string} operator the comparison the that the returned function will execute
+            * @return {function(a, b)} function tjat executes a number comparison if both operands are numbers, a string comparison otherwise
+            */
+            function generateStandardComparison(operator) {
+              return (a, b) => {
+                let op = null;
+                switch(operator) {
+                  case '==':
+                    op = (a, b) => a == b;
+                    break;
+                  case '!=':
+                    op = (a, b) => a != b;
+                    break;
+                  case '<' :
+                    op = (a, b) => a < b;
+                    break;
+                  case '<=':
+                    op = (a, b) => a <= b;
+                    break;
+                  case '>' :
+                    op = (a, b) => a > b;
+                    break;
+                  case '>=':
+                    op = (a, b) => a >=b;
+                    break;
+                }
+                if(isNaN(a) || isNaN(b)) {
+                  return op(''+a, ''+b); // convert to strings if both operands are not numbers
+                }
+                else {
+                  return op(a, b);
+                }
+              }
+            }
+
+            /**
+            * Creates the custom comparison operator. If both operands are Quantities and they
+            * have compatible units, the Quantity comparison will be returned. Otherwise a
+            * standard comparison will be used.
+            *
+            * @param {string} operator the comparison operator
+            * @return {function(a, b)} function that executes the right comparison operation based on the types of the operands
+            */
+            function generateComparison(operator) {
+              // Assume quantity, revert to standard if not or incompatible units
+              return (a, b) => {
+                let op = null;
+                switch(operator) {
+                  case '==':
+                    op = (a, b) => a.equal(b);
+                    break;
+                  case '!=':
+                    op = (a, b) => !a.equal(b);
+                    break;
+                  case '<' :
+                    op = (a, b) => a.lessThan(b);
+                    break;
+                  case '<=':
+                    op = (a, b) => a.lessThanOrEqual(b);
+                    break;
+                  case '>' :
+                    op = (a, b) => a.greaterThan(b);
+                    break;
+                  case '>=':
+                    op = (a, b) => a.greaterThanOrEqual(b);
+                    break;
+                }
+                try {
+                  if(a.unit !== undefined && b.unit !== undefined) return op(a, b);
+                  else return generateStandardComparison(operator)(a, b);
+                } catch(e) {
+                  // Both are Quantities but they have incompatible units
+                  return generateStandardComparison(operator)(a, b);
+                }
+              }
+            }
+
+            /**
+            * Persists the alert state for an Item to its metadata so it survives a restart.
+            *
+            * @param {Object} record contains the Item name, alerted flag, and alertState
+            */
+            function saveRecord(record) {
+              items[record.name].replaceMetadata(stateNamespace, 'state', {
+                alerted:    record.alerted === true,
+                alertState: (record.alertState === undefined || record.alertState === null) ? '' : '' + record.alertState
+              });
+            }
+
+            /**
+            * Loads the persisted alert state for an Item from its metadata.
+            *
+            * @param {Object} record contains the Item name; alerted and alertState will be populated
+            */
+            function loadRecord(record) {
+              const md = items[record.name].getMetadata()[stateNamespace];
+              if(md !== undefined && md !== null) {
+                record.alerted    = md.configuration.alerted === true;
+                record.alertState = md.configuration.alertState !== '' ? md.configuration.alertState : null;
+              }
+            }
+
+            /**
+            * Called on startup to restore persisted alert state and reconcile the current
+            * Item states against it. Items still alerting re-arm their timers; items that
+            * exited alert during downtime fire the end-alert rule once.
+            */
+            function restoreAndReconcile() {
+              console.info('Restart detected: restoring persisted alert state and reconciling current states');
+              const records = cache.private.get('records', () => { return {}; });
+              items[group].members.map(item => item.name).forEach(name => {
+                if(records[name] === undefined) {
+                  records[name] = { name: name,
+                                    alertTimer: null,
+                                    endAlertTimer: null,
+                                    initAlertTimer: null,
+                                    alerted: false };
+                }
+                loadRecord(records[name]);
+                const raw = '' + items[name].state;
+                if(raw !== 'NULL' && raw !== 'UNDEF') {
+                  procEvent(name, stateToValue(items[name].state));
+                }
+                else {
+                  console.debug(name + ' has no usable state yet; deferring to its next event.');
+                }
+              });
+            }
+
+            /**
+            * Populate/refresh the record with any changes to parameters that may have been
+            * made to the Item's metadata since the rule was first run.
+            *
+            * @param {Object} record contains all the settings and timners for an Item
+            */
+            function refreshRecord(record) {
+              // Metadata may have changed, update record with latest values
+              console.debug('Populating record from Item metadata or rule defauls');
+              const md = (items[record.name].getMetadata()[namespace] !== undefined) ? items[record.name].getMetadata()[namespace].configuration : {};
+              console.debug('Converting threshold to value');
+              record.threshold = stateToValue(thresholdStr);
+              if(md['threshold'] !== undefined) record.threshold = stateToValue(md['threshold']);
+              if(md['thresholdItem'] !== undefined) record.threshold = stateToValue(items[md['thresholdItem']].state);
+              record.operator      = (md['operator'] !== undefined) ? md['operator'] : operator;
+              record.invert        = (md['invert'] !== undefined) ? md['invert'] === true : invert;
+              record.reschedule    = (md['reschedule'] !== undefined) ? md['reschedule'] === true : reschedule;
+              record.compare       = generateComparison(record.operator);
+              record.alertDelay    = (md['alertDelay'] !== undefined) ? md['alertDelay'] : defaultAlertDelay;
+              record.remPeriod     = (md['remPeriod'] !== undefined) ? md['remPeriod'] : defaultRemPeriod;
+              record.alertRule     = (md['alertRuleID'] !== undefined) ? md['alertRuleID'] : alertRuleUID;
+              record.endRule       = (md['endRuleID'] !== undefined) ? md['endRuleID'] : endAlertUID;
+              record.initAlertRule = (md['initAlertRuleID'] !== undefined) ? md['initAlertRuleID'] : initAlertRuleUID
+              record.gatekeeper    = (md['gatekeeperDelay'] !== undefined) ? md['gatekeeperDelay'] : gkDelay;
+              console.debug('Converting hysteresis to value');
+              record.hysteresis    = stateToValue((md['hysteresis'] !== undefined) ? md['hysteresis'] : hystRange);
+              record.rateLimt      = (md['rateLimit'] !== undefined) ? md['rateLimit'] : rateLimitPeriod;
+              record.dndStart      = (md['dndStart'] !== undefined) ? md['dndStart'] : dndStart;
+              record.dndEnd        = (md['dndEnd'] !== undefined) ? md['dndEnd'] : dndEnd;
+              console.debug('Processing event for Item ' + record.name + ' with properties: \n'
+                            + '  Threshold          - ' + record.threshold + '\n'
+                            + '  Operator           - ' + record.operator + '\n'
+                            + '  Invert             - ' + record.invert + '\n'
+                            + '  Reschedule         - ' + record.reschedule + '\n'
+                            + '  Alert Delay        - ' + record.alertDelay + '\n'
+                            + '  Reminder Period    - ' + record.remPeriod + '\n'
+                            + '  Alert Rule ID      - ' + record.alertRule + '\n'
+                            + '  End Alert Rule ID  - ' + record.endRule + '\n'
+                            + '  Init Alert Rule ID - ' + record.initAlertRule + '\n'
+                            + '  Gatekeeper Delay   - ' + record.gatekeeper + '\n'
+                            + '  Hystersis          - ' + record.hysteresis + '\n'
+                            + '  Rate Limt          - ' + record.rateLimt + '\n'
+                            + '  DnD Start          - ' + record.dndStart + '\n'
+                            + '  DnD End            - ' + record.dndEnd);
+            }
+
+            /**
+            * Process an Item event, checking to see if it is in an alerting state and calling
+            * the alerting rule with repeats if configured. If it is no longer in an alerting
+            * state and an alert was sent, call the end alerting rule if configured.
+            *
+            * @param {string} name the name of the Item
+            * @param {string|float|Quantity} state the Item's current state
+            */
+            function procEvent(name, state) {
+
+              console.debug('Processing state ' + state + ' from ' + name);
+              const records = cache.private.get('records', () => { return {}; });
+
+              // Initialize the record in timers if one doesn't already exist
+              if(records[name] === undefined) {
+                console.debug('Initializing record for ' + name);
+                records[name] = { name: name,
+                                  alertTimer: null,
+                                  endAlertTimer: null,
+                                  initAlertTimer: null,
+                                  alerted: false };
+              }
+              const record = records[name];
+
+              refreshRecord(record);
+
+              // Alerting state, set up an alert timer
+              if(isAlertingState(state, record)) {
+                alerting(state, record);
+              }
+              // Not alerting, cancel the timer and alert if configured
+              else {
+                notAlerting(state, record);
+              }
+            }
+
+            /**
+            * @param {string} op candidate operator
+            * @return {boolen} true if op is one of ==, !=, <, <=, >, >=
+            */
+            function validateOperator(op) {
+              return ['==', '!=', '<', '<=', '>', '>='].includes(op);
+            }
+
+            /**
+            * @param {string} dur candidate ISO8601 duration
+            * @return {boolean} true if dur can be parsed into a duration
+            */
+            function validateDuration(dur) {
+              try {
+                if(dur !== '') time.Duration.parse(dur);
+                return true
+              } catch(e) {
+                console.error('Failed to parse duration ' + dur + ': ' + e);
+                return false;
+              }
+            }
+
+            /**
+            * @param {string} t candidate time
+            * @return {boolean} true if t can be converted into a valid datetime
+            */
+            function validateTime(t) {
+              try {
+                const militaryHrRegex = /^(0?[0-9]|1[0-9]|2[0-3])(:[0-5][0-9]){1,2}$/;
+                const meridianHrRegex = /^(0?[0-9]|1[0-2])(:[0-5][0-9]){1,2} ?[a|p|A|P]\.?[m|M]\.?$/;
+                if(militaryHrRegex.test(t) || meridianHrRegex.test(t)) {
+                  time.toZDT(t);
+                  return true;
+                } else {
+                  return false;
+                }
+              } catch(e) {
+                console.error('Failed to parse time ' + t + ': ' + e);
+                return false;
+              }
+            }
+
+            /**
+            * @param {string} id candidate rule id
+            * @return {boolean} true if the rule exists and is enabled
+            */
+            function validateRule(id) {
+              try {
+                if(!rules.isEnabled(id)) {
+                  console.error('Rule ' + id + ' is disabled');
+                  return false;
+                }
+                return true;
+              } catch(e) {
+                console.error('Rule ' + id + ' does not exist');
+                return false;
+              }
+            }
+
+            /**
+            * @param {string} h candidate hysteresis
+            * @return {boolean} true if h is either a number or Quantity
+            */
+            function validateHysteresis(h) {
+              const parsed = stateToValue(h);
+              return !isNaN(parsed) || parsed.unit !== undefined;
+            }
+
+            /**
+            * Analyzes the rule properties and Items to verify that the config will work.
+            */
+            function init(isStartup = false) {
+
+              console.debug( 'Rule config defaults:\n'
+                          + '  Group                     - ' + group + '\n'
+                          + '  Threhsold                 - ' + thresholdStr + '\n'
+                          + '  Operator                  - ' + operator + '\n'
+                          + '  Invert Operator           - ' + invert + '\n'
+                          + '  Reschedule                - ' + reschedule + '\n'
+                          + '  Default Alert Delay       - ' + defaultAlertDelay + '\n'
+                          + '  Default Reminder Duration - ' + defaultRemPeriod + '\n'
+                          + '  DND Start                 - ' + dndStart + '\n'
+                          + '  DND End                   - ' + dndEnd + '\n'
+                          + '  Alert Rule                - ' + alertRuleUID + '\n'
+                          + '  End Alert Rule            - ' + endAlertUID + '\n'
+                          + '  Alert Group               - ' + group + '\n'
+                          + '  Alert Items               - ' + items[group].members.map(i => i.name).join(', ') + '\n'
+                          + '  Gatekeeper Delay          - ' + gkDelay + '\n'
+                          + '  Rate Limit                - ' + rateLimitPeriod);
+
+              let error = false;
+              let warning = false;
+              const allItems = items[group].members;
+
+              console.info('Cancelling any running timers');
+              const records = cache.private.get('records');
+              if(records !== null) {
+                Object.values(records).forEach(record => {
+                  if(record.alertTimer !== null && record.alertTimer !== undefined){
+                    console.info(record.name + ' has an alert timer scheduled, cancelling now.');
+                    record.alertTimer.cancel();
+                    record.alertTimer = null;
+                  }
+                  if(record.endAlertTimer !== null && record.endAlertTimer !== undefined) {
+                    console.info(record.name + ' has an end alert timer scheduled, cancelling now.');
+                    record.endAlertTimer.cancel();
+                    record.endAlertTimer = null;
+                  }
+                });
+              }
+
+              if(!isStartup) {
+                console.info('Clearing persisted alert state metadata for all group members');
+                items[group].members.forEach(item => {
+                  items[item.name].removeMetadata(stateNamespace);
+                });
+              }
+
+              // Inform if the threshold is UnDefType
+              if(thresholdStr === 'UnDefType') {
+                console.info('Threshold is UnDefType, this will cause Item states of NULL and UNDEF to be converted to UnDefType for comparisons.');
+              }
+
+              // Error if the Group has QuantityTypes but thresholdStr is not
+              const quantityTypes = allItems.filter(item => {
+                try {
+                  item.quantityState !== null;
+                } catch(e) {
+                  false;
+                }
+              });
+              if(quantityTypes.length > 0 && thresholdStr !== 'UnDefType') {
+                try {
+                  if(!thresholdStr.includes(' ')) {
+                    warning = true;
+                    console.warn(group + ' contains Quantity states by thresholdStr ' + thresholdStr + ' does not have units, comparison will revert to number or string comparison.');
+                  }
+                  else {
+                    Quantity(thresholdStr);
+                  }
+                } catch(e) {
+                  warning = true;
+                  console.warn(group + ' contains Quantity states but thresholdStr ' + thresholdStr + ' cannot be converted to a Quantity, comparison will default to a String comparsion');
+                }
+              }
+
+              // Error if the Group has more than one type of Item
+              const itemTypes = allItems.filter(item => item.rawItem.class.name === allItems[0].rawItem.class.name);
+              if(itemTypes.length != allItems.length) {
+                warning = true;
+                console.warn(group + ' has a mix of Item types');
+              }
+
+              // Warn if thresholdStr is empty string, there are cases where that could be OK but most of
+              // the time it isn't.
+              if(thresholdStr == '') {
+                warning = true;
+                console.warn('Alert State is an empty String, is that intended?');
+              }
+
+              // Verify the operator is valid
+              if(!validateOperator(operator)) {
+                error = true;
+                console.error('Invalid operator ' + operator);
+              }
+
+              // Inform that there is no default alert delay configured, there will be no pause before alerting
+              if(defaultAlertDelay == '') {
+                console.info('Items without ' + namespace + ' alertDelay metadata will alert immediately');
+              } else if(!validateDuration(defaultAlertDelay)){
+                error = true;
+                console.error('The default alert delay ' + defaultAlertDelay + ' is not a parsable ISO8601 duration string');
+              }
+
+              // Inform that there is no default reminder period configured, there will be no repreated alerts
+              if(defaultRemPeriod == '') {
+                console.info('Default reminder period is empty, Items without ' + namespace + ' remPeriod metadata will not repeat alerts');
+              } else if(!validateDuration(defaultRemPeriod)){
+                error = true;
+                console.error('The default reminder period ' + defaultRemPeriod + ' is not a parsable ISO8601 duration string');
+              }
+
+              // Inform if both of the DND times are not set
+              // Error if one but not the other is defined
+              // Error if either cannot be parsed into a ZDT
+              if(dndStart == '' && dndEnd == '') {
+                console.info('DND Start and End are empty, no DND period will be applied');
+              }
+              else if(dndStart == '' && dndEnd != '') {
+                error = true;
+                console.error('DND Start is defined but DND End is not.');
+              }
+              else if(dndStart != '' && dndEnd == '') {
+                error = true;
+                console.error('DND Start is not defined but DND End is.')
+              }
+              else if(dndStart != '' && !validateTime(dndStart)) {
+                error = true;
+                console.error('DND Start ' + dndStart + ' is not parsable into a time');
+              }
+              else if(dndEnd != '' && !validateTime(dndEnd)) {
+                error = true;
+                console.error('DND End ' + dndEnd + ' is not parsable into a time');
+              }
+
+              // Error if no alert rule is configured or the rule is disabled or does not exist
+              if(alertRuleUID == '') {
+                error = true;
+                console.error('No alert rule is configured!');
+              } else if(!validateRule(alertRuleUID)) {
+                error = true;
+                console.error('Alert rule ' + alertRuleUID + ' is disabled or does not exist');
+              }
+
+              // Inform if the end alert rule is not configured
+              // Error if it is configured but it is disabled or does not exist
+              if(endAlertUID == '') {
+                console.info('No end alert rule configured, no rule will be called when alerting ends');
+              }
+              else if(!validateRule(endAlertUID)) {
+                error = true;
+                console.error('End alert rule ' + endAlertUID + ' is diabled or does not exist');
+              }
+
+              // Inform if the initial alert rule is not configured
+              // Error if it is configured but it is disabled or does not exist
+              if(initAlertRuleUID == '') {
+                console.info('No initial alert rule configured, no rule will be called when the alert state is first detected');
+              }
+              else if(!validateRule(initAlertRuleUID)) {
+                error = true;
+                console.error('Initial alert rule ' + initAlertRuleUID + ' is disable or does not exist');
+              }
+
+              // Validate hysteresis
+              if(hystRange !== '' && !validateHysteresis(hystRange)) {
+                error = true;
+                console.error('Hysteresis ' + hystRange + ' is not a number nor Quantity');
+              }
+
+              // Warn if there are QuantityTypes but hystRange does not have units
+              if(hystRange !== '' && quantityTypes.length > 0) {
+                if(!hystRange.includes(' ')) {
+                  warning = true;
+                  console.warn(group + ' has QuantityTypes but hystRange ' + hystRange + ' does not have units.');
+                }
+                else {
+                  try {
+                    Quantity(hystRange);
+                  } catch(e) {
+                    warning = true;
+                    console.warn(group + ' has QuantityTypes by hystRange ' + hystRange + ' cannot be parsed into a Quantity.');
+                  }
+                }
+              }
+
+              // Validate rateLimit Period and warn if less than gkDelay
+              if(rateLimitPeriod !== '' && !validateDuration(rateLimitPeriod)) {
+                error = true;
+                console.error('A rate limit was provided but ' + rateLimitPeriod + ' is not a parsable ISO8601 duration string.');
+              }
+              if(rateLimitPeriod !== '' && gkDelay) {
+                if(time.Duration.parse(rateLimitPeriod).lessThan(time.Duration.ofMillis(gkDelay))) {
+                  warning = true;
+                  console.warn('Both rate limit and gatekeeper delay are defined but gatekeeper delay is greater than the rate limit. The rate limit should be significantly larger.');
+                }
+              }
+
+              // Inform if none of the Items have namespace metadata
+              const noMetadata = allItems.filter(item => item.getMetadata()[namespace] === undefined);
+              if(noMetadata.length > 0) {
+                console.info('These Items do not have ' + namespace + ' metadata and will use the default properties defined in the rule: '
+                            + noMetadata.map(i => i.name).join(', '));
+              }
+
+              // Validate Item metadata
+              allItems.filter(item => item.getMetadata()[namespace]).forEach(item => {
+                const md = item.getMetadata()[namespace].configuration;
+                console.debug('Metadata for Item ' + item.name + '\n' + Object.keys(md).map(prop => prop + ': ' + md[prop]).join('\n'));
+
+                // Anything is OK for threshold
+                if(md['thresholdItem'] !== undefined) {
+                  const threshItem = md['thresholdItem'];
+                  if(md['threshold'] !== undefined) {
+                    error = true;
+                    console.error('Item ' + item.name + ' has both thershold and thresholdItem defined in ' + namespace + ' metadata');
+                  }
+                  if(items[threshItem] === undefined || items[threshItem] === null) {
+                    error = true;
+                    console.error('Item ' + item.name + ' defines thresholdItem ' + threshItem + ' which does not exist');
+                  } else if(item.quantityState !== null && items[threshItem].quantityState === null){
+                    error = true;
+                    console.error('Item ' + item.name + ' is a Quantity but thresholdItem ' + threshItem + ' is not');
+                  } else if(item.quantityState === null && items[threshItem].quantityState !== null) {
+                    error = true;
+                    console.error('Item ' + item.name + ' is not a Quantity but thresholdItem ' + threshItem + ' is');
+                  } else if(item.numericState !== null && items[threshItem].numericState === null) {
+                    error = true;
+                    console.error('Item ' + item.name + ' is a number but thresholdItem ' + threshItem + ' is not');
+                  } else if(item.numericState === null && items[threshItem].numericState !== null) {
+                    error = true;
+                    console.error('Item ' + item.name + ' is not a number but thresholdItem ' + threshItem + ' is');
+                  }
+                }
+                if(md['operator'] !== undefined && !validateOperator(md['operator'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an invalid operator ' + md['operator'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['invert'] !== undefined && (md['invert'] !== true && md['invert'] !== false)) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an unparsible invert ' + md['invert'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['reschedule'] !== undefined && (md['reschedule'] !== true && md['reschedule'] !== false)) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an unparsible reschedule ' + md['reschedule'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['alertDelay'] !== undefined && !validateDuration(md['alertDelay'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an unparsable alertDelay ' + md['alertDelay'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['remPeriod'] !== undefined && !validateDuration(md['remPeriod'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an unparsable remPeriod ' + md['remPeriod'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['alertRuleID'] !== undefined && !validateRule(md['alertRuleID'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an invalid alertRuleID ' + md['alertRuleID'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['endRuleID'] !== undefined && !validateRule(md['endRuleID'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an invalid endRuleID ' + md['endRuleID'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['initAlertRuleID'] !== undefined && !validateRule(md['initAlertRuleID'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an invalid initAlertRuleID ' + md['initAlertRuleID'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['gatekeeperDelay'] !== undefined && isNaN(md.gatekeeperDelay)) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has a non-numerical gatekeeperDelay ' + md['gatekeeperDelay'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['gatekeeperDelay'] !== undefined && md['gatekeeperDelay'] < 0) {
+                  warning = true;
+                  console.warn('Item ' + item.name + ' has a negative gatekeeperDelay ' + md['gatekeeperDelay'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['hysteresis'] !== undefined && !validateHysteresis(md['hysteresis'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has a non-numerical nor Quantity hystersis ' + md['hysteresis'] + ' in' + namespace + ' metadata');
+                }
+                else if(md['hysteresis'] && item.quantityState !== null && stateToValue(md['hysteresis']).unit === undefined) {
+                  warning = true;
+                  console.warn('Item ' + item.name + ' has a Quantity but hystereis ' + md['hysteresis'] + ' is not a Quantity');
+                }
+                else if(md['hysteresis'] && item.quantityState !== null && stateToValue(md['hysteresis']).unit !== undefined) {
+                  try {
+                    item.quantityState.equal(stateToValue(md['hysteresis']));
+                  } catch(e) {
+                    error = true;
+                    console.error('Item ' + item.name + ' has a hysteresis ' + md['hysteresis'] + ' with units incompatible with ' + item.quantityState.unit);
+                  }
+                }
+                if(md['rateLimit'] !== undefined && !validateDuration(md['rateLimit'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an unparsable rateLimit ' + md['rateLimit'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['dndStart'] !== undefined && !validateTime(md['dndStart'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an unparsable dndStart time ' + md['dndStart'] + ' in ' + namespace + ' metadata');
+                }
+                if(md['dndEnd'] !== undefined && !validateTime(md['dndEnd'])) {
+                  error = true;
+                  console.error('Item ' + item.name + ' has an unparsable dndEnd time ' + md['dndEnd'] + ' in ' + namespace + ' metadata');
+                }
+                if((md['dndStart'] === undefined && md['dndEnd'] !== undefined)
+                  || (md['dndStart'] !== undefined && md['dndEnd'] === undefined)) {
+                  error = true;
+                  console.error('Item ' + item.name + ' one but not both of dndStart and dndEnd defined on ' + namespace + ' metadata');
+                }
+
+                // Warn if metadata is present but none of the known configuration parameters are
+                if(!['threshold', 'thresholdItem', 'operator', 'invert', 'alertDelay', 'remPeriod', 'alertRuleID', 'endRuleID', 'gatekeeperDelay', 'hysteresis', 'rateLimit', 'dndStart', 'dndEnd']
+                  .some(name =>  md[name] !== undefined)) {
+                  warning = true;
+                  console.warn('Item ' + item.name + ' has ' + namespace + ' metadata but does not have any known configuration property used by this rule');
+                }
+              });
+
+
+              if(error) console.error('Errors were found in the configuration, see above for details.')
+              else if(warning) console.warn('Warnings were found in the configuration, see above for details. Warnings do not necessarily mean there is a problem.')
+              else console.info('Threshold Alert configs check out as OK')
+            }
+
+            // If triggered by anything other than an Item event, check the config
+            // Otherwise process the event to see if alerting is required
+            if(this.event === undefined || event.eventName == "ExecutionEvent") {
+              console.debug('Rule triggered without an event, checking config.');
+              init();
+            }
+
+            else if(event.eventName == "SystemStartlevelTrigger") {
+              console.info('Startup trigger detected, running restore and reconcile.');
+              init(true);
+              restoreAndReconcile();
+            }
+
+            else {
+              let name = event.itemName;
+              let type = event.eventName;
+              let  state = (event.newState !== undefined) ? event.newState : event.receivedState;
+              switch(type) {
+                case 'ItemStateEvent':
+                case 'ItemStateUpdatedEvent':
+                case 'ItemStateChangedEvent':
+                  if(name !== undefined && state !== null) {
+                    console.loggerName = loggerBase+'.'+name;
+                    console.debug('Processing an Item event');
+                    procEvent(name, stateToValue(state));
+                  }
+                  break;
+                case 'SystemStartlevelTrigger':
+                  console.info('Startup trigger in item-event path; running restore and reconcile.');
+                  init(true);
+                  restoreAndReconcile();
+                  break;
+                default:
+                  console.info('Rule triggered without an Item event, ' + type + ' checking the rule config');
+                  init();
+              }
+            }
