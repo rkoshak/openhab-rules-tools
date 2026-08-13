@@ -1,0 +1,87 @@
+version: 1
+
+ruleTemplates:
+  ohrt-lastShutdown:
+    label: Get Last Shutdown Timestamp
+    description: Only works on a POSIX enviornment with bash. Pulls the last timestamp from the most recent events.log archive as the shutdown timestamp.
+    tags:
+      - OHRT
+      - Version_1.0
+    configDescriptions:
+      path:
+        label: Logs folder
+        description: Path to the folder containing events.log and it's archives.
+        type: TEXT
+        required: true
+      item:
+        label: Shutdown Timestamp Item
+        description: Item that holds the timetstamp of the last shutdown.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: DateTime
+        required: true
+    triggers:
+      - id: startlevel_50_trigger
+        label: Start level 50
+        description: Start Level 50 is reached, the rule engine has started.
+        type: core.SystemStartlevelTrigger
+        config:
+          startlevel: 50
+    actions:
+      - id: "pull_timestamp_action"
+        label: Pull Timestamp
+        description: Read the previous events.log and pull the timestamp of the last log statement.
+        type: Script
+        config:
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-lastShutdown.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            // Imports
+            const File = Java.type('java.io.File');
+            const FileInputStream = Java.type('java.io.FileInputStream')
+            const GZipInputStream = Java.type('java.util.zip.GZIPInputStream');
+            const InputStreamReader = Java.type('java.io.InputStreamReader');
+            const BufferedReader = Java.type('java.io.BufferedReader');
+
+            // Properties
+            const srcDirectory = new File('{{path}}');
+            const timestampItem = '{{item}}';
+
+            // Get all the events.log.X.gz files
+            const listFiles = srcDirectory.listFiles();
+            const file = listFiles.filter(f =>
+            f.getName().startsWith("events.log."))
+                       .sort(( a,b) => b.lastModified() - a.lastModified())[0]
+            console.debug(file);
+
+            try {
+              // Open the file for reading
+              const fis = new FileInputStream(file);
+              const gzis = new GZipInputStream(fis);
+              const reader = new InputStreamReader(gzis);
+              const breader = new BufferedReader(reader);
+
+              // Get the last line
+              let currLine = breader.readLine();
+              let lastLine = null;
+              while(currLine != null) {
+                lastLine = currLine;
+                currLine = breader.readLine();
+              }
+
+              // Extract the timestamp and convert it to an ISO8601
+              let timestamp = time.toZDT(lastLine.substring(0, 22).replace(' ', 'T'));
+
+              // Log a message and update the Item
+              console.info('openHAB last shutdown at ' + timestamp);
+              items[timestampItem].postUpdate(timestamp);
+            } 
+            catch(e) {
+              console.error(e);
+            }
+          type: JavaScript

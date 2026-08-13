@@ -808,7 +808,7 @@ actions:
         /**
          * Analyzes the rule properties and Items to verify that the config will work.
          */
-        var init = () => {
+        var init = (isStartup = false) => {
 
           console.debug( 'Rule config defaults:\n'
                        + '  Group                     - ' + group + '\n'
@@ -848,10 +848,12 @@ actions:
             });
           }
 
-          console.info('Clearing persisted alert state metadata for all group members');
-          items[group].members.forEach(item => {
-            items[item.name].removeMetadata(stateNamespace);
-          });
+          if(!isStartup) {
+            console.info('Clearing persisted alert state metadata for all group members');
+            items[group].members.forEach(item => {
+              items[item.name].removeMetadata(stateNamespace);
+            });
+          }
 
           // Inform if the threshold is UnDefType
           if(thresholdStr === 'UnDefType') {
@@ -1198,7 +1200,7 @@ actions:
 
         else if(event.eventName == "SystemStartlevelTrigger") {
           console.info('Startup trigger detected, running restore and reconcile.');
-          init();
+          init(true);
           restoreAndReconcile();
         }
 
@@ -1208,9 +1210,9 @@ actions:
           let state;
           if(event.newState === undefined && event.receivedState === undefined){
             console.debug('Running without event wrapper');
-            type = event.type.toString();
-            state = event.itemState.toString();
-          } 
+            type = event.type?.toString() ?? event.eventName ?? '';
+            state = event.itemState?.toString() ?? null;
+          }
           else {
             console.debug('Running with event wrapper');
             type = event.eventName;
@@ -1220,9 +1222,16 @@ actions:
             case 'ItemStateEvent':
             case 'ItemStateUpdatedEvent':
             case 'ItemStateChangedEvent':
-              console.loggerName = loggerBase+'.'+name;
-              console.debug('Processing an Item event');
-              procEvent(name, stateToValue(state));
+              if(name !== undefined && state !== null) {
+                console.loggerName = loggerBase+'.'+name;
+                console.debug('Processing an Item event');
+                procEvent(name, stateToValue(state));
+              }
+              break;
+            case 'SystemStartlevelTrigger':
+              console.info('Startup trigger in item-event path; running restore and reconcile.');
+              init(true);
+              restoreAndReconcile();
               break;
             default:
               console.info('Rule triggered without an Item event, ' + type + ' checking the rule config');

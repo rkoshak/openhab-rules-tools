@@ -1,0 +1,95 @@
+version: 1
+
+ruleTemplates:
+  ohrt-meterReading:
+    label: Meter Reading
+    description: Keeps a sum from a counting meter Item that can randomly be reset back to zero.
+    tags:
+      - OHRT
+      - Version 1.2
+    configDescriptions:
+      meter:
+        label: Meter Item
+        description: Item that holds the meter readings.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Number
+        required: true
+      total:
+        label: Total Item
+        description: Item that holds the running total.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Number
+        required: true
+    triggers:
+      - id: meter_item_changed
+        label: Meter changed
+        description: The meter reported a new reading.
+        configuration:
+          itemName: "{{meter}}"
+        type: core.ItemStateChangeTrigger
+    conditions:
+      - id: check_items_and_state
+        label: Is Valid
+        description: Only runs the actions if the meter and total Items are the correct type and the change isn't UnDefType.
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-meterReading.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+
+            const meterType = items['{{meter}}'].type;
+            const totalType = items['{{total}}'].type;
+            if(!meterType.startsWith('Number') || !totalType.startsWith('Number')) {
+              console.error('The counting rule template only works with Number Items: {{meter}}=' + meterType + ' {{total}}=' + totalType);
+              return false;
+            }
+            else {
+              (event.newState != 'NULL' && event.newState != 'UNDEF');
+            }
+    actions:
+      - id: update_total
+        label: Update Total
+        description: Updates the total Item keeping track of resets to the meter Item.
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-meterReading.'+ruleUID;
+            console.loggerName = loggerBase;
+            //osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'DEBUG');
+            
+            const totalItem = items.getItem('{{total}}');
+            const meterItem = items.getItem('{{meter}}');
+            const rawReading = event.newState;
+            const rawLastReading = (event.oldState == 'NULL' || event.oldState == 'UNDEF') ? rawReading : event.oldState;
+            let total = 'UNDEF';
+
+            // Quantity Types
+            if(meterItem.type.includes(':')){
+              const reading = Quantity(rawReading);
+              currTotal = (totalItem.isUninitialized) ? Quantity('0 ' + reading.unit) : totalItem.quantityState;
+              const lastReading = Quantity(rawLastReading);
+              const delta = (reading.lessThanOorEqual(lastReading)) ? reading : (reading.subtract(lassstReading));
+              total = currTotal.add(delta);
+            }
+
+            // Plain Numbers
+            else {
+              const currTotal = (totalItem.isUnitialized) ? 0 : totalItem.numericState;
+              const reading = rawReading.floatValue();
+              const lastReading = rawLastReading.floatValue();
+              const delta = (reading <= lastReading) ? reading : (reading - lastReading);
+              total = currTotal + delta;
+            }
+
+            totalItem.postUpdate(total);
