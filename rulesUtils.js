@@ -51,7 +51,7 @@ const removeRule = (uid) => {
  * @param {string} uid unique identifier for the given rule
  * @param {string} ruleName name for the rule as it will appear in MainUI
  * @param {string} ruleDescription explanation of the purpose of the rule
- * @param {Array<triggers.*>} trigs triggers which willcause the rule to run
+ * @param {Array<object>} trigs triggers which willcause the rule to run
  * @param {function(event)} func called when the rule triggers
  * @param {Array<string>} [ts=[]] optional list of tags to apply to the rule
  */

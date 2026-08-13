@@ -57,32 +57,185 @@ As time passes and more new features are added to the openhab-js library and ope
 Review the release notes to see which versions of these and the addition of new prerequisites are required for that release.
 
 # Tests
-Many of the library capabilities also have "unit tests" located in the `test` folder.
-Because of the dependency on the openHAB environment to run, these can be copied into a script rule and run manually.
-Always watch the logs for errors or success.
-This should only be required for those modifying the scripts and modules.
 
-However, they are a good place to look at for examples for using various capabilities.
+This library includes a modern, high-fidelity unit testing suite using **Jest** and a custom **mock openHAB environment**. The mock environment simulates the global variables (`items`, `actions`, `osgi`, `cache`, `time`, `utils`, `Java`) and OSGi automation registries so you can run the entire test suite locally in standard Node.js without a running openHAB instance.
+
+### Running the Unit Tests
+
+1. **Install Dependencies**:
+   Ensure you have installed node modules in the root of the project:
+   ```bash
+   npm install
+   ```
+
+2. **Execute Tests**:
+   To run all unit tests in the suite:
+   ```bash
+   npm test
+   ```
+
+3. **Check Test Coverage**:
+   To run tests and output a full visual code-coverage report in the terminal:
+   ```bash
+   npm test -- --coverage
+   ```
+
+*(The old manual tests that ran directly inside openHAB are still preserved in the `tests/` folder for reference.)*
 
 # Usage
 For rule templates, see the README.md file bundled with each rule template and the entry in the [Marketplace postings](https://community.openhab.org/c/marketplace/rule-templates/74).
 
-The following sections describe the purpose of each library capability.
-Be sure to look at the comments, the code, and the tests for further details on usage and details.
+The following sections describe the purpose and detailed usage examples of each library capability.
 
 Name | Purpose
--|-
-`CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a second with the amount of time remaining on that timer. This works great to see in the UI how much time is left on a timer.
-`Deferred` | Allows one to easily schedule an update or command to be send to an Item in the future. It can be cancelled. This makes creating a timer for simple actions easier.
-`Gatekeeper` | Schedules a sequence of actions with a time between one to the next. It can be used to limit how quickly commands are sent to a device or create a schedule of tasks (e.g. irrigation).
-`LoopingTimer` | Creates a timer that loops until a condition is met. Pass in a function that returns how much time to schedule the next loop iteration or `null` when the timer should exit.
-`RateLimit` | Implements a check that ignores an action if it occurs too soon after the previous action. This is good to limit how often one receives alerts or how often to process events like from a motion snesor.
-`timeUtils` | A collection of functions that convert and manipulate times and durations. Almost all the other library capabilities depend on this. `toDateTime` will convert almost any duration or date time to a `time.ZonedDateTime`.
-`TimerMgr` | A class that provides book keeping and management of multiple timers (e.g. one timer per Item for a rule that handled multiple Items). It supports rescheduling, flapping detection, etc.
+|-|-
+`CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a second with the amount of time remaining on that timer.
+`Deferred` | Allows one to easily schedule an update or command to be sent to an Item in the future.
+`Gatekeeper` | Schedules a sequence of actions with a time between one to the next (e.g., to prevent rate limits or schedule sequential tasks).
+`LoopingTimer` | Creates a timer that loops until a condition is met.
+`RateLimit` | Implements a check that ignores an action if it occurs too soon after the previous action.
+`timeUtils` | A collection of functions that convert and manipulate times and durations.
+`TimerMgr` | A class that provides bookkeeping and management of multiple timers.
 `testUtils` | A collection of functions useful for testing.
-`groupUtils` | A collection of functions to simplify mapping and reducing members or descendents of a Group.
-`rulesUtils` | A collection of function to simplify the creation of a rule triggered by Items with a given tag or given Item metadata. These do not work well in UI rules.
-`helpers` | These are some helper functions to centralize some stuff commonly done by several of the other parts of the library and rule templates (e.g. centralize creation of timer Objects)
+`groupUtils` | A collection of functions to simplify mapping and reducing members or descendants of a Group.
+`rulesUtils` | A collection of functions to simplify the creation of a rule triggered by Items with a given tag or given Item metadata.
+`helpers` | Helper functions to centralize common operations (like centralizing named timer creation).
+
+---
+
+## Class and Function Reference with Examples
+
+### 1. TimerMgr
+Manages multiple timers identified by a unique key (such as an Item name). It supports rescheduling, custom flapping actions, and automatic cleanup.
+
+```javascript
+const { TimerMgr } = require('openhab_rules_tools');
+
+// Instantiate or retrieve from Cache
+const tm = cache.private.get('myTimers', () => TimerMgr());
+
+// Check/create a timer for Item "LivingRoom_Motion" to turn off light in 5 minutes
+tm.check('LivingRoom_Motion', 'PT5m', () => {
+  items.getItem('LivingRoom_Light').sendCommand('OFF');
+});
+```
+
+### 2. Gatekeeper
+Queues up commands ensuring a designated pause interval passes between the execution of subsequent commands.
+
+```javascript
+const { Gatekeeper } = require('openhab_rules_tools');
+
+const gk = cache.private.get('myGatekeeper', () => Gatekeeper('irrigation-gk'));
+
+// Schedule sequential zone irrigations with pauses
+gk.addCommand('PT10m', () => items.getItem('Zone1_Valve').sendCommand('ON'));
+gk.addCommand('PT15m', () => {
+  items.getItem('Zone1_Valve').sendCommand('OFF');
+  items.getItem('Zone2_Valve').sendCommand('ON');
+});
+gk.addCommand('PT0s', () => items.getItem('Zone2_Valve').sendCommand('OFF'));
+```
+
+### 3. CountdownTimer
+Schedules a function to run at a specific time and updates a backing `Number` Item with the remaining seconds once a second.
+
+```javascript
+const { CountdownTimer } = require('openhab_rules_tools');
+
+// Start a 1-minute countdown, updating the 'Timer_Remaining' Item
+const timer = CountdownTimer('PT1m', () => {
+  console.info('Timer finished!');
+}, 'Timer_Remaining');
+```
+
+### 4. Deferred
+Allows you to postpone sending a command or update to an Item to a future date or duration.
+
+```javascript
+const { Deferred } = require('openhab_rules_tools');
+
+const def = cache.private.get('myDeferred', () => Deferred());
+
+// Turn ON the exhaust fan in 30 minutes as a command
+def.defer('Exhaust_Fan', 'ON', 'PT30m', true);
+```
+
+### 5. LoopingTimer
+Creates a self-rescheduling timer that continues to loop as long as the generator function returns a valid duration.
+
+```javascript
+const { LoopingTimer } = require('openhab_rules_tools');
+
+const lt = LoopingTimer();
+let count = 0;
+
+lt.loop(() => {
+  count++;
+  console.info(`Loop iteration ${count}`);
+  return (count < 5) ? 'PT2s' : null; // Loop 5 times every 2s
+}, 'PT2s');
+```
+
+### 6. RateLimit
+Rate-limits executions, ignoring any action that occurs before a specified duration has elapsed since the last successful execution.
+
+```javascript
+const { RateLimit } = require('openhab_rules_tools');
+
+const limit = cache.private.get('myRateLimit', () => RateLimit());
+
+// Ignore motion updates if we already logged one in the last 10 seconds
+limit.run(() => {
+  console.info('Motion detected - processing event!');
+}, 'PT10s');
+```
+
+### 7. timeUtils
+Utility functions to parse and compare times, check clock styles, and determine time boundaries.
+
+```javascript
+const timeUtils = require('openhab_rules_tools').timeUtils;
+
+// Parse a custom human-readable duration
+const duration = timeUtils.parseDuration('1h 30m'); // returns a js-joda Duration
+
+// Check if now is between two times
+const isDayTime = timeUtils.betweenTimes('08:00', '18:00'); // returns boolean
+```
+
+### 8. groupUtils
+Provides functional mapping, reducing, and calculating utilities for members and descendants of a Group.
+
+```javascript
+const groupUtils = require('openhab_rules_tools').groupUtils;
+
+// Sum up all temperatures in a Group, ignoring non-numeric values
+const totalTemp = groupUtils.sumList(items.getItem('gTemperatures').members);
+
+// Join all member names with a comma
+const nameList = groupUtils.membersToString('gSmartBulbs', ', ', item => item.name);
+```
+
+### 9. rulesUtils
+Utilities to dynamically generate rules based on metadata, tags, and automation triggers.
+
+```javascript
+const rulesUtils = require('openhab_rules_tools').rulesUtils;
+
+// Check if a specific rule exists in the automation registry
+const exists = rulesUtils.ruleExists('my-custom-rule-uid');
+```
+
+### 10. helpers
+Under-the-hood helpers to manage named timers, check compatibility standards, and validate library dependencies.
+
+```javascript
+const helpers = require('openhab_rules_tools').helpers;
+
+// Check if libraries meet minimum version requirements
+helpers.validateLibraries('4.0.0', '2.0.0');
+```
 
 ## How to Save an Instance Between Runs?
 Most of the library capabilities above are classes that one instantiates and reuses over multiple executions of a given rule.

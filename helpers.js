@@ -113,7 +113,7 @@ const _validateVersionNum = (version) => {
  * @param {string} v1 the first version number
  * @param {string} v2 the second version number
  * @throws error if v1 or v2 are not parsable
- * @returns {-1|0|1} 0 if the versions are equal, -1 if v1 is lower and 1 if v1 is higher
+ * @returns {number} 0 if the versions are equal, -1 if v1 is lower and 1 if v1 is higher
  */
 const compareVersions = (v1, v2) => {
   if (!_validateVersionNum(v1)) throw v1 + ' is not a valid version number in the format X.Y.Z where X, Y, and Z are numbers!';

@@ -10,7 +10,8 @@
     "url": "git+https://github.com/rkoshak/openhab-rules-tools.git#main"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "docs": "jsdoc countdownTimer.js deferred.js gatekeeper.js groupUtils.js helpers.js index.js loopingTimer.js rateLimit.js rulesUtils.js timerMgr.js timeUtils.js README.md -d docs"
   },
   "jest": {
     "setupFiles": [
@@ -34,6 +35,7 @@
   "devDependencies": {
     "@js-joda/core": "^6.1.0",
     "jest": "^30.4.2",
+    "jsdoc": "^4.0.5",
     "openhab": "^5.11.1"
   }
 }

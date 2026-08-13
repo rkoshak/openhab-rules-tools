@@ -1,1 +1,5 @@
 rule-templates
+tests
+coverage
+docs
+.github
