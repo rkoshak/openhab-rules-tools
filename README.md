@@ -1,5 +1,10 @@
-# openHAB Rules Tools
+# openHAB Rules Tools (OHRT)
 A collection of library functions, classes, rule templates, MainUI widgets (eventually), and examples to reuse in the development of new openHAB capabilities.
+ 
+# Sponsorship
+
+If you want to send a tip my way or sponsor my work you can through [Sponsor @rkoshak on GitHub](https://github.com/sponsors/rkoshak) or [PayPal](https://paypal.me/rlkoshak?country.x=US&locale.x=en_US). 
+It won't change what I contribute to OH but it might keep me in coffee or let me buy hardware to test out new things.
 
 # Installation
 
@@ -10,10 +15,10 @@ Those are still available in the `before-npm` branch but have been removed and a
 Similarly, ECMAScript 5.1 versions of these libraries exist in the `before-npm` branch.
 These too are removed from the `main` branch and are no longer maintained.
 
-The libraries that will continue to be developed going forward will be JS Scripting, Blockly (eventually), and rule templates.
+The libraries that will continue to be developed going forward will be JS Scripting, Blockly, UI Widgets, and rule templates.
 
 The JS Scripting library depends on the `openhab-js` library.
-This library comes with the add-on but you may need to upgrade the library independently.
+`openhab-js` comes with the add-on but you may need to upgrade the library independently.
 It can be installed using `openhabian-config` menu option `46 | Install openhab-js` or by running `npm install openhab` from the `$OH_CONF/automation/js` folder.
 
 ### openHABian
@@ -36,7 +41,7 @@ It has been tested and does work with Docker instances of OH.
 3. Maunally run the rule, watching openhab.log for progress and errors. If there are errors, you likely need to install the library manually.
 
 ## Rule Templates
-Rule templates are written in various languages.
+Rule templates are written primarily GraalVM JS (i.e. JS Scripting).
 Sometimes they will have dependencies that must be separately installed (other templates, libraries, add-ons).
 See the readme and the docs for each template for more details.
 
@@ -45,7 +50,7 @@ Installation of a template can be done from MainUI under Settings -> Automation.
 1. In MainUI go to Settings.
 2. Open "Automation".
 3. Browse for the rule template to install; you might need to click on "show all".
-4. Read the description and instructions for how to use the template and make sure you understand it. Some tempaltes require you to first write another rule which the template rule will call or require tyhe creation of Items or addition of Item metadata, for example.
+4. Read the description and instructions for how to use the template and make sure you understand it. Some tempaltes require you to first write another rule which the template rule will call or require the creation of Items or addition of Item metadata, for example.
 5. In the rule template and click "Add".
 6. Now go to Settings -> Rules.
 7. Click the + and enter the UID, label and description.
@@ -58,7 +63,7 @@ Review the release notes to see which versions of these and the addition of new 
 
 # Tests
 
-This library includes a modern, high-fidelity unit testing suite using **Jest** and a custom **mock openHAB environment**. The mock environment simulates the global variables (`items`, `actions`, `osgi`, `cache`, `time`, `utils`, `Java`) and OSGi automation registries so you can run the entire test suite locally in standard Node.js without a running openHAB instance.
+This library uses **Jest** and a custom **mock openHAB environment**. The mock environment simulates the global variables (`items`, `actions`, `osgi`, `cache`, `time`, `utils`, `Java`) and OSGi automation registries so you can run the entire test suite locally in standard Node.js without a running openHAB instance.
 
 ### Running the Unit Tests
 
@@ -80,10 +85,8 @@ This library includes a modern, high-fidelity unit testing suite using **Jest** 
    npm test -- --coverage
    ```
 
-*(The old manual tests that ran directly inside openHAB are still preserved in the `tests/` folder for reference.)*
-
 # Usage
-For rule templates, see the README.md file bundled with each rule template and the entry in the [Marketplace postings](https://community.openhab.org/c/marketplace/rule-templates/74).
+For rule templates, see the README.md file in the marketplace-templates folder and the entry in the [Marketplace postings](https://community.openhab.org/c/marketplace/rule-templates) for the detailed instructions for each individual tempalte.
 
 The following sections describe the purpose and detailed usage examples of each library capability.
 
@@ -244,7 +247,7 @@ There are three options.
 
 ### Shared Cache
 New to OH 3.4 release, a system wide cache has been added where variables can be stored and accessed across multiple runs of a rule or between script actions or conditions across multiple rules.
-On can pull, and if it doesn't exist instantiate a Object in one line inside your rule.
+One can pull, and if it doesn't exist, instantiate an Object in one line inside your rule.
 
 ```
 var timers = cache.shared.get('timers', () TimerMgr());
@@ -255,6 +258,7 @@ It is important to use unique keys across all your rules to avoid collisions.
 ### Private Cache
 New to OH 3.4 release, a privatre cache has been added where variables can be stored and accessed from multiple runs of a given script action or condition.
 Just like with the shared cache, one can pull, and if the Object doesn't exist instantiate it and save it to the private cache in one line inside your rule.
+The private cache is limited to one Script.
 
 ### Global Variable
 If writing your rules in .js files, you can define a variable outside of your rules and that variable will be "global" to all the rules in that file.
@@ -318,12 +322,3 @@ var bar = 123;
 var baz = null;
 this.timers.check(event.itemName, 1000, runmeGenerator(foo, bar, baz));
 ```
-
-# TODOs
-
-- generate docs from comments
- 
-# Sponsorship
-
-If you want to send a tip my way or sponsor my work you can through [Sponsor @rkoshak on GitHub](https://github.com/sponsors/rkoshak) or [PayPal](https://paypal.me/rlkoshak?country.x=US&locale.x=en_US). 
-It won't change what I contribute to OH but it might keep me in coffee or let me buy hardware to test out new things.
