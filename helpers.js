@@ -140,10 +140,31 @@ const compareVersions = (v1, v2) => {
 const validateLibraries = (minOHJS, minOHRT) => {
   if (compareVersions(utils.OPENHAB_JS_VERSION, minOHJS) < 0)
     throw 'Minimum library version not met: openhab-js '
-    + utils.OPENHAB_JS_VERSION + ' installed, ' + minOHJS + ' required';
+    + utils.OPENHAB_JS_VERSION + ' installed, ' + minOHRT + ' required';
   if (compareVersions(VERSION, minOHRT) < 0)
     throw 'Minimum library version not met: openhab_rules_tools '
     + VERSION + ' installed, ' + minOHRT + ' required';
+};
+
+/**
+ * Retrieves or creates a backing Java ConcurrentHashMap in the specified cache.
+ * If no cache is specified, cache.private is used. If no key is specified,
+ * a local Map is created but not stored in any cache (for backward compatibility).
+ *
+ * @param {string} [key] key to store/retrieve the map in the cache
+ * @param {object} [cacheObj] the cache object to use (e.g., cache.shared or cache.private), defaults to cache.private if key is provided
+ * @returns {java.util.Map} Java Map
+ */
+const getBackingMap = (key, cacheObj) => {
+  const ConcurrentHashMap = Java.type('java.util.concurrent.ConcurrentHashMap');
+  if (key === null || key === undefined) {
+    return new ConcurrentHashMap();
+  }
+  const c = cacheObj || (typeof cache !== 'undefined' ? cache.private : null);
+  if (!c) {
+    return new ConcurrentHashMap();
+  }
+  return c.get(key, () => new ConcurrentHashMap());
 };
 
 module.exports = {
@@ -151,5 +172,6 @@ module.exports = {
   checkGrpAndMetadata,
   compareVersions,
   validateLibraries,
+  getBackingMap,
   OHRT_VERSION: VERSION
 };

@@ -11,13 +11,16 @@ class TimerMgr {
 
   /**
    * Constructor
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
    */
-  constructor() {
+  constructor(key, cacheObj) {
     // Stores the timer and the functions:
     // - timer: timer Object
     // - notFlapping: function to call when timer expires
     // - flapping: function to call when check is called and timer already exists
-    this.timers = {};
+    this.timers = helpers.getBackingMap(key, cacheObj);
+    this.callbacks = {};
   }
 
   /**
@@ -47,9 +50,9 @@ class TimerMgr {
     const timeout = time.toZDT(when);
 
     // timer exists
-    if (key in this.timers) {
+    if (this.hasTimer(key)) {
       if (reschedule) {
-        this.timers[key]['timer'].reschedule(timeout);
+        this.timers.get(key).reschedule(timeout);
       }
       else {
         this.cancel(key);
@@ -66,19 +69,22 @@ class TimerMgr {
     else {
       var timer = helpers.createTimer(when, () => {
         // Call the passed in func when the timer expires.
-        if (key in this.timers && 'notFlapping' in this.timers[key]) {
-          this.timers[key]['notFlapping']();
+        if (this.hasTimer(key)) {
+          const callback = this.callbacks[key];
+          if (callback) {
+            callback();
+          }
         }
         // Clean up the timer from the manager.
-        if (key in this.timers) {
-          delete this.timers[key];
+        if (this.hasTimer(key)) {
+          this.timers.remove(key);
+        }
+        if (this.callbacks) {
+          delete this.callbacks[key];
         }
       }, name, key);
-      this.timers[key] = {
-        'timer': timer,
-        'flapping': flappingFunc,
-        'notFlapping': (func) ? func : this.#noop
-      };
+      this.timers.put(key, timer);
+      this.callbacks[key] = (func) ? func : this.#noop;
     }
   }
 
@@ -87,7 +93,7 @@ class TimerMgr {
    * @returns {boolean} true if there is a timer assocaited with key
    */
   hasTimer(key) {
-    return key in this.timers;
+    return this.timers.containsKey(key);
   }
 	
   /**
@@ -96,8 +102,8 @@ class TimerMgr {
    * or null if timer does not exist
    */
   getTimerDuration(key) {
-    if (key in this.timers) {
-      return time.Duration.between(time.toZDT(), time.toZDT(this.timers[key].timer.getExecutionTime()));
+    if (this.hasTimer(key)) {
+      return time.Duration.between(time.toZDT(), time.toZDT(this.timers.get(key).getExecutionTime()));
     }
 
     return null;
@@ -108,9 +114,15 @@ class TimerMgr {
    * @param {*} key name of the timer
    */
   cancel(key) {
-    if (key in this.timers) {
-      this.timers[key]['timer'].cancel();
-      delete this.timers[key];
+    if (this.hasTimer(key)) {
+      const timer = this.timers.get(key);
+      if (timer) {
+        timer.cancel();
+      }
+      this.timers.remove(key);
+      if (this.callbacks) {
+        delete this.callbacks[key];
+      }
     }
   }
 
@@ -120,13 +132,16 @@ class TimerMgr {
    * method.
    */
   cancelAll() {
-    for (var key in this.timers) {
-      var t = this.timers[key]['timer'];
-      if (!t.hasTerminated() && !t.isRunning()) {
-        this.cancel(key);
+    const iterator = this.timers.keySet().iterator();
+    while (iterator.hasNext()) {
+      const key = iterator.next();
+      const t = this.timers.get(key);
+      if (t && !t.hasTerminated() && !t.isRunning()) {
+        t.cancel();
       }
-      delete this.timers[key];
     }
+    this.timers.clear();
+    this.callbacks = {};
   }
 }
 
@@ -134,8 +149,8 @@ class TimerMgr {
  * The TimerMgr handles the book keeping to manage a bunch of timers identified
  * with a unique key.
  */
-function getTimerMgr () {
-    return new TimerMgr();
+function getTimerMgr (key, cacheObj) {
+    return new TimerMgr(key, cacheObj);
 }
 
 module.exports = {

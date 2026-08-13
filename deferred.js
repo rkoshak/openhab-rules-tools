@@ -8,9 +8,11 @@ class Deferred {
 
   /**
    * Constructor
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use
    */
-  constructor() {
-    this.timers = TimerMgr();
+  constructor(key, cacheObj) {
+    this.timers = TimerMgr(key, cacheObj);
   }
 
   /**
@@ -60,10 +62,12 @@ class Deferred {
 /**
  * Deferred is a way to schedule a simple command sometime in the future.
  *
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
  * @returns a new instance of Deferred
  */
-function getDeferred() {
-  return new Deferred();
+function getDeferred(key, cacheObj) {
+  return new Deferred(key, cacheObj);
 }
 
 module.exports = {

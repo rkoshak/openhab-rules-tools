@@ -1,4 +1,5 @@
 const helpers = require('./helpers');
+const { time } = require('openhab');
 
 /**
  * Implements a looping Timer which is passed a function that is expected to return
@@ -9,9 +10,35 @@ class LoopingTimer {
 
   /**
    * Constructor
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
    */
-  constructor() {
-    // noop
+  constructor(key, cacheObj) {
+    this.state = helpers.getBackingMap(key, cacheObj);
+  }
+
+  get timer() {
+    return this.state.get('timer');
+  }
+
+  set timer(val) {
+    if (val === null || val === undefined) {
+      this.state.remove('timer');
+    } else {
+      this.state.put('timer', val);
+    }
+  }
+
+  get name() {
+    return this.state.get('name');
+  }
+
+  set name(val) {
+    if (val === null || val === undefined) {
+      this.state.remove('name');
+    } else {
+      this.state.put('name', val);
+    }
   }
 
   /**
@@ -82,11 +109,13 @@ class LoopingTimer {
 }
 
 /**
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
  * @returns a timer that resheduels itself until the passed in looping function
  * return null
  */
-function getLoopingTimer() {
-  return new LoopingTimer();
+function getLoopingTimer(key, cacheObj) {
+  return new LoopingTimer(key, cacheObj);
 }
 
 module.exports = {

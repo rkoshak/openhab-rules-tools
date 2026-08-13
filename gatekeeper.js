@@ -12,12 +12,38 @@ class Gatekeeper {
    * Creates the Gatekeeper
    *
    * @param {string} [name] name of the Gatekeeper (used for the timer)
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
    */
-  constructor(name) {
+  constructor(name, key, cacheObj) {
+    this.state = helpers.getBackingMap(key, cacheObj);
     var ArrayDeque = Java.type('java.util.ArrayDeque');
-    this.commands = new ArrayDeque();
-    this.timer = null;
-    this.name = name;
+    if (!this.state.containsKey('commands')) {
+      this.state.put('commands', new ArrayDeque());
+    }
+    if (name) {
+      this.state.put('name', name);
+    }
+  }
+
+  get commands() {
+    return this.state.get('commands');
+  }
+
+  get timer() {
+    return this.state.get('timer');
+  }
+
+  set timer(val) {
+    if (val === null || val === undefined) {
+      this.state.remove('timer');
+    } else {
+      this.state.put('timer', val);
+    }
+  }
+
+  get name() {
+    return this.state.get('name');
   }
 
   /**
@@ -88,10 +114,12 @@ class Gatekeeper {
  * The Gatekeeper will ensure that a certain amount of time passes between
  * commands.
  * @param {String} name optional and used in error messages
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
  * @returns a new Gatekeeper instance
  */
-function getGatekeeper(name) {
-    return new Gatekeeper(name);
+function getGatekeeper(name, key, cacheObj) {
+    return new Gatekeeper(name, key, cacheObj);
 }
 
 module.exports = {

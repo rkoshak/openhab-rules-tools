@@ -1,5 +1,6 @@
 const { LoopingTimer } = require('openhab_rules_tools');
-const { time, items } = require('openhab');
+const { time, items, actions } = require('openhab');
+const helpers = require('./helpers');
 
 /**
  * Timer that updates a passed in Item with the number of seconds reamining on the
@@ -15,20 +16,62 @@ class CountdownTimer {
    * @param {function} func function to call at when
    * @param {string} countItem name of the Item to update with the seconds remaining
    * @param {string} [name] countdown name displayed in openHAB
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
    */
-  constructor(when, func, countItem, name) {
-    this.start = time.toZDT();
-    this.end = time.toZDT(when);
-    this.ONE_SEC = time.Duration.ofSeconds(1);
+  constructor(when, func, countItem, name, key, cacheObj) {
+    this.state = helpers.getBackingMap(key, cacheObj);
+    this._cacheObj = cacheObj;
 
-    // Create a separate timer to run the func
-    this.timer = actions.ScriptExecution.createTimer(this.end, func);
-    this.timeLeft = time.Duration.between(this.start, this.end);
+    if (when !== undefined) {
+      if (key) this.state.put('ltKey', key + '_loop');
+      this.start = time.toZDT();
+      this.end = time.toZDT(when);
+      this.ONE_SEC = time.Duration.ofSeconds(1);
 
-    // Start the countdown timer
-    this.countItem = countItem;
-    this.countdownTimer = LoopingTimer();
-    this.countdownTimer.loop(this.#iterateGenerator(this), 0, name); // start now
+      // Create a separate timer to run the func
+      this.timer = actions.ScriptExecution.createTimer(this.end, func);
+      this.timeLeft = time.Duration.between(this.start, this.end);
+
+      // Start the countdown timer
+      this.countItem = countItem;
+      const ltKey = key ? key + '_loop' : undefined;
+      this._countdownTimer = LoopingTimer(ltKey, cacheObj);
+      this._countdownTimer.loop(this.#iterateGenerator(this), 0, name); // start now
+    }
+  }
+
+  get start() { return this.state.get('start'); }
+  set start(val) { if (val === null || val === undefined) this.state.remove('start'); else this.state.put('start', val); }
+
+  get end() { return this.state.get('end'); }
+  set end(val) { if (val === null || val === undefined) this.state.remove('end'); else this.state.put('end', val); }
+
+  get ONE_SEC() { return this.state.get('ONE_SEC'); }
+  set ONE_SEC(val) { if (val === null || val === undefined) this.state.remove('ONE_SEC'); else this.state.put('ONE_SEC', val); }
+
+  get timer() { return this.state.get('timer'); }
+  set timer(val) { if (val === null || val === undefined) this.state.remove('timer'); else this.state.put('timer', val); }
+
+  get timeLeft() { return this.state.get('timeLeft'); }
+  set timeLeft(val) { if (val === null || val === undefined) this.state.remove('timeLeft'); else this.state.put('timeLeft', val); }
+
+  get countItem() { return this.state.get('countItem'); }
+  set countItem(val) { if (val === null || val === undefined) this.state.remove('countItem'); else this.state.put('countItem', val); }
+
+  get countdownTimer() {
+    if (!this._countdownTimer) {
+      const ltKey = this.state.get('ltKey');
+      if (ltKey) {
+        this._countdownTimer = LoopingTimer(ltKey, this._cacheObj);
+      } else {
+        this._countdownTimer = LoopingTimer();
+      }
+    }
+    return this._countdownTimer;
+  }
+  set countdownTimer(val) {
+    this._countdownTimer = val;
   }
 
   /**
@@ -86,10 +129,12 @@ class CountdownTimer {
  * @param {function} func function to call at when
  * @param {string} countItem name of the Item to update with the seconds remaining
  * @param {string} [name] countdown name displayed in openHAB
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
  * @returns a new CountdownTimer
  */
-function getCountdownTimer(when, func, countItem, name) {
-  return new CountdownTimer(when, func, countItem, name);
+function getCountdownTimer(when, func, countItem, name, key, cacheObj) {
+  return new CountdownTimer(when, func, countItem, name, key, cacheObj);
 }
 
 module.exports = {
