@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: loopingTimer.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: loopingTimer.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const helpers = require('./helpers');
+const { time } = require('openhab');
+
+/**
+ * Implements a looping Timer which is passed a function that is expected to return
+ * a when supported by time.toZDT. The loop will reschedule the timer based
+ * on that returned when or, if it return null the looping stops.
+ */
+class LoopingTimer {
+
+  /**
+   * Constructor
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
+   */
+  constructor(key, cacheObj) {
+    this.state = helpers.getBackingMap(key, cacheObj);
+  }
+
+  get timer() {
+    return this.state.get('timer');
+  }
+
+  set timer(val) {
+    if (val === null || val === undefined) {
+      this.state.remove('timer');
+    } else {
+      this.state.put('timer', val);
+    }
+  }
+
+  get name() {
+    return this.state.get('name');
+  }
+
+  set name(val) {
+    if (val === null || val === undefined) {
+      this.state.remove('name');
+    } else {
+      this.state.put('name', val);
+    }
+  }
+
+  /**
+   * Kicks off the timer loop. Schedules a timer to call func at when
+   * @param {function} func function to call at when, must return a when to continue the loop or null to stop
+   * @param {*} when any of the types supported by time.toZDT
+   * @param {string} [name] timer name displayed in openHAB
+   */
+  loop(func, when, name) {
+
+    this.func = func;
+    this.name = name;
+    if (!when) this.expired();
+    else {
+      this.timer = helpers.createTimer(when, () => this.expired(), name, 'loopingTimer');
+    }
+  }
+
+  /**
+   * Called when the timer expires. Calls the passed in function and
+   * reschedules it based on the returned when value, or ends if null was
+   * returned.
+   * @throws exception when the time returned by the looping function is in the past
+   */
+  expired() {
+    const when = this.func();
+    if (when) {
+      const nextRun = time.toZDT(when);
+      if (nextRun.isAfter(time.toZDT())) {
+        this.timer = helpers.createTimer(nextRun.toString(), () => this.expired(),
+          this.name, 'loopingTimer');
+      }
+      else {
+        throw 'when ' + when + ' returned by the loop function is in the past!';
+      }
+    }
+  }
+  
+  /**
+   * @returns {Duration} of time left in the current loop of the timer
+   * if it returns null LoopingTimer hasn't been started yet
+   * if it returns a positive duration the next iteration of the loop is scheduled
+   * if it returns a negative duration the loop has exited and the duration is how long ago it exited the loop.
+   */
+  getDuration() {
+    if (this.timer) {
+      return time.Duration.between(time.toZDT(), this.timer.getExecutionTime());
+    }
+    
+    return null;
+  }
+
+  /**
+   * Cancels the timer if it exists and hasn't already terminated.
+   */
+  cancel() {
+    if (this.timer &amp;&amp; !this.hasTerminated()) {
+      this.timer.cancel();
+    }
+  }
+
+  /**
+   * Returns true of the timer doesn't exist or has terminated.
+   */
+  hasTerminated() {
+    return !this.timer || this.timer.hasTerminated();
+  }
+}
+
+/**
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
+ * @returns a timer that resheduels itself until the passed in looping function
+ * return null
+ */
+function getLoopingTimer(key, cacheObj) {
+  return new LoopingTimer(key, cacheObj);
+}
+
+module.exports = {
+  LoopingTimer,
+  getLoopingTimer
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CountdownTimer.html">CountdownTimer</a></li><li><a href="Deferred.html">Deferred</a></li><li><a href="Gatekeeper.html">Gatekeeper</a></li><li><a href="LoopingTimer.html">LoopingTimer</a></li><li><a href="RateLimit.html">RateLimit</a></li><li><a href="TimerMgr.html">TimerMgr</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_validateVersionNum">_validateVersionNum</a></li><li><a href="global.html#avgList">avgList</a></li><li><a href="global.html#betweenTimes">betweenTimes</a></li><li><a href="global.html#checkGrpAndMetadata">checkGrpAndMetadata</a></li><li><a href="global.html#compareVersions">compareVersions</a></li><li><a href="global.html#countList">countList</a></li><li><a href="global.html#createRuleWithMetadata">createRuleWithMetadata</a></li><li><a href="global.html#createRuleWithTags">createRuleWithTags</a></li><li><a href="global.html#createTimer">createTimer</a></li><li><a href="global.html#descendentsToMappedList">descendentsToMappedList</a></li><li><a href="global.html#descendentsToString">descendentsToString</a></li><li><a href="global.html#durationToDateTime">durationToDateTime</a></li><li><a href="global.html#generateTriggers">generateTriggers</a></li><li><a href="global.html#getBackingMap">getBackingMap</a></li><li><a href="global.html#getCountdownTimer">getCountdownTimer</a></li><li><a href="global.html#getDeferred">getDeferred</a></li><li><a href="global.html#getGatekeeper">getGatekeeper</a></li><li><a href="global.html#getLoopingTimer">getLoopingTimer</a></li><li><a href="global.html#getRateLimit">getRateLimit</a></li><li><a href="global.html#getTimerMgr">getTimerMgr</a></li><li><a href="global.html#is12Hr">is12Hr</a></li><li><a href="global.html#is24Hr">is24Hr</a></li><li><a href="global.html#isISO8601">isISO8601</a></li><li><a href="global.html#isNumber">isNumber</a></li><li><a href="global.html#maxList">maxList</a></li><li><a href="global.html#membersToMappedList">membersToMappedList</a></li><li><a href="global.html#membersToString">membersToString</a></li><li><a href="global.html#minList">minList</a></li><li><a href="global.html#parseDuration">parseDuration</a></li><li><a href="global.html#recreateRule">recreateRule</a></li><li><a href="global.html#reduceDecendentStates">reduceDecendentStates</a></li><li><a href="global.html#reduceMemberStates">reduceMemberStates</a></li><li><a href="global.html#removeRule">removeRule</a></li><li><a href="global.html#ruleExists">ruleExists</a></li><li><a href="global.html#runRule">runRule</a></li><li><a href="global.html#sumList">sumList</a></li><li><a href="global.html#toDateTime">toDateTime</a></li><li><a href="global.html#toToday">toToday</a></li><li><a href="global.html#toTomorrow">toTomorrow</a></li><li><a href="global.html#toYesterday">toYesterday</a></li><li><a href="global.html#validateLibraries">validateLibraries</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Aug 13 2026 19:19:27 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

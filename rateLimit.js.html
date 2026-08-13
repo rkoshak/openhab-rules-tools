@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: rateLimit.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: rateLimit.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { time } = require('openhab');
+const helpers = require('./helpers');
+
+/**
+ * Simple class that keeps track of a time. When run is called, a
+ * when is passed indicating how much time to wait after that call
+ * before calling the passed in func again.
+ */
+class RateLimit {
+
+  /**
+   * Initializes the delay to the past so the first call immediately runs
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
+   */
+  constructor(key, cacheObj) {
+    this.state = helpers.getBackingMap(key, cacheObj);
+    if (!this.state.containsKey('until')) {
+      this.state.put('until', time.toZDT().minusSeconds(1));
+    }
+  }
+
+  get until() {
+    return this.state.get('until');
+  }
+
+  set until(val) {
+    if (val === null || val === undefined) {
+      this.state.remove('until');
+    } else {
+      this.state.put('until', val);
+    }
+  }
+
+  /**
+   * @param {function()} func action to run if it's been long enough
+   * @when {*} anything supported by time.toZDT
+   */
+  run(func, when) {
+    if (time.toZDT().isAfter(this.until)) {
+      this.until = time.toZDT(when);
+      func();
+    }
+  }
+}
+
+/**
+ * The RateLimit class keeps track of when the last `run` was called and throws
+ * away subsequent calls to run that occur before the passed in `when`.
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
+ */
+function getRateLimit(key, cacheObj) {
+  return new RateLimit(key, cacheObj);
+}
+
+module.exports = {
+  RateLimit,
+  getRateLimit
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CountdownTimer.html">CountdownTimer</a></li><li><a href="Deferred.html">Deferred</a></li><li><a href="Gatekeeper.html">Gatekeeper</a></li><li><a href="LoopingTimer.html">LoopingTimer</a></li><li><a href="RateLimit.html">RateLimit</a></li><li><a href="TimerMgr.html">TimerMgr</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_validateVersionNum">_validateVersionNum</a></li><li><a href="global.html#avgList">avgList</a></li><li><a href="global.html#betweenTimes">betweenTimes</a></li><li><a href="global.html#checkGrpAndMetadata">checkGrpAndMetadata</a></li><li><a href="global.html#compareVersions">compareVersions</a></li><li><a href="global.html#countList">countList</a></li><li><a href="global.html#createRuleWithMetadata">createRuleWithMetadata</a></li><li><a href="global.html#createRuleWithTags">createRuleWithTags</a></li><li><a href="global.html#createTimer">createTimer</a></li><li><a href="global.html#descendentsToMappedList">descendentsToMappedList</a></li><li><a href="global.html#descendentsToString">descendentsToString</a></li><li><a href="global.html#durationToDateTime">durationToDateTime</a></li><li><a href="global.html#generateTriggers">generateTriggers</a></li><li><a href="global.html#getBackingMap">getBackingMap</a></li><li><a href="global.html#getCountdownTimer">getCountdownTimer</a></li><li><a href="global.html#getDeferred">getDeferred</a></li><li><a href="global.html#getGatekeeper">getGatekeeper</a></li><li><a href="global.html#getLoopingTimer">getLoopingTimer</a></li><li><a href="global.html#getRateLimit">getRateLimit</a></li><li><a href="global.html#getTimerMgr">getTimerMgr</a></li><li><a href="global.html#is12Hr">is12Hr</a></li><li><a href="global.html#is24Hr">is24Hr</a></li><li><a href="global.html#isISO8601">isISO8601</a></li><li><a href="global.html#isNumber">isNumber</a></li><li><a href="global.html#maxList">maxList</a></li><li><a href="global.html#membersToMappedList">membersToMappedList</a></li><li><a href="global.html#membersToString">membersToString</a></li><li><a href="global.html#minList">minList</a></li><li><a href="global.html#parseDuration">parseDuration</a></li><li><a href="global.html#recreateRule">recreateRule</a></li><li><a href="global.html#reduceDecendentStates">reduceDecendentStates</a></li><li><a href="global.html#reduceMemberStates">reduceMemberStates</a></li><li><a href="global.html#removeRule">removeRule</a></li><li><a href="global.html#ruleExists">ruleExists</a></li><li><a href="global.html#runRule">runRule</a></li><li><a href="global.html#sumList">sumList</a></li><li><a href="global.html#toDateTime">toDateTime</a></li><li><a href="global.html#toToday">toToday</a></li><li><a href="global.html#toTomorrow">toTomorrow</a></li><li><a href="global.html#toYesterday">toYesterday</a></li><li><a href="global.html#validateLibraries">validateLibraries</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Aug 13 2026 19:19:27 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

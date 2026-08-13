@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>openHAB Rules Tools (OHRT)</h1>
+<p>A collection of library functions, classes, rule templates, MainUI widgets (eventually), and examples to reuse in the development of new openHAB capabilities.</p>
+<h1>Sponsorship</h1>
+<p>If you want to send a tip my way or sponsor my work you can through <a href="https://github.com/sponsors/rkoshak">Sponsor @rkoshak on GitHub</a> or <a href="https://paypal.me/rlkoshak?country.x=US&amp;locale.x=en_US">PayPal</a>.
+It won't change what I contribute to OH but it might keep me in coffee or let me buy hardware to test out new things.</p>
+<h1>Installation</h1>
+<h2>Libraries</h2>
+<p>Previously this library supported Jython libraries that only work with OH 2.x.
+Those are still available in the <code>before-npm</code> branch but have been removed and are no longer maintained in <code>main</code> going forward.</p>
+<p>Similarly, ECMAScript 5.1 versions of these libraries exist in the <code>before-npm</code> branch.
+These too are removed from the <code>main</code> branch and are no longer maintained.</p>
+<p>The libraries that will continue to be developed going forward will be JS Scripting, Blockly, UI Widgets, and rule templates.</p>
+<p>The JS Scripting library depends on the <code>openhab-js</code> library.
+<code>openhab-js</code> comes with the add-on but you may need to upgrade the library independently.
+It can be installed using <code>openhabian-config</code> menu option <code>46 | Install openhab-js</code> or by running <code>npm install openhab</code> from the <code>$OH_CONF/automation/js</code> folder.</p>
+<h3>openHABian</h3>
+<p><code>openhab_rules_tools</code> is now supported by openHABian.
+It should be installed by default.
+Look to see if <code>$OH_CONF/automation/js/node_modules/openhab_rules_tools</code> exists.
+If so you already have this library.
+If not, it can be installed using <code>openhabian-config</code> menu option <code>47 | Install openhab_rules_tools</code>.</p>
+<h3>Manual Installation</h3>
+<p>From the <code>$OH_CONF/automation/js</code> folder run <code>npm install openhab_rules_tools</code>.</p>
+<h3>Rule Template Installation</h3>
+<p>The template requires <code>wget</code> in the path of the user running OH and the ability to run a shell script.
+It therefore it likely to only work on a POSIX type system.
+It has been tested and does work with Docker instances of OH.</p>
+<ol>
+<li>From MainUI -&gt; Add-on Store -&gt; Automation add the &quot;Install openHAB Rules Tools&quot; template.</li>
+<li>Instantiate a rule based on this template.</li>
+<li>Maunally run the rule, watching openhab.log for progress and errors. If there are errors, you likely need to install the library manually.</li>
+</ol>
+<h2>Rule Templates</h2>
+<p>Rule templates are written primarily GraalVM JS (i.e. JS Scripting).
+Sometimes they will have dependencies that must be separately installed (other templates, libraries, add-ons).
+See the readme and the docs for each template for more details.</p>
+<p>Installation of a template can be done from MainUI under Settings -&gt; Automation.</p>
+<ol>
+<li>In MainUI go to Settings.</li>
+<li>Open &quot;Automation&quot;.</li>
+<li>Browse for the rule template to install; you might need to click on &quot;show all&quot;.</li>
+<li>Read the description and instructions for how to use the template and make sure you understand it. Some tempaltes require you to first write another rule which the template rule will call or require the creation of Items or addition of Item metadata, for example.</li>
+<li>In the rule template and click &quot;Add&quot;.</li>
+<li>Now go to Settings -&gt; Rules.</li>
+<li>Click the + and enter the UID, label and description.</li>
+<li>Choose the rule template from the list of installed templates.</li>
+<li>Fill out the parameters and click Save.</li>
+</ol>
+<h1>Prerequisites</h1>
+<p>As time passes and more new features are added to the openhab-js library and openHAB itself, the prerequisites for this library and the rule templates will change.
+Review the release notes to see which versions of these and the addition of new prerequisites are required for that release.</p>
+<h1>Tests</h1>
+<p>This library uses <strong>Jest</strong> and a custom <strong>mock openHAB environment</strong>. The mock environment simulates the global variables (<code>items</code>, <code>actions</code>, <code>osgi</code>, <code>cache</code>, <code>time</code>, <code>utils</code>, <code>Java</code>) and OSGi automation registries so you can run the entire test suite locally in standard Node.js without a running openHAB instance.</p>
+<h3>Running the Unit Tests</h3>
+<ol>
+<li>
+<p><strong>Install Dependencies</strong>:
+Ensure you have installed node modules in the root of the project:</p>
+<pre class="prettyprint source lang-bash"><code>npm install
+</code></pre>
+</li>
+<li>
+<p><strong>Execute Tests</strong>:
+To run all unit tests in the suite:</p>
+<pre class="prettyprint source lang-bash"><code>npm test
+</code></pre>
+</li>
+<li>
+<p><strong>Check Test Coverage</strong>:
+To run tests and output a full visual code-coverage report in the terminal:</p>
+<pre class="prettyprint source lang-bash"><code>npm test -- --coverage
+</code></pre>
+</li>
+</ol>
+<h1>Usage</h1>
+<p>For rule templates, see the README.md file in the marketplace-templates folder and the entry in the <a href="https://community.openhab.org/c/marketplace/rule-templates">Marketplace postings</a> for the detailed instructions for each individual tempalte.</p>
+<p>The following sections describe the purpose and detailed usage examples of each library capability.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CountdownTimer</code></td>
+<td>Implements a timer that updates a <code>Number</code> or <code>Number:Timer</code> Item once a second with the amount of time remaining on that timer.</td>
+</tr>
+<tr>
+<td><code>Deferred</code></td>
+<td>Allows one to easily schedule an update or command to be sent to an Item in the future.</td>
+</tr>
+<tr>
+<td><code>Gatekeeper</code></td>
+<td>Schedules a sequence of actions with a time between one to the next (e.g., to prevent rate limits or schedule sequential tasks).</td>
+</tr>
+<tr>
+<td><code>LoopingTimer</code></td>
+<td>Creates a timer that loops until a condition is met.</td>
+</tr>
+<tr>
+<td><code>RateLimit</code></td>
+<td>Implements a check that ignores an action if it occurs too soon after the previous action.</td>
+</tr>
+<tr>
+<td><code>timeUtils</code></td>
+<td>A collection of functions that convert and manipulate times and durations.</td>
+</tr>
+<tr>
+<td><code>TimerMgr</code></td>
+<td>A class that provides bookkeeping and management of multiple timers.</td>
+</tr>
+<tr>
+<td><code>testUtils</code></td>
+<td>A collection of functions useful for testing.</td>
+</tr>
+<tr>
+<td><code>groupUtils</code></td>
+<td>A collection of functions to simplify mapping and reducing members or descendants of a Group.</td>
+</tr>
+<tr>
+<td><code>rulesUtils</code></td>
+<td>A collection of functions to simplify the creation of a rule triggered by Items with a given tag or given Item metadata.</td>
+</tr>
+<tr>
+<td><code>helpers</code></td>
+<td>Helper functions to centralize common operations (like centralizing named timer creation).</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>Class and Function Reference with Examples</h2>
+<h3>1. TimerMgr</h3>
+<p>Manages multiple timers identified by a unique key (such as an Item name). It supports rescheduling, custom flapping actions, and automatic cleanup.</p>
+<pre class="prettyprint source lang-javascript"><code>const { TimerMgr } = require('openhab_rules_tools');
+
+// Instantiate or retrieve from Cache
+const tm = cache.private.get('myTimers', () => TimerMgr());
+
+// Check/create a timer for Item &quot;LivingRoom_Motion&quot; to turn off light in 5 minutes
+tm.check('LivingRoom_Motion', 'PT5m', () => {
+  items.getItem('LivingRoom_Light').sendCommand('OFF');
+});
+</code></pre>
+<h3>2. Gatekeeper</h3>
+<p>Queues up commands ensuring a designated pause interval passes between the execution of subsequent commands.</p>
+<pre class="prettyprint source lang-javascript"><code>const { Gatekeeper } = require('openhab_rules_tools');
+
+const gk = cache.private.get('myGatekeeper', () => Gatekeeper('irrigation-gk'));
+
+// Schedule sequential zone irrigations with pauses
+gk.addCommand('PT10m', () => items.getItem('Zone1_Valve').sendCommand('ON'));
+gk.addCommand('PT15m', () => {
+  items.getItem('Zone1_Valve').sendCommand('OFF');
+  items.getItem('Zone2_Valve').sendCommand('ON');
+});
+gk.addCommand('PT0s', () => items.getItem('Zone2_Valve').sendCommand('OFF'));
+</code></pre>
+<h3>3. CountdownTimer</h3>
+<p>Schedules a function to run at a specific time and updates a backing <code>Number</code> Item with the remaining seconds once a second.</p>
+<pre class="prettyprint source lang-javascript"><code>const { CountdownTimer } = require('openhab_rules_tools');
+
+// Start a 1-minute countdown, updating the 'Timer_Remaining' Item
+const timer = CountdownTimer('PT1m', () => {
+  console.info('Timer finished!');
+}, 'Timer_Remaining');
+</code></pre>
+<h3>4. Deferred</h3>
+<p>Allows you to postpone sending a command or update to an Item to a future date or duration.</p>
+<pre class="prettyprint source lang-javascript"><code>const { Deferred } = require('openhab_rules_tools');
+
+const def = cache.private.get('myDeferred', () => Deferred());
+
+// Turn ON the exhaust fan in 30 minutes as a command
+def.defer('Exhaust_Fan', 'ON', 'PT30m', true);
+</code></pre>
+<h3>5. LoopingTimer</h3>
+<p>Creates a self-rescheduling timer that continues to loop as long as the generator function returns a valid duration.</p>
+<pre class="prettyprint source lang-javascript"><code>const { LoopingTimer } = require('openhab_rules_tools');
+
+const lt = LoopingTimer();
+let count = 0;
+
+lt.loop(() => {
+  count++;
+  console.info(`Loop iteration ${count}`);
+  return (count &lt; 5) ? 'PT2s' : null; // Loop 5 times every 2s
+}, 'PT2s');
+</code></pre>
+<h3>6. RateLimit</h3>
+<p>Rate-limits executions, ignoring any action that occurs before a specified duration has elapsed since the last successful execution.</p>
+<pre class="prettyprint source lang-javascript"><code>const { RateLimit } = require('openhab_rules_tools');
+
+const limit = cache.private.get('myRateLimit', () => RateLimit());
+
+// Ignore motion updates if we already logged one in the last 10 seconds
+limit.run(() => {
+  console.info('Motion detected - processing event!');
+}, 'PT10s');
+</code></pre>
+<h3>7. timeUtils</h3>
+<p>Utility functions to parse and compare times, check clock styles, and determine time boundaries.</p>
+<pre class="prettyprint source lang-javascript"><code>const timeUtils = require('openhab_rules_tools').timeUtils;
+
+// Parse a custom human-readable duration
+const duration = timeUtils.parseDuration('1h 30m'); // returns a js-joda Duration
+
+// Check if now is between two times
+const isDayTime = timeUtils.betweenTimes('08:00', '18:00'); // returns boolean
+</code></pre>
+<h3>8. groupUtils</h3>
+<p>Provides functional mapping, reducing, and calculating utilities for members and descendants of a Group.</p>
+<pre class="prettyprint source lang-javascript"><code>const groupUtils = require('openhab_rules_tools').groupUtils;
+
+// Sum up all temperatures in a Group, ignoring non-numeric values
+const totalTemp = groupUtils.sumList(items.getItem('gTemperatures').members);
+
+// Join all member names with a comma
+const nameList = groupUtils.membersToString('gSmartBulbs', ', ', item => item.name);
+</code></pre>
+<h3>9. rulesUtils</h3>
+<p>Utilities to dynamically generate rules based on metadata, tags, and automation triggers.</p>
+<pre class="prettyprint source lang-javascript"><code>const rulesUtils = require('openhab_rules_tools').rulesUtils;
+
+// Check if a specific rule exists in the automation registry
+const exists = rulesUtils.ruleExists('my-custom-rule-uid');
+</code></pre>
+<h3>10. helpers</h3>
+<p>Under-the-hood helpers to manage named timers, check compatibility standards, and validate library dependencies.</p>
+<pre class="prettyprint source lang-javascript"><code>const helpers = require('openhab_rules_tools').helpers;
+
+// Check if libraries meet minimum version requirements
+helpers.validateLibraries('4.0.0', '2.0.0');
+</code></pre>
+<h2>How to Save an Instance Between Runs?</h2>
+<p>Most of the library capabilities above are classes that one instantiates and reuses over multiple executions of a given rule.
+So how does one save that instance so it doesn't get overwritten each time a rule runs?
+There are three options.</p>
+<h3>Shared Cache</h3>
+<p>New to OH 3.4 release, a system wide cache has been added where variables can be stored and accessed across multiple runs of a rule or between script actions or conditions across multiple rules.
+One can pull, and if it doesn't exist, instantiate an Object in one line inside your rule.</p>
+<pre class="prettyprint source"><code>var timers = cache.shared.get('timers', () TimerMgr());
+</code></pre>
+<p>It is important to use unique keys across all your rules to avoid collisions.</p>
+<h3>Private Cache</h3>
+<p>New to OH 3.4 release, a privatre cache has been added where variables can be stored and accessed from multiple runs of a given script action or condition.
+Just like with the shared cache, one can pull, and if the Object doesn't exist instantiate it and save it to the private cache in one line inside your rule.
+The private cache is limited to one Script.</p>
+<h3>Global Variable</h3>
+<p>If writing your rules in .js files, you can define a variable outside of your rules and that variable will be &quot;global&quot; to all the rules in that file.
+That variable will also be preserved from one run of the rules to the next.</p>
+<pre class="prettyprint source"><code>var tm = new timerMgr.TimerMgr();
+
+...
+    // inside a rule
+    tm.check(key, '5m', runme);
+</code></pre>
+<p>NOTE: This approach is not possible in UI rules.</p>
+<h2>Function Generators</h2>
+<p>Many of these capabilities accept a function as an argument passed to them which get called under certain circumstances (e.g. called at a given time).
+When creating those functions one has a number of options.</p>
+<p>One can create an anonymous function inline.</p>
+<pre class="prettyprint source lang-javascript"><code>this.timers.check(event.itemName, 1000, function() {
+  // do some stuff
+}
+</code></pre>
+<p>Another way to define an anonymous funciton.</p>
+<pre class="prettyprint source lang-javascript"><code>this.timers.check(event.itemName, 1000, () => {
+  // do stuff
+}
+</code></pre>
+<p>Or one can define a named function.</p>
+<pre class="prettyprint source lang-javascript"><code>var runme = function() {
+  // do stuff
+}
+this.timers.check(event.itemName, 1000, runme);
+</code></pre>
+<p>With all of the approaches above, one could run into problems with varibles and their scope, particularly in the UI scripts.
+If the function passed refers to variables not defined in the function itself, when the function is finally called (e.g. from a timer) those variables may have changed because of a subsequent run of the script.
+There needs to be a way to &quot;fix&quot; the values of the variables in the function so no matter what happens to them outside the function, the values remain the same in the funciton.</p>
+<p>This can be achieved through a function generator.
+A function generator is mainly just a function that returns a function.
+But we can pass as arguments to the generator those values the returned function needs which will fix their values.</p>
+<pre class="prettyprint source lang-javascript"><code>var runmeGenerator = function(foo, bar, baz) {
+  return () => {
+    // do stuff with foo, bar, and baz
+  }
+}
+var foo = 'foo';
+var bar = 123;
+var baz = null;
+this.timers.check(event.itemName, 1000, runmeGenerator(foo, bar, baz));
+</code></pre></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CountdownTimer.html">CountdownTimer</a></li><li><a href="Deferred.html">Deferred</a></li><li><a href="Gatekeeper.html">Gatekeeper</a></li><li><a href="LoopingTimer.html">LoopingTimer</a></li><li><a href="RateLimit.html">RateLimit</a></li><li><a href="TimerMgr.html">TimerMgr</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_validateVersionNum">_validateVersionNum</a></li><li><a href="global.html#avgList">avgList</a></li><li><a href="global.html#betweenTimes">betweenTimes</a></li><li><a href="global.html#checkGrpAndMetadata">checkGrpAndMetadata</a></li><li><a href="global.html#compareVersions">compareVersions</a></li><li><a href="global.html#countList">countList</a></li><li><a href="global.html#createRuleWithMetadata">createRuleWithMetadata</a></li><li><a href="global.html#createRuleWithTags">createRuleWithTags</a></li><li><a href="global.html#createTimer">createTimer</a></li><li><a href="global.html#descendentsToMappedList">descendentsToMappedList</a></li><li><a href="global.html#descendentsToString">descendentsToString</a></li><li><a href="global.html#durationToDateTime">durationToDateTime</a></li><li><a href="global.html#generateTriggers">generateTriggers</a></li><li><a href="global.html#getBackingMap">getBackingMap</a></li><li><a href="global.html#getCountdownTimer">getCountdownTimer</a></li><li><a href="global.html#getDeferred">getDeferred</a></li><li><a href="global.html#getGatekeeper">getGatekeeper</a></li><li><a href="global.html#getLoopingTimer">getLoopingTimer</a></li><li><a href="global.html#getRateLimit">getRateLimit</a></li><li><a href="global.html#getTimerMgr">getTimerMgr</a></li><li><a href="global.html#is12Hr">is12Hr</a></li><li><a href="global.html#is24Hr">is24Hr</a></li><li><a href="global.html#isISO8601">isISO8601</a></li><li><a href="global.html#isNumber">isNumber</a></li><li><a href="global.html#maxList">maxList</a></li><li><a href="global.html#membersToMappedList">membersToMappedList</a></li><li><a href="global.html#membersToString">membersToString</a></li><li><a href="global.html#minList">minList</a></li><li><a href="global.html#parseDuration">parseDuration</a></li><li><a href="global.html#recreateRule">recreateRule</a></li><li><a href="global.html#reduceDecendentStates">reduceDecendentStates</a></li><li><a href="global.html#reduceMemberStates">reduceMemberStates</a></li><li><a href="global.html#removeRule">removeRule</a></li><li><a href="global.html#ruleExists">ruleExists</a></li><li><a href="global.html#runRule">runRule</a></li><li><a href="global.html#sumList">sumList</a></li><li><a href="global.html#toDateTime">toDateTime</a></li><li><a href="global.html#toToday">toToday</a></li><li><a href="global.html#toTomorrow">toTomorrow</a></li><li><a href="global.html#toYesterday">toYesterday</a></li><li><a href="global.html#validateLibraries">validateLibraries</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Aug 13 2026 19:19:27 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

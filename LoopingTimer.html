@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Class: LoopingTimer</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Class: LoopingTimer</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2><span class="attribs"><span class="type-signature"></span></span>LoopingTimer<span class="signature">(key<span class="signature-attributes">opt</span>, cacheObj<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h2>
+        
+            <div class="class-description">Implements a looping Timer which is passed a function that is expected to return
+a when supported by time.toZDT. The loop will reschedule the timer based
+on that returned when or, if it return null the looping stops.</div>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+    
+    <h2>Constructor</h2>
+    
+
+    
+    <h4 class="name" id="LoopingTimer"><span class="type-signature"></span>new LoopingTimer<span class="signature">(key<span class="signature-attributes">opt</span>, cacheObj<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Constructor
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">key for the backing map in the cache</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cacheObj</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">cache object to use (defaults to cache.private if key is provided)</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="loopingTimer.js.html">loopingTimer.js</a>, <a href="loopingTimer.js.html#line9">line 9</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="cancel"><span class="type-signature"></span>cancel<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Cancels the timer if it exists and hasn't already terminated.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="loopingTimer.js.html">loopingTimer.js</a>, <a href="loopingTimer.js.html#line97">line 97</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="expired"><span class="type-signature"></span>expired<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Called when the timer expires. Calls the passed in function and
+reschedules it based on the returned when value, or ends if null was
+returned.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="loopingTimer.js.html">loopingTimer.js</a>, <a href="loopingTimer.js.html#line66">line 66</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+
+        
+
+    <div class="param-desc">
+    
+        exception when the time returned by the looping function is in the past
+    
+    </div>
+
+
+    
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getDuration"><span class="type-signature"></span>getDuration<span class="signature">()</span><span class="type-signature"> &rarr; {Duration}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="loopingTimer.js.html">loopingTimer.js</a>, <a href="loopingTimer.js.html#line86">line 86</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    of time left in the current loop of the timer
+if it returns null LoopingTimer hasn't been started yet
+if it returns a positive duration the next iteration of the loop is scheduled
+if it returns a negative duration the loop has exited and the duration is how long ago it exited the loop.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Duration</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="hasTerminated"><span class="type-signature"></span>hasTerminated<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Returns true of the timer doesn't exist or has terminated.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="loopingTimer.js.html">loopingTimer.js</a>, <a href="loopingTimer.js.html#line106">line 106</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="loop"><span class="type-signature"></span>loop<span class="signature">(func, when, name<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Kicks off the timer loop. Schedules a timer to call func at when
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>func</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">function to call at when, must return a when to continue the loop or null to stop</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>when</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">*</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">any of the types supported by time.toZDT</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">timer name displayed in openHAB</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="loopingTimer.js.html">loopingTimer.js</a>, <a href="loopingTimer.js.html#line50">line 50</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CountdownTimer.html">CountdownTimer</a></li><li><a href="Deferred.html">Deferred</a></li><li><a href="Gatekeeper.html">Gatekeeper</a></li><li><a href="LoopingTimer.html">LoopingTimer</a></li><li><a href="RateLimit.html">RateLimit</a></li><li><a href="TimerMgr.html">TimerMgr</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_validateVersionNum">_validateVersionNum</a></li><li><a href="global.html#avgList">avgList</a></li><li><a href="global.html#betweenTimes">betweenTimes</a></li><li><a href="global.html#checkGrpAndMetadata">checkGrpAndMetadata</a></li><li><a href="global.html#compareVersions">compareVersions</a></li><li><a href="global.html#countList">countList</a></li><li><a href="global.html#createRuleWithMetadata">createRuleWithMetadata</a></li><li><a href="global.html#createRuleWithTags">createRuleWithTags</a></li><li><a href="global.html#createTimer">createTimer</a></li><li><a href="global.html#descendentsToMappedList">descendentsToMappedList</a></li><li><a href="global.html#descendentsToString">descendentsToString</a></li><li><a href="global.html#durationToDateTime">durationToDateTime</a></li><li><a href="global.html#generateTriggers">generateTriggers</a></li><li><a href="global.html#getBackingMap">getBackingMap</a></li><li><a href="global.html#getCountdownTimer">getCountdownTimer</a></li><li><a href="global.html#getDeferred">getDeferred</a></li><li><a href="global.html#getGatekeeper">getGatekeeper</a></li><li><a href="global.html#getLoopingTimer">getLoopingTimer</a></li><li><a href="global.html#getRateLimit">getRateLimit</a></li><li><a href="global.html#getTimerMgr">getTimerMgr</a></li><li><a href="global.html#is12Hr">is12Hr</a></li><li><a href="global.html#is24Hr">is24Hr</a></li><li><a href="global.html#isISO8601">isISO8601</a></li><li><a href="global.html#isNumber">isNumber</a></li><li><a href="global.html#maxList">maxList</a></li><li><a href="global.html#membersToMappedList">membersToMappedList</a></li><li><a href="global.html#membersToString">membersToString</a></li><li><a href="global.html#minList">minList</a></li><li><a href="global.html#parseDuration">parseDuration</a></li><li><a href="global.html#recreateRule">recreateRule</a></li><li><a href="global.html#reduceDecendentStates">reduceDecendentStates</a></li><li><a href="global.html#reduceMemberStates">reduceMemberStates</a></li><li><a href="global.html#removeRule">removeRule</a></li><li><a href="global.html#ruleExists">ruleExists</a></li><li><a href="global.html#runRule">runRule</a></li><li><a href="global.html#sumList">sumList</a></li><li><a href="global.html#toDateTime">toDateTime</a></li><li><a href="global.html#toToday">toToday</a></li><li><a href="global.html#toTomorrow">toTomorrow</a></li><li><a href="global.html#toYesterday">toYesterday</a></li><li><a href="global.html#validateLibraries">validateLibraries</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Aug 13 2026 19:19:27 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: timerMgr.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: timerMgr.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { time } = require('openhab');
+const helpers = require('./helpers');
+
+/**
+ * Implements a manager for Timers with a simple interface. Once built, call
+ * check to create a timer or to reschedule the timer if it exists. Options
+ * exist to call a function when the timer expires, when the timer already
+ * exists, and a boolean to determine if the timer is rescheduled or not.
+ */
+class TimerMgr {
+
+  /**
+   * Constructor
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
+   */
+  constructor(key, cacheObj) {
+    // Stores the timer and the functions:
+    // - timer: timer Object
+    // - notFlapping: function to call when timer expires
+    // - flapping: function to call when check is called and timer already exists
+    this.timers = helpers.getBackingMap(key, cacheObj);
+    this.callbacks = {};
+  }
+
+  /**
+   * Function to call when null was passed for the func or flappingFunc.
+   */
+  #noop() {
+    // do nothing
+  }
+
+  /**
+   * If there is no timer associated with key, create one to expire at when and
+   * call func (or #noop if func is null).
+   * If there is a timer already associted with key, if reschedule is not
+   * supplied or it's false cancel the timer. If reschedule is true, reschedule
+   * the timer using when.
+   * If there is a timer already associated with key, if a flappingFunc is
+   * provided, call it.
+   * @param {string} key the identifier of the timer in the TimerMgr instance
+   * @param {*} when any representation of time of duration, see time.toZDT
+   * @param {function} func function to call when the timer expires
+   * @param {boolean} [reschedule=false] optional flag, when present and true rescheudle the timer if it already exists
+   * @param {function} [flappingFunc] optional function to call when the timer already exists
+   * @param {string} [name] timer name displayed in openHAB
+   * @param {boolean}[recreate=false] optional flag, when present and true the timer will be recreated with the new values instead of cancelled, evaluated after reschedule
+   */
+  check(key, when, func, reschedule, flappingFunc, name, recreate) {
+    const timeout = time.toZDT(when);
+
+    // timer exists
+    if (this.hasTimer(key)) {
+      if (reschedule) {
+        this.timers.get(key).reschedule(timeout);
+      }
+      else {
+        this.cancel(key);
+      }
+      if (flappingFunc) {
+        flappingFunc();
+      }
+      if (recreate) {
+        this.check(key, when, func, reschedule, flappingFunc, name, false);
+      }
+    }
+
+    // timer doesn't already exist, create a new one
+    else {
+      var timer = helpers.createTimer(when, () => {
+        // Call the passed in func when the timer expires.
+        if (this.hasTimer(key)) {
+          const callback = this.callbacks[key];
+          if (callback) {
+            callback();
+          }
+        }
+        // Clean up the timer from the manager.
+        if (this.hasTimer(key)) {
+          this.timers.remove(key);
+        }
+        if (this.callbacks) {
+          delete this.callbacks[key];
+        }
+      }, name, key);
+      this.timers.put(key, timer);
+      this.callbacks[key] = (func) ? func : this.#noop;
+    }
+  }
+
+  /**
+   * @param {*} key name of the timer
+   * @returns {boolean} true if there is a timer assocaited with key
+   */
+  hasTimer(key) {
+    return this.timers.containsKey(key);
+  }
+	
+  /**
+   * @param {*} key name of the timer
+   * @returns {Duration} of time left in the timer function
+   * or null if timer does not exist
+   */
+  getTimerDuration(key) {
+    if (this.hasTimer(key)) {
+      return time.Duration.between(time.toZDT(), time.toZDT(this.timers.get(key).getExecutionTime()));
+    }
+
+    return null;
+  }
+
+  /**
+   * If there is a timer assocaited with key, cancel it.
+   * @param {*} key name of the timer
+   */
+  cancel(key) {
+    if (this.hasTimer(key)) {
+      const timer = this.timers.get(key);
+      if (timer) {
+        timer.cancel();
+      }
+      this.timers.remove(key);
+      if (this.callbacks) {
+        delete this.callbacks[key];
+      }
+    }
+  }
+
+  /**
+   * Cancels all existing timers. Any timer that is actively running or
+   * has just terminated will be skipped and cleaned up in the _notFlapping
+   * method.
+   */
+  cancelAll() {
+    const iterator = this.timers.keySet().iterator();
+    while (iterator.hasNext()) {
+      const key = iterator.next();
+      const t = this.timers.get(key);
+      if (t &amp;&amp; !t.hasTerminated() &amp;&amp; !t.isRunning()) {
+        t.cancel();
+      }
+    }
+    this.timers.clear();
+    this.callbacks = {};
+  }
+}
+
+/**
+ * The TimerMgr handles the book keeping to manage a bunch of timers identified
+ * with a unique key.
+ */
+function getTimerMgr (key, cacheObj) {
+    return new TimerMgr(key, cacheObj);
+}
+
+module.exports = {
+  TimerMgr,
+  getTimerMgr
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CountdownTimer.html">CountdownTimer</a></li><li><a href="Deferred.html">Deferred</a></li><li><a href="Gatekeeper.html">Gatekeeper</a></li><li><a href="LoopingTimer.html">LoopingTimer</a></li><li><a href="RateLimit.html">RateLimit</a></li><li><a href="TimerMgr.html">TimerMgr</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_validateVersionNum">_validateVersionNum</a></li><li><a href="global.html#avgList">avgList</a></li><li><a href="global.html#betweenTimes">betweenTimes</a></li><li><a href="global.html#checkGrpAndMetadata">checkGrpAndMetadata</a></li><li><a href="global.html#compareVersions">compareVersions</a></li><li><a href="global.html#countList">countList</a></li><li><a href="global.html#createRuleWithMetadata">createRuleWithMetadata</a></li><li><a href="global.html#createRuleWithTags">createRuleWithTags</a></li><li><a href="global.html#createTimer">createTimer</a></li><li><a href="global.html#descendentsToMappedList">descendentsToMappedList</a></li><li><a href="global.html#descendentsToString">descendentsToString</a></li><li><a href="global.html#durationToDateTime">durationToDateTime</a></li><li><a href="global.html#generateTriggers">generateTriggers</a></li><li><a href="global.html#getBackingMap">getBackingMap</a></li><li><a href="global.html#getCountdownTimer">getCountdownTimer</a></li><li><a href="global.html#getDeferred">getDeferred</a></li><li><a href="global.html#getGatekeeper">getGatekeeper</a></li><li><a href="global.html#getLoopingTimer">getLoopingTimer</a></li><li><a href="global.html#getRateLimit">getRateLimit</a></li><li><a href="global.html#getTimerMgr">getTimerMgr</a></li><li><a href="global.html#is12Hr">is12Hr</a></li><li><a href="global.html#is24Hr">is24Hr</a></li><li><a href="global.html#isISO8601">isISO8601</a></li><li><a href="global.html#isNumber">isNumber</a></li><li><a href="global.html#maxList">maxList</a></li><li><a href="global.html#membersToMappedList">membersToMappedList</a></li><li><a href="global.html#membersToString">membersToString</a></li><li><a href="global.html#minList">minList</a></li><li><a href="global.html#parseDuration">parseDuration</a></li><li><a href="global.html#recreateRule">recreateRule</a></li><li><a href="global.html#reduceDecendentStates">reduceDecendentStates</a></li><li><a href="global.html#reduceMemberStates">reduceMemberStates</a></li><li><a href="global.html#removeRule">removeRule</a></li><li><a href="global.html#ruleExists">ruleExists</a></li><li><a href="global.html#runRule">runRule</a></li><li><a href="global.html#sumList">sumList</a></li><li><a href="global.html#toDateTime">toDateTime</a></li><li><a href="global.html#toToday">toToday</a></li><li><a href="global.html#toTomorrow">toTomorrow</a></li><li><a href="global.html#toYesterday">toYesterday</a></li><li><a href="global.html#validateLibraries">validateLibraries</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Aug 13 2026 19:19:27 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

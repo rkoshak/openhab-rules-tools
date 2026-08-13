@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: deferred.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: deferred.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { TimerMgr } = require('openhab_rules_tools');
+const { time, items } = require('openhab');
+
+/**
+ * Class that can be used to schedule a command or update to be sent to an Item later.
+ */
+class Deferred {
+
+  /**
+   * Constructor
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use
+   */
+  constructor(key, cacheObj) {
+    this.timers = TimerMgr(key, cacheObj);
+  }
+
+  /**
+   * Implements the command or update.
+   * @param {string} name of the Item
+   * @param {string} value command or update to send
+   * @param {boolean} isCommand when true, value will be sent as a command, otherwise posted as an update
+   */
+  #timerBodyGenerator(target, value, isCommand) {
+    const item = items.getItem(target);
+    return () => (isCommand) ? item.sendCommand(value) : item.postUpdate(value);
+  }
+
+  /**
+   * Creates a timer to command or update the update after a time. If the when
+   * is before now, sendCommand or postUpdate immediately.
+   * @param {string} target name of the Item to update or command
+   * @param {string} value command or update to sendGatekeeper
+   * @param {*} when time.toZDT compatible duration or date/time
+   * @param {boolean} isCommand when true value is sent as a command
+   */
+  defer(target, value, when, isCommand) {
+    const triggerTime = time.toZDT(when);
+    if (triggerTime.isBefore(time.toZDT())) {
+      triggerTime = time.toZDT();
+    }
+    this.timers.cancel(target);
+    this.timers.check(target, triggerTime, this.#timerBodyGenerator(target, value, isCommand, when), false);
+  }
+
+  /**
+   * Cancels the deferred actions for target, if there is one.
+   * @param {string} target name of the Item
+   */
+  cancel(target) {
+    this.timers.cancel(target);
+  }
+
+  /**
+   * Cancels all the deferred actions.
+   */
+  cancelAll() {
+    this.timers.cancelAll();
+  }
+}
+
+/**
+ * Deferred is a way to schedule a simple command sometime in the future.
+ *
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
+ * @returns a new instance of Deferred
+ */
+function getDeferred(key, cacheObj) {
+  return new Deferred(key, cacheObj);
+}
+
+module.exports = {
+  Deferred,
+  getDeferred
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CountdownTimer.html">CountdownTimer</a></li><li><a href="Deferred.html">Deferred</a></li><li><a href="Gatekeeper.html">Gatekeeper</a></li><li><a href="LoopingTimer.html">LoopingTimer</a></li><li><a href="RateLimit.html">RateLimit</a></li><li><a href="TimerMgr.html">TimerMgr</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_validateVersionNum">_validateVersionNum</a></li><li><a href="global.html#avgList">avgList</a></li><li><a href="global.html#betweenTimes">betweenTimes</a></li><li><a href="global.html#checkGrpAndMetadata">checkGrpAndMetadata</a></li><li><a href="global.html#compareVersions">compareVersions</a></li><li><a href="global.html#countList">countList</a></li><li><a href="global.html#createRuleWithMetadata">createRuleWithMetadata</a></li><li><a href="global.html#createRuleWithTags">createRuleWithTags</a></li><li><a href="global.html#createTimer">createTimer</a></li><li><a href="global.html#descendentsToMappedList">descendentsToMappedList</a></li><li><a href="global.html#descendentsToString">descendentsToString</a></li><li><a href="global.html#durationToDateTime">durationToDateTime</a></li><li><a href="global.html#generateTriggers">generateTriggers</a></li><li><a href="global.html#getBackingMap">getBackingMap</a></li><li><a href="global.html#getCountdownTimer">getCountdownTimer</a></li><li><a href="global.html#getDeferred">getDeferred</a></li><li><a href="global.html#getGatekeeper">getGatekeeper</a></li><li><a href="global.html#getLoopingTimer">getLoopingTimer</a></li><li><a href="global.html#getRateLimit">getRateLimit</a></li><li><a href="global.html#getTimerMgr">getTimerMgr</a></li><li><a href="global.html#is12Hr">is12Hr</a></li><li><a href="global.html#is24Hr">is24Hr</a></li><li><a href="global.html#isISO8601">isISO8601</a></li><li><a href="global.html#isNumber">isNumber</a></li><li><a href="global.html#maxList">maxList</a></li><li><a href="global.html#membersToMappedList">membersToMappedList</a></li><li><a href="global.html#membersToString">membersToString</a></li><li><a href="global.html#minList">minList</a></li><li><a href="global.html#parseDuration">parseDuration</a></li><li><a href="global.html#recreateRule">recreateRule</a></li><li><a href="global.html#reduceDecendentStates">reduceDecendentStates</a></li><li><a href="global.html#reduceMemberStates">reduceMemberStates</a></li><li><a href="global.html#removeRule">removeRule</a></li><li><a href="global.html#ruleExists">ruleExists</a></li><li><a href="global.html#runRule">runRule</a></li><li><a href="global.html#sumList">sumList</a></li><li><a href="global.html#toDateTime">toDateTime</a></li><li><a href="global.html#toToday">toToday</a></li><li><a href="global.html#toTomorrow">toTomorrow</a></li><li><a href="global.html#toYesterday">toYesterday</a></li><li><a href="global.html#validateLibraries">validateLibraries</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Aug 13 2026 19:19:27 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

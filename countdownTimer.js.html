@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: countdownTimer.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: countdownTimer.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { LoopingTimer } = require('openhab_rules_tools');
+const { time, items, actions } = require('openhab');
+const helpers = require('./helpers');
+
+/**
+ * Timer that updates a passed in Item with the number of seconds reamining on the
+ * Timer once a second.
+ */
+class CountdownTimer {
+
+  /**
+   * Creates a timer to run func at when and a looping timer to update
+   * countItem with the seconds remaining every second. Both timers start
+   * immediately.
+   * @param {*} when time.toZDT compatible time or duration
+   * @param {function} func function to call at when
+   * @param {string} countItem name of the Item to update with the seconds remaining
+   * @param {string} [name] countdown name displayed in openHAB
+   * @param {string} [key] key for the backing map in the cache
+   * @param {object} [cacheObj] cache object to use (defaults to cache.private if key is provided)
+   */
+  constructor(when, func, countItem, name, key, cacheObj) {
+    this.state = helpers.getBackingMap(key, cacheObj);
+    this._cacheObj = cacheObj;
+
+    if (when !== undefined) {
+      if (key) this.state.put('ltKey', key + '_loop');
+      this.start = time.toZDT();
+      this.end = time.toZDT(when);
+      this.ONE_SEC = time.Duration.ofSeconds(1);
+
+      // Create a separate timer to run the func
+      this.timer = actions.ScriptExecution.createTimer(this.end, func);
+      this.timeLeft = time.Duration.between(this.start, this.end);
+
+      // Start the countdown timer
+      this.countItem = countItem;
+      const ltKey = key ? key + '_loop' : undefined;
+      this._countdownTimer = LoopingTimer(ltKey, cacheObj);
+      this._countdownTimer.loop(this.#iterateGenerator(this), 0, name); // start now
+    }
+  }
+
+  get start() { return this.state.get('start'); }
+  set start(val) { if (val === null || val === undefined) this.state.remove('start'); else this.state.put('start', val); }
+
+  get end() { return this.state.get('end'); }
+  set end(val) { if (val === null || val === undefined) this.state.remove('end'); else this.state.put('end', val); }
+
+  get ONE_SEC() { return this.state.get('ONE_SEC'); }
+  set ONE_SEC(val) { if (val === null || val === undefined) this.state.remove('ONE_SEC'); else this.state.put('ONE_SEC', val); }
+
+  get timer() { return this.state.get('timer'); }
+  set timer(val) { if (val === null || val === undefined) this.state.remove('timer'); else this.state.put('timer', val); }
+
+  get timeLeft() { return this.state.get('timeLeft'); }
+  set timeLeft(val) { if (val === null || val === undefined) this.state.remove('timeLeft'); else this.state.put('timeLeft', val); }
+
+  get countItem() { return this.state.get('countItem'); }
+  set countItem(val) { if (val === null || val === undefined) this.state.remove('countItem'); else this.state.put('countItem', val); }
+
+  get countdownTimer() {
+    if (!this._countdownTimer) {
+      const ltKey = this.state.get('ltKey');
+      if (ltKey) {
+        this._countdownTimer = LoopingTimer(ltKey, this._cacheObj);
+      } else {
+        this._countdownTimer = LoopingTimer();
+      }
+    }
+    return this._countdownTimer;
+  }
+  set countdownTimer(val) {
+    this._countdownTimer = val;
+  }
+
+  /**
+   * Determines the number of seconds left and updates the count Item. If the
+   * time left is less than a second, 0 is the value posted.
+   * @param {CountdownTimer} ctx Context to access the timer information from inside the countdown Timer's lambda
+   */
+  #updateItem(ctx) {
+    let left = (ctx.timeLeft.compareTo(ctx.ONE_SEC) &lt; 0) ? 0 : ctx.timeLeft.seconds();
+    items.getItem(ctx.countItem).postUpdate(left);
+  }
+
+  /**
+   * Drives the looping timer that updates the countItem. Runs once a second until
+   * the time has run out, calling updateItem each time.
+   * @param {CountdownTimer} ctx Context to access the timer information from inside the looping timer
+   */
+  #iterateGenerator(ctx) {
+    return () => {
+      ctx.#updateItem(ctx);
+      if (!ctx.timeLeft.isZero()) {
+        let sleepTime = (ctx.timeLeft.compareTo(ctx.ONE_SEC) &lt; 0) ? ctx.timeLeft : ctx.ONE_SEC;
+        ctx.timeLeft = ctx.timeLeft.minusDuration(sleepTime);
+        return 'PT1s';
+      }
+      else {
+        return null;
+      }
+    }
+  }
+
+  /**
+   * @returns {boolean} true when the timer has exited
+   */
+  hasTerminated() {
+    return this.timer.hasTerminated();
+  }
+
+  /**
+   * Cancels the running timer, if it's running.
+   * @returns {boolean} true if timer was cancelled.
+   */
+  cancel() {
+    this.timeLeft = time.Duration.ofSeconds(0);
+    this.#updateItem(this);
+    this.countDownTimer?.cancel();
+    return this.timer.cancel();
+  }
+}
+
+/**
+ * A countdown timer updates an Item with the number of seconds left in the timer
+ * once a second.
+ * @param {*} when time.toZDT compatible time or duration
+ * @param {function} func function to call at when
+ * @param {string} countItem name of the Item to update with the seconds remaining
+ * @param {string} [name] countdown name displayed in openHAB
+ * @param {string} [key] key for the backing map in the cache
+ * @param {object} [cacheObj] cache object to use
+ * @returns a new CountdownTimer
+ */
+function getCountdownTimer(when, func, countItem, name, key, cacheObj) {
+  return new CountdownTimer(when, func, countItem, name, key, cacheObj);
+}
+
+module.exports = {
+  CountdownTimer,
+  getCountdownTimer
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="CountdownTimer.html">CountdownTimer</a></li><li><a href="Deferred.html">Deferred</a></li><li><a href="Gatekeeper.html">Gatekeeper</a></li><li><a href="LoopingTimer.html">LoopingTimer</a></li><li><a href="RateLimit.html">RateLimit</a></li><li><a href="TimerMgr.html">TimerMgr</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_validateVersionNum">_validateVersionNum</a></li><li><a href="global.html#avgList">avgList</a></li><li><a href="global.html#betweenTimes">betweenTimes</a></li><li><a href="global.html#checkGrpAndMetadata">checkGrpAndMetadata</a></li><li><a href="global.html#compareVersions">compareVersions</a></li><li><a href="global.html#countList">countList</a></li><li><a href="global.html#createRuleWithMetadata">createRuleWithMetadata</a></li><li><a href="global.html#createRuleWithTags">createRuleWithTags</a></li><li><a href="global.html#createTimer">createTimer</a></li><li><a href="global.html#descendentsToMappedList">descendentsToMappedList</a></li><li><a href="global.html#descendentsToString">descendentsToString</a></li><li><a href="global.html#durationToDateTime">durationToDateTime</a></li><li><a href="global.html#generateTriggers">generateTriggers</a></li><li><a href="global.html#getBackingMap">getBackingMap</a></li><li><a href="global.html#getCountdownTimer">getCountdownTimer</a></li><li><a href="global.html#getDeferred">getDeferred</a></li><li><a href="global.html#getGatekeeper">getGatekeeper</a></li><li><a href="global.html#getLoopingTimer">getLoopingTimer</a></li><li><a href="global.html#getRateLimit">getRateLimit</a></li><li><a href="global.html#getTimerMgr">getTimerMgr</a></li><li><a href="global.html#is12Hr">is12Hr</a></li><li><a href="global.html#is24Hr">is24Hr</a></li><li><a href="global.html#isISO8601">isISO8601</a></li><li><a href="global.html#isNumber">isNumber</a></li><li><a href="global.html#maxList">maxList</a></li><li><a href="global.html#membersToMappedList">membersToMappedList</a></li><li><a href="global.html#membersToString">membersToString</a></li><li><a href="global.html#minList">minList</a></li><li><a href="global.html#parseDuration">parseDuration</a></li><li><a href="global.html#recreateRule">recreateRule</a></li><li><a href="global.html#reduceDecendentStates">reduceDecendentStates</a></li><li><a href="global.html#reduceMemberStates">reduceMemberStates</a></li><li><a href="global.html#removeRule">removeRule</a></li><li><a href="global.html#ruleExists">ruleExists</a></li><li><a href="global.html#runRule">runRule</a></li><li><a href="global.html#sumList">sumList</a></li><li><a href="global.html#toDateTime">toDateTime</a></li><li><a href="global.html#toToday">toToday</a></li><li><a href="global.html#toTomorrow">toTomorrow</a></li><li><a href="global.html#toYesterday">toYesterday</a></li><li><a href="global.html#validateLibraries">validateLibraries</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Aug 13 2026 19:19:27 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
