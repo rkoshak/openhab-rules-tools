@@ -92,17 +92,18 @@ The following sections describe the purpose and detailed usage examples of each 
 
 Name | Purpose
 |-|-
-`CountdownTimer` | Implements a timer that updates a `Number` or `Number:Timer` Item once a second with the amount of time remaining on that timer.
-`Deferred` | Allows one to easily schedule an update or command to be sent to an Item in the future.
-`Gatekeeper` | Schedules a sequence of actions with a time between one to the next (e.g., to prevent rate limits or schedule sequential tasks).
-`LoopingTimer` | Creates a timer that loops until a condition is met.
-`RateLimit` | Implements a check that ignores an action if it occurs too soon after the previous action.
-`timeUtils` | A collection of functions that convert and manipulate times and durations.
-`TimerMgr` | A class that provides bookkeeping and management of multiple timers.
-`testUtils` | A collection of functions useful for testing.
-`groupUtils` | A collection of functions to simplify mapping and reducing members or descendants of a Group.
-`rulesUtils` | A collection of functions to simplify the creation of a rule triggered by Items with a given tag or given Item metadata.
-`helpers` | Helper functions to centralize common operations (like centralizing named timer creation).
+[`CountdownTimer`](https://rkoshak.github.io/openhab-rules-tools/CountdownTimer.html) | Implements a timer that updates a `Number` or `Number:Timer` Item once a second with the amount of time remaining on that timer.
+[`Deferred`](https://rkoshak.github.io/openhab-rules-tools/Deferred.html) | Allows one to easily schedule an update or command to be sent to an Item in the future.
+[`Gatekeeper`](https://rkoshak.github.io/openhab-rules-tools/Gatekeeper.html) | Schedules a sequence of actions with a time between one to the next (e.g., to prevent rate limits or schedule sequential tasks).
+[`LoopingTimer`](https://rkoshak.github.io/openhab-rules-tools/LoopingTimer.html) | Creates a timer that loops until a condition is met.
+[`RateLimit`](https://rkoshak.github.io/openhab-rules-tools/RateLimit.html) | Implements a check that ignores an action if it occurs too soon after the previous action.
+[`timeUtils`](https://rkoshak.github.io/openhab-rules-tools/timeUtils.js.html) | A collection of functions that convert and manipulate times and durations.
+[`TimerMgr`](https://rkoshak.github.io/openhab-rules-tools/TimerMgr.html) | A class that provides bookkeeping and management of multiple timers.
+[`groupUtils`](https://rkoshak.github.io/openhab-rules-tools/groupUtils.js.html) | A collection of functions to simplify mapping and reducing members or descendants of a Group.
+[`rulesUtils`](https://rkoshak.github.io/openhab-rules-tools/rulesUtils.js.html) | A collection of functions to simplify the creation of a rule triggered by Items with a given tag or given Item metadata.
+[`helpers`](https://rkoshak.github.io/openhab-rules-tools/helpers.js.html) | Helper functions to centralize common operations (like centralizing named timer creation).
+
+Full generated docs for the library can be found at https://rkoshak.github.io/openhab-rules-tools/. 
 
 ---
 
