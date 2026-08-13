@@ -10,7 +10,18 @@
     "url": "git+https://github.com/rkoshak/openhab-rules-tools.git#main"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
+  },
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/tests/mockOpenHAB.js"
+    ],
+    "testMatch": [
+      "**/tests/unit/**/*.test.js"
+    ],
+    "moduleNameMapper": {
+      "^openhab_rules_tools$": "<rootDir>/index.js"
+    }
   },
   "keywords": [
     "openHAB",
@@ -21,6 +32,8 @@
     "url": "https://github.com/rkoshak/openhab-rules-tools/issues"
   },
   "devDependencies": {
+    "@js-joda/core": "^6.1.0",
+    "jest": "^30.4.2",
     "openhab": "^5.11.1"
   }
 }
