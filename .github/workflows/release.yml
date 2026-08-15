@@ -1,0 +1,64 @@
+name: Release and Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Select version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # Required to commit, tag, and create GitHub Release
+      id-token: write   # Required for npm OIDC Trusted Publishing
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump Version in package.json & package-lock.json
+        run: |
+          npm version ${{ inputs.bump_type }} -m "chore(release): %s [skip ci]"
+
+      - name: Push Changes and Tags
+        run: |
+          git push origin main --follow-tags
+          # Note: If your default branch is 'master' instead of 'main', change 'main' above to 'master'
+
+      - name: Extract Version Number
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: v${{ steps.get_version.outputs.version }}
+          generate_release_notes: true
+
+      - name: Ensure Latest npm (Required for OIDC)
+        run: npm install -g npm@latest
+
+      - name: Publish to npm
+        run: npm publish
