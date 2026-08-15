@@ -436,6 +436,10 @@ jest.mock('@runtime/metadata', () => {
   };
 }, { virtual: true });
 
+jest.mock('@runtime/provider', () => {
+  return {};
+}, { virtual: true });
+
 // Require ACTUAL openhab-js and build the mocked module
 const mockActualOpenhab = jest.requireActual('openhab');
 
