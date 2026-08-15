@@ -27,8 +27,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '24'
+          # NOTE: registry-url is intentionally removed so it doesn't create a .npmrc that blocks OIDC
 
       - name: Configure Git User
         run: |
