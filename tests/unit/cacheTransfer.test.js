@@ -60,4 +60,23 @@ describe('Cache Transfer and Javaify/Jsify Integration', () => {
     retrievedLimit.run(action, 'PT2s');
     expect(action).toHaveBeenCalledTimes(2);
   });
+
+  test('TimerMgr triggers cache write-back upon checking and cancelling timers', () => {
+    const mockCache = {
+      put: jest.fn(),
+      get: jest.fn(() => new Map())
+    };
+    
+    // Create TimerMgr with mock cache
+    const mgr = new TimerMgr('test-mgr-key', mockCache);
+    
+    // 1. Adding a timer should trigger write-back
+    mgr.check('t1', 'PT1s', () => {});
+    expect(mockCache.put).toHaveBeenCalledWith('test-mgr-key', expect.any(Object));
+
+    // 2. Cancelling the timer should trigger write-back
+    mockCache.put.mockClear();
+    mgr.cancel('t1');
+    expect(mockCache.put).toHaveBeenCalledWith('test-mgr-key', expect.any(Object));
+  });
 });
