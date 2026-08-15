@@ -132,6 +132,8 @@ global.Java = {
         return ConcurrentHashMap;
       case 'java.util.Hashtable':
         return ConcurrentHashMap;
+      case 'java.util.HashMap':
+        return ConcurrentHashMap;
       case 'java.util.ArrayDeque':
         return ArrayDeque;
       case 'java.lang.Thread':
