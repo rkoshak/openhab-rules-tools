@@ -99,7 +99,9 @@ class Thread {
 
 global.Java = {
   isJavaObject(obj) {
-    return obj && (obj.constructor && (obj.constructor.name === 'ConcurrentHashMap' || obj.constructor.name === 'ArrayDeque' || obj.constructor.name === 'DummyJavaClass' || obj.constructor.name === 'FrameworkUtil'));
+    if (!obj || !obj.constructor) return false;
+    const name = obj.constructor.name;
+    return name !== 'Object' && name !== 'Array' && name !== 'Function';
   },
   isType(obj) {
     return false;
