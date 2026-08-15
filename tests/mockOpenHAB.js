@@ -98,6 +98,15 @@ class Thread {
 }
 
 global.Java = {
+  isJavaObject(obj) {
+    return obj && (obj.constructor && (obj.constructor.name === 'ConcurrentHashMap' || obj.constructor.name === 'ArrayDeque' || obj.constructor.name === 'DummyJavaClass' || obj.constructor.name === 'FrameworkUtil'));
+  },
+  isType(obj) {
+    return false;
+  },
+  typeName(obj) {
+    return obj && obj.name;
+  },
   type(className) {
     switch (className) {
       case 'org.osgi.framework.FrameworkUtil':
