@@ -30,16 +30,21 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Install Dependencies
         run: npm install
 
       - name: Run Unit Tests
         run: npm test
 
-      - name: Configure Git User
+      - name: Commit Runner Lockfile Updates (if any)
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git diff --staged --quiet || git commit -m "chore: auto-update package-lock.json [skip ci]"
 
       - name: Bump Version in package.json & package-lock.json
         run: |
