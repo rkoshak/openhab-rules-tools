@@ -454,7 +454,7 @@ const makeCache = () => {
       map.set(key, javaified);
       return javaified;
     },
-    get(key, defaultFunc) {
+    get(key, defaultFunc, jsify) {
       if (!map.has(key)) {
         if (defaultFunc) {
           const defaultValue = defaultFunc();
@@ -463,7 +463,10 @@ const makeCache = () => {
           return null;
         }
       }
-      // jsify back using the real openhab-js method
+      // jsify back using the real openhab-js method unless jsify is explicitly false
+      if (jsify === false) {
+        return map.get(key);
+      }
       return utilsJsify(map.get(key));
     },
     containsKey(key) {

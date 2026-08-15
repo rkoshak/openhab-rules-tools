@@ -146,140 +146,6 @@ const validateLibraries = (minOHJS, minOHRT) => {
     + VERSION + ' installed, ' + minOHRT + ' required';
 };
 
-class MapWrapper {
-  constructor(map, key, cacheObj) {
-    this.map = map;
-    this.key = key;
-    this.cacheObj = cacheObj;
-  }
-
-  #writeBack() {
-    if (this.key && this.cacheObj && typeof this.cacheObj.put === 'function') {
-      this.cacheObj.put(this.key, this.map);
-    }
-  }
-
-  containsKey(key) {
-    if (this.map && typeof this.map.containsKey === 'function') {
-      return this.map.containsKey(key);
-    } else if (this.map && typeof this.map.has === 'function') {
-      return this.map.has(key);
-    } else {
-      return this.map ? (key in this.map) : false;
-    }
-  }
-
-  has(key) {
-    return this.containsKey(key);
-  }
-
-  get(key) {
-    if (this.map && typeof this.map.get === 'function') {
-      return this.map.get(key);
-    } else {
-      return this.map ? this.map[key] : undefined;
-    }
-  }
-
-  put(key, value) {
-    let result;
-    if (this.map && typeof this.map.put === 'function') {
-      result = this.map.put(key, value);
-    } else if (this.map && typeof this.map.set === 'function') {
-      this.map.set(key, value);
-      result = value;
-    } else if (this.map) {
-      this.map[key] = value;
-      result = value;
-    }
-    this.#writeBack();
-    return result;
-  }
-
-  set(key, value) {
-    return this.put(key, value);
-  }
-
-  remove(key) {
-    let result;
-    if (this.map && typeof this.map.remove === 'function') {
-      result = this.map.remove(key);
-    } else if (this.map && typeof this.map.delete === 'function') {
-      result = this.map.get(key);
-      this.map.delete(key);
-    } else if (this.map) {
-      result = this.map[key];
-      delete this.map[key];
-    }
-    this.#writeBack();
-    return result;
-  }
-
-  delete(key) {
-    return this.remove(key);
-  }
-
-  clear() {
-    if (this.map && typeof this.map.clear === 'function') {
-      this.map.clear();
-    } else if (this.map) {
-      for (const key of Object.keys(this.map)) {
-        delete this.map[key];
-      }
-    }
-    this.#writeBack();
-  }
-
-  keySet() {
-    const self = this;
-    return {
-      iterator() {
-        let keys;
-        if (self.map && typeof self.map.keySet === 'function') {
-          const javaIterator = self.map.keySet().iterator();
-          return {
-            hasNext() { return javaIterator.hasNext(); },
-            next() { return javaIterator.next(); }
-          };
-        } else if (self.map && typeof self.map.keys === 'function') {
-          keys = Array.from(self.map.keys());
-        } else if (self.map) {
-          keys = Object.keys(self.map);
-        } else {
-          keys = [];
-        }
-        let index = 0;
-        return {
-          hasNext() {
-            return index < keys.length;
-          },
-          next() {
-            return keys[index++];
-          }
-        };
-      }
-    };
-  }
-
-  keys() {
-    if (this.map && typeof this.map.keys === 'function') {
-      return this.map.keys();
-    }
-    const self = this;
-    const iterator = this.keySet().iterator();
-    return {
-      [Symbol.iterator]() { return this; },
-      next() {
-        if (iterator.hasNext()) {
-          return { value: iterator.next(), done: false };
-        } else {
-          return { done: true };
-        }
-      }
-    };
-  }
-}
-
 /**
  * Retrieves or creates a backing Java ConcurrentHashMap in the specified cache.
  * If no cache is specified, cache.private is used. If no key is specified,
@@ -287,22 +153,25 @@ class MapWrapper {
  *
  * @param {string} [key] key to store/retrieve the map in the cache
  * @param {object} [cacheObj] the cache object to use (e.g., cache.shared or cache.private), defaults to cache.private if key is provided
- * @returns {java.util.Map} Java Map wrapped in MapWrapper for JS Map compatibility
+ * @returns {java.util.Map} Java Map
  */
 const getBackingMap = (key, cacheObj) => {
   const ConcurrentHashMap = Java.type('java.util.concurrent.ConcurrentHashMap');
-  let rawMap;
   const c = cacheObj || (typeof cache !== 'undefined' ? cache.private : null);
   if (key === null || key === undefined) {
-    rawMap = new ConcurrentHashMap();
-  } else {
-    if (!c) {
-      rawMap = new ConcurrentHashMap();
-    } else {
-      rawMap = c.get(key, () => new ConcurrentHashMap());
-    }
+    return new ConcurrentHashMap();
   }
-  return new MapWrapper(rawMap, key, c);
+  if (!c) {
+    return new ConcurrentHashMap();
+  }
+  
+  // Only pass the third argument (jsify = false) if we are explicitly using the shared cache
+  const isShared = (typeof cache !== 'undefined' && c === cache.shared);
+  if (isShared) {
+    return c.get(key, () => new ConcurrentHashMap(), false);
+  } else {
+    return c.get(key, () => new ConcurrentHashMap());
+  }
 };
 
 module.exports = {
@@ -311,6 +180,5 @@ module.exports = {
   compareVersions,
   validateLibraries,
   getBackingMap,
-  MapWrapper,
   OHRT_VERSION: VERSION
 };
