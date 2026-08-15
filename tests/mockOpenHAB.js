@@ -100,6 +100,25 @@ class Thread {
 global.Java = {
   type(className) {
     switch (className) {
+      case 'org.osgi.framework.FrameworkUtil':
+        return class FrameworkUtil {
+          static getBundle(clazz) {
+            return {
+              getHeaders() {
+                return {
+                  get(key) {
+                    return '5.12.0';
+                  }
+                };
+              },
+              getVersion() {
+                return {
+                  toString() { return '5.12.0'; }
+                };
+              }
+            };
+          }
+        };
       case 'java.util.concurrent.ConcurrentHashMap':
         return ConcurrentHashMap;
       case 'java.util.Hashtable':
