@@ -19,13 +19,11 @@ ruleTemplates:
         description: Starting point latitude,longitude or text address
         required: true
         type: TEXT
-        context: location
       destPoint:
         label: Destination
         description: Ending point latitude,longitude or text address
         required: true  
         type: TEXT
-        context: location
       targetArrival:
         label: Target Arrival Time
         description: The absolute time you MUST arrive at the destination (e.g., 08:30 AM).
