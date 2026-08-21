@@ -1,0 +1,166 @@
+version: 1
+
+ruleTemplates:
+  ohrt-driveTimeGoogle:
+    label: Predictive Driving Time (Google Maps)
+    description: Calculates future travel time and distance between two points using historical traffic trends and active accidents.
+    tags:
+      - OHRT
+      - Version_0.1
+    configDescriptions:
+      apiKey:
+        label: Google Maps API Key
+        description: Your Google Cloud Console API Key with the Distance Matrix API enabled.
+        required: true
+        type: TEXT
+        context: password
+      startPoint:
+        label: Start
+        description: Starting point latitude,longitude or text address
+        required: true
+        type: TEXT
+        context: location
+      destPoint:
+        label: Destination
+        description: Ending point latitude,longitude or text address
+        required: true  
+        type: TEXT
+        context: location
+      targetArrival:
+        label: Target Arrival Time
+        description: The absolute time you MUST arrive at the destination (e.g., 08:30 AM).
+        required: true
+        type: TEXT
+        context: time
+      lookaheadMinutes:
+        label: Lookahead Window (Minutes)
+        description: Your "get ready and out the door" buffer. How many minutes into the future Google will evaluate traffic conditions.
+        required: true
+        defaultValue: 20
+        type: INTEGER
+        min: 0
+      trafficModel:
+        label: Traffic Model Strategy
+        description: How conservatively Google should estimate traffic. 'pessimistic' is highly recommended for school runs.
+        required: true
+        defaultValue: pessimistic
+        type: TEXT
+        options:
+          - label: Best Guess
+            value: best_guess
+          - label: Pessimistic (Worst Case)
+            value: pessimistic
+          - label: Optimistic (Best Case)
+            value: optimistic
+        limitToOptions: true
+      timeItem:
+        label: Travel Time Item
+        description: Item that stores the predicted travel time.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Number:Time
+        required: true
+      distanceItem:
+        label: Travel Distance Item
+        description: Item that stores the route distance. This will fluctuate if Google reroutes around accidents.
+        type: TEXT
+        context: item
+        filterCriteria:
+          - name: type
+            value: Number:Length
+        required: true
+    actions:
+      - id: calc_drivetime_google
+        label: Calculate Predictive Drive Time via Google Maps
+        description: Uses the Google Maps Distance Matrix API to calculate future drive times.
+        type: Script
+        config:
+          type: JavaScript
+          script: |
+            'use wrapper=true'
+            const loggerBase = 'org.openhab.automation.ohrt-futureDriveTime.' + ruleUID;
+            console.loggerName = loggerBase;
+            // osgi.getService('org.apache.karaf.log.core.LogService').setLevel(console.loggerName, 'TRACE');
+            
+            // Rule Configuration Properties
+            const API_KEY = "{{apiKey}}".trim();
+            const FROM_COORD = "{{startPoint}}".trim();
+            const TO_COORD = "{{destPoint}}".trim();
+            const timeItem = items.{{timeItem}};
+            const distanceItem = items.{{distanceItem}};
+            
+            const lookaheadMinutes = parseInt("{{lookaheadMinutes}}");
+            const trafficModel = "{{trafficModel}}";
+            
+            // 1. Future Departure Calculations
+            const now = time.ZonedDateTime.now();
+            const futureDepartureTime = now.plusMinutes(lookaheadMinutes);
+            const futureDepartureEpoch = futureDepartureTime.toEpochSecond();
+            
+            // 2. Hardcoded Absolute Google Endpoint URL (Bypassing any variable concatenation bugs)
+            const URL = "https://maps.googleapis.com/maps/api/distancematrix/json"
+                        + "?origins=" + encodeURIComponent(FROM_COORD)
+                        + "&destinations=" + encodeURIComponent(TO_COORD)
+                        + "&departure_time=" + futureDepartureEpoch
+                        + "&traffic_model=" + trafficModel
+                        + "&key=" + API_KEY;
+            
+            console.debug("Requesting future traffic prediction for departure at " + futureDepartureTime.toString() + " using URL: " + URL);
+            
+            try {
+              // 3. Execute HTTP Request
+              const rawJSON = actions.HTTP.sendHttpGetRequest(URL, 60000);
+              
+              if (rawJSON === null || rawJSON === undefined || rawJSON.trim() === "") {
+                console.error("Google Maps API request returned a completely empty or null response.");
+                return;
+              }
+            
+              // HTML Gateway check: Instantly intercept and handle any network routing or proxy error pages safely
+              if (rawJSON.trim().startsWith("<!DOCTYPE") || rawJSON.trim().startsWith("<html")) {
+                console.error("CRITICAL URL CONFIGURATION ERROR: Google Maps returned an HTML error page instead of a JSON payload.");
+                console.error("Returned HTML Context (First 300 chars): " + rawJSON.substring(0, 300));
+                return;
+              }
+            
+              // 4. Safe Parse
+              const parsed = JSON.parse(rawJSON);
+            
+              // 5. Validate Google API Internal Status Flags
+              if (parsed.status !== "OK") {
+                console.error("Google Maps API returned a top-level error status: " + parsed.status + ". Error Message: " + parsed.error_message);
+                return;
+              }
+            
+              // Verify rows and elements arrays exist before deep indexing
+              if (!parsed.rows || !parsed.rows[0] || !parsed.rows[0].elements || !parsed.rows[0].elements[0]) {
+                console.error("Google Maps API returned a valid JSON format, but the expected routing payload structure is missing.");
+                return;
+              }
+            
+              const element = parsed.rows[0].elements[0];
+              if (element.status !== "OK") {
+                console.error("Google Maps Route Evaluation Failed: " + element.status + ". This usually means the coordinates cannot be routed by car.");
+                return;
+              }
+            
+              // 6. Extract Metrics
+              const distanceMeters = element.distance.value; 
+              const durationSeconds = element.duration_in_traffic ? element.duration_in_traffic.value : element.duration.value;
+            
+              // 7. Handle openHAB UoM Quantities
+              const timeQuantity = Quantity(durationSeconds + ' s');
+              const distanceQuantity = Quantity(distanceMeters + ' m');
+            
+              console.debug("Predicted travel time (with traffic): " + timeQuantity.toUnit("min") + ", Route distance: " + distanceQuantity.toUnit("mi"));
+            
+              // 8. Update items
+              timeItem.postUpdate(timeQuantity);
+              distanceItem.postUpdate(distanceQuantity);
+            
+            } catch (error) {
+              console.error("An unhandled exception occurred while processing the Google Maps API request: " + error);
+            }
+            
